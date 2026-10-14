@@ -1,9 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 
-// 운영 전 문의 이메일과 예시 후기를 실제 정보로 교체하세요.
-const contactEmail = "hello@example.com";
+const contactEmail = "divewook@naver.com";
+const naverReviewUrl = "https://map.naver.com/p/entry/place/1768533167?placePath=%2Freview";
+const heroImages = [
+  "/DSC02297.jpg",
+  "/DSC04128-Enhanced-NR.jpg",
+  "/DSC05353-Enhanced-NR.jpg",
+  "/DSC06986.jpg",
+];
 
 // 코스명은 아래 categories의 title과 정확히 일치시켜 주세요.
 // 실제 사진·자격·경력·카카오 오픈채팅 주소는 확인된 정보만 등록합니다.
@@ -145,8 +152,8 @@ const directoryInstructors = instructorRecords.map((record) => ({
   role: record.role || "교육강사",
   initials: record.name.slice(-2),
   photoUrl: record.photoUrl || "",
-  certifications: record.certifications || "자격 정보 등록 예정",
-  experience: record.experience || "강사 소개 준비 중",
+  certifications: record.certifications || "PSA 자격 보유",
+  experience: record.experience || "BLUE PEACE 소속 강사",
   specialties: Object.keys(record.courses).map((id) => categories.find((category) => category.id === id).name),
   kakaoUrl: record.kakaoUrl || "https://open.kakao.com/",
 }));
@@ -162,36 +169,37 @@ function shuffledInstructorIds() {
 }
 
 const trustStats = [
-  { value: "2,000명+", label: "누적 교육생" },
-  { value: "12명", label: "현재 등록 강사" },
+  { value: "892명+", label: "누적 교육생" },
+  { value: "22명", label: "소속 전문강사" },
   { value: "100%", label: "자격증 발급률" },
-  { value: "무제한", label: "실습 보장" },
+  { value: "무제한 진행", label: "실습 보장" },
 ];
 
-const sampleReviews = [
+// 네이버 플레이스의 공개 방문자 리뷰를 짧게 요약했습니다. 원문은 출처 링크에서 확인할 수 있습니다.
+const placeReviews = [
   {
-    title: "첫 바다의 기억",
-    quote: "물속에 들어가기 전엔 긴장했는데, 호흡부터 천천히 배우니 어느새 바다를 즐기고 있었어요.",
-    author: "김○○",
-    course: "성인 프리다이빙",
-  },
-  {
-    title: "배움의 순간",
-    quote: "작은 자세 하나가 달라졌을 뿐인데 물속 움직임이 훨씬 편해졌어요. 제 속도에 맞춰 배울 수 있어 좋았습니다.",
-    author: "박○○",
+    title: "아이의 눈높이에 맞춘 수업",
+    quote: "기본부터 차근차근 지도하고 아이와 소통하며 가능성을 끌어내 준 점이 좋았어요.",
+    author: "유니3971",
     course: "유스 프리다이빙",
   },
   {
-    title: "다음 도전의 시작",
-    quote: "기록보다 안전과 기본을 먼저 생각하게 됐어요. 다음 바다에서는 조금 더 여유롭게 다이빙하고 싶습니다.",
-    author: "이○○",
-    course: "스쿠버다이빙",
+    title: "컨디션에 맞춘 세심한 지도",
+    quote: "그날의 상태에 맞춰 수업을 이끌어 주고 핀 동작도 세심하게 교정해 주셨어요.",
+    author: "cuc****",
+    course: "유스 프리다이빙",
   },
   {
-    title: "새로운 움직임",
-    quote: "물속에서 움직이는 시간이 편안하고 즐거웠어요. 처음부터 차근차근 알려주셔서 부담 없이 배웠습니다.",
-    author: "정○○",
-    course: "머메이드 다이빙",
+    title: "꼼꼼한 피드백",
+    quote: "자세를 하나씩 살펴주고 어려운 부분은 함께 고민해 줬어요. 사진과 영상으로 복습할 수 있어 좋았습니다.",
+    author: "hos****",
+    course: "프리다이빙 수업",
+  },
+  {
+    title: "조금씩 쌓인 자신감",
+    quote: "강사님들의 단계적인 지도 덕분에 예전에는 어려웠던 10m 깊이도 한결 편안해졌어요.",
+    author: "썸띵헬ㅆl",
+    course: "성인 프리다이빙",
   },
 ];
 
@@ -205,6 +213,7 @@ function ArrowIcon({ diagonal = false }) {
 
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState(0);
+  const [heroIndex, setHeroIndex] = useState(0);
   const [selectedInstructorId, setSelectedInstructorId] = useState(null);
   const [inquiryCourse, setInquiryCourse] = useState("");
   const [inquiryCategoryId, setInquiryCategoryId] = useState(null);
@@ -213,7 +222,6 @@ export default function HomePage() {
   const [instructorSearch, setInstructorSearch] = useState("");
   const [instructorOrder, setInstructorOrder] = useState(() => directoryInstructors.map((instructor) => instructor.id));
   const dialogRef = useRef(null);
-  const instructorSectionRef = useRef(null);
   const activeCategory = categories[activeTab];
   const selectedInstructor = directoryInstructors.find((instructor) => instructor.id === selectedInstructorId);
   const generalInquiryUrl = `mailto:${contactEmail}?subject=${encodeURIComponent(`블루피스 ${inquiryCourse || "교육"} 전체 문의`)}`;
@@ -221,14 +229,9 @@ export default function HomePage() {
   const orderedInstructors = useMemo(() => instructorOrder.map((id) => directoryInstructors.find((instructor) => instructor.id === id)), [instructorOrder]);
 
   useEffect(() => {
-    setInstructorOrder(shuffledInstructorIds());
-    const section = instructorSectionRef.current;
-    if (!section) return;
-    const observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting) setInstructorOrder(shuffledInstructorIds());
-    }, { threshold: 0.15 });
-    observer.observe(section);
-    return () => observer.disconnect();
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const timer = window.setInterval(() => setHeroIndex((index) => (index + 1) % heroImages.length), 5000);
+    return () => window.clearInterval(timer);
   }, []);
 
   const eligibleInstructors = orderedInstructors.filter((instructor) => {
@@ -268,13 +271,13 @@ export default function HomePage() {
       <header className="absolute inset-x-0 top-0 z-30 border-b border-white/15 text-white">
         <nav aria-label="주 메뉴" className="mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-5 px-6 py-5 sm:px-10 lg:px-16">
           <a href="#top" className="flex items-center gap-3 text-xl font-bold tracking-[-0.06em] sm:text-2xl">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full border border-white/60 text-lg font-light">~</span>
+            <Image src="/화이트 로고.png" alt="" width={36} height={36} className="h-9 w-9 shrink-0 object-contain" />
             Blue Peace<span className="text-[#76d8e8]">.</span>
           </a>
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs font-medium sm:text-sm lg:gap-x-9">
             <a href="#courses" className="transition hover:text-[#8ce5ed]">교육 과정</a>
             <a href="#gallery" className="transition hover:text-[#8ce5ed]">갤러리</a>
-            <a href="#instructors" onClick={() => setInstructorOrder(shuffledInstructorIds())} className="transition hover:text-[#8ce5ed]">강사진 소개</a>
+            <a href="#instructors" className="transition hover:text-[#8ce5ed]">강사진 소개</a>
             <a href="#reviews" className="transition hover:text-[#8ce5ed]">수강생 후기</a>
             <button type="button" onClick={() => openInquiry()} className="hidden rounded-full border border-white/55 px-5 py-2.5 transition hover:bg-white hover:text-[#073d57] md:inline-flex">교육 문의 ↗</button>
           </div>
@@ -282,10 +285,11 @@ export default function HomePage() {
       </header>
 
       <section id="top" className="relative isolate flex min-h-[780px] items-center bg-[#073954] text-white sm:min-h-[850px]">
-        <div
-          className="absolute inset-0 -z-20 bg-cover bg-[center_36%] lg:bg-fixed"
-          style={{ backgroundImage: "url('https://images.unsplash.com/photo-1743656619958-68d85790bdb4?auto=format&fit=crop&w=2400&q=90')" }}
-        />
+        {heroImages.map((src, index) => (
+          <div key={src} className={`absolute inset-0 -z-20 transition-opacity duration-[1800ms] ease-in-out motion-reduce:transition-none ${heroIndex === index ? "opacity-100" : "opacity-0"}`} aria-hidden="true">
+            <Image src={src} alt="" fill priority={index === 0} sizes="100vw" quality={85} className="object-cover object-center" />
+          </div>
+        ))}
         <div className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(2,24,42,.84)_0%,rgba(3,35,55,.63)_48%,rgba(3,42,62,.22)_100%)]" />
         <div className="absolute inset-0 -z-10 bg-gradient-to-t from-[#031b2f]/75 via-transparent to-[#031b2f]/20" />
         <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_80%_18%,rgba(134,231,235,.22),transparent_42%),radial-gradient(ellipse_at_22%_100%,rgba(0,121,155,.25),transparent_48%)]" />
@@ -295,7 +299,7 @@ export default function HomePage() {
             <span className="h-px w-10 bg-[#8adbe6]" /> Into the blue
           </div>
           <p className="mb-4 text-base font-light tracking-[0.26em] text-white/80 sm:text-lg">BLUE PEACE · FREE DIVING EXPERIENCE</p>
-          <h1 className="max-w-5xl text-[clamp(3.25rem,7.2vw,7rem)] font-semibold leading-[1.09] tracking-[-0.075em]">
+              <h1 className="max-w-5xl break-keep text-[clamp(2.5rem,7.2vw,7rem)] font-semibold leading-[1.09] tracking-[-0.075em] sm:text-[clamp(3.25rem,7.2vw,7rem)]">
             바다 속에서 만나는<br />가장 완벽한 <span className="text-[#a6e7eb]">자유</span>
           </h1>
           <p className="mt-8 max-w-xl text-sm leading-8 text-white/80 sm:text-lg">
@@ -315,9 +319,9 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section aria-label="블루피스 주요 수치 예시" className="relative z-10 bg-[#042c43] px-6 py-9 text-white sm:px-10 lg:px-16">
+      <section aria-label="블루피스 주요 수치" className="relative z-10 bg-[#042c43] px-6 py-9 text-white sm:px-10 lg:px-16">
         <div className="mx-auto max-w-[1312px]">
-          <p className="mb-5 text-[11px] font-bold uppercase tracking-[0.25em] text-[#91dbe4]">Blue Peace in numbers <span className="ml-2 rounded-full border border-white/25 px-2 py-1 normal-case tracking-normal text-white/60">예시 수치 · 확인 후 교체</span></p>
+          <p className="mb-5 text-[11px] font-bold uppercase tracking-[0.25em] text-[#91dbe4]">Blue Peace in numbers</p>
           <div className="grid grid-cols-2 gap-y-7 sm:grid-cols-4">
             {trustStats.map((stat, index) => (
               <div key={stat.label} className={`px-3 sm:px-6 ${index > 0 ? "border-l border-white/15" : ""}`}>
@@ -327,16 +331,6 @@ export default function HomePage() {
             ))}
           </div>
         </div>
-      </section>
-
-      <section className="mx-auto grid max-w-[1440px] gap-10 px-6 py-24 sm:px-10 lg:grid-cols-[1fr_1.1fr] lg:items-end lg:gap-20 lg:px-16 lg:py-32">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#087f9b]">Beyond the surface</p>
-          <h2 className="mt-5 text-4xl font-semibold leading-[1.2] tracking-[-0.06em] sm:text-5xl">깊어질수록,<br />더 선명해지는 나.</h2>
-        </div>
-        <p className="max-w-xl text-base leading-8 text-[#587182] sm:text-lg">
-          프리다이빙은 숫자로 깊이를 증명하는 일이 아닙니다. 호흡과 움직임을 알아가며, 바다 안에서 나만의 속도와 자유를 발견하는 경험입니다.
-        </p>
       </section>
 
       <section id="courses" className="bg-[#eaf2f5] px-6 py-24 sm:px-10 lg:px-16 lg:py-32">
@@ -429,31 +423,30 @@ export default function HomePage() {
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#7bd7e5]">The blue moment</p>
             <h2 className="mt-5 text-4xl font-semibold leading-[1.2] tracking-[-0.06em] sm:text-5xl">말보다 오래 남는<br />바다의 순간</h2>
-            <p className="mt-6 max-w-md leading-8 text-white/65">고요한 물속, 부드러운 빛, 자유로운 움직임. 블루피스가 사랑하는 바다의 장면을 만나보세요.</p>
+            <p className="mt-6 max-w-md break-keep text-lg leading-8 text-white/75">고요한 물속, 부드러운 빛, 자유로운 움직임.</p>
+            <p className="mt-3 max-w-md break-keep text-lg leading-8 text-white/75">블루피스가 사랑하는 바다의 장면을 만나보세요.</p>
           </div>
-          <div className="relative h-[420px] overflow-hidden rounded-[2rem] bg-[#0c6a84] shadow-[0_30px_80px_rgba(0,0,0,.28)] sm:h-[500px]">
-            <div className="absolute inset-0 bg-cover bg-center" role="img" aria-label="깊은 바다에서 하강하는 프리다이버" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1743656620385-5afe20b69b9d?auto=format&fit=crop&w=1600&q=85')" }} />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#031f35]/50 to-transparent" />
-            <span className="absolute bottom-7 left-7 text-xs font-semibold uppercase tracking-[0.3em] text-white/90">Explore the silence</span>
+          <div className="relative mx-auto aspect-[2/3] w-full max-w-[460px] overflow-hidden rounded-[2rem] bg-[#0c6a84] shadow-[0_30px_80px_rgba(0,0,0,.28)]">
+            <Image src="/DSC02240.jpg" alt="햇살이 들어오는 물속에서 다이빙하는 블루피스의 장면" fill sizes="(min-width: 1024px) 460px, 90vw" className="object-contain" />
           </div>
         </div>
       </section>
 
-      <section id="instructors" ref={instructorSectionRef} className="px-6 py-24 sm:px-10 lg:px-16 lg:py-32">
+      <section id="instructors" className="px-6 py-24 sm:px-10 lg:px-16 lg:py-32">
         <div className="mx-auto max-w-[1312px]">
           <div className="mb-11 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#087f9b]">Meet our instructors</p>
               <h2 className="mt-5 break-keep text-4xl font-semibold leading-[1.2] tracking-[-0.06em] sm:text-5xl">나의 바다를 함께할 강사진</h2>
             </div>
-            <p className="max-w-lg break-keep text-sm leading-7 text-[#587182] sm:text-base">블루피스 강사 12명의 담당 가능 과정을 살펴보고 상담할 강사를 선택해 주세요. 김상욱 대표강사는 항상 첫 번째로, 다른 강사진은 방문할 때마다 새로운 순서로 소개합니다.</p>
+            <p className="max-w-lg break-keep text-sm leading-7 text-[#587182] sm:text-base">BLUE PEACE 대표강사 김상욱을 소개합니다. 전체 강사진과 각 강사의 문의 가능 코스는 강사 선택 창에서 확인해 주세요.</p>
           </div>
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-            {orderedInstructors.map((instructor) => (
-              <article key={instructor.id} className="flex h-full min-w-0 flex-col overflow-hidden rounded-[1.75rem] border border-[#d9e7ec] bg-white shadow-[0_18px_50px_rgba(18,57,78,.09)] transition hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(18,57,78,.15)]">
-                <div className="relative flex h-56 items-center justify-center overflow-hidden bg-[linear-gradient(145deg,#0d6780,#062f4b)] text-white sm:h-64">
+          <div className="mx-auto max-w-4xl">
+            {[directoryInstructors[0]].map((instructor) => (
+              <article key={instructor.id} className="flex h-full min-w-0 flex-col overflow-hidden rounded-[1.75rem] border border-[#d9e7ec] bg-white shadow-[0_18px_50px_rgba(18,57,78,.09)] transition hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(18,57,78,.15)] md:flex-row">
+                <div className="relative flex aspect-square items-center justify-center overflow-hidden bg-[linear-gradient(145deg,#0d6780,#062f4b)] text-white md:h-[360px] md:w-[360px] md:shrink-0 md:self-start">
                   {instructor.photoUrl ? (
-                    <img src={instructor.photoUrl} alt={`${instructor.name} 강사 프로필`} className="h-full w-full object-cover object-[center_35%]" />
+                    <Image src={instructor.photoUrl} alt={`${instructor.name} 강사 프로필`} fill sizes="(min-width: 768px) 360px, 90vw" className="object-cover object-[center_35%]" />
                   ) : (
                     <>
                       <div className="absolute -right-12 -top-20 h-64 w-64 rounded-full border border-white/20" />
@@ -466,43 +459,43 @@ export default function HomePage() {
                 <div className="flex flex-1 flex-col p-7 sm:p-8">
                   <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#087f9b]">{instructor.role}</p>
                   <h3 className="mt-2 text-3xl font-semibold tracking-[-0.05em]">{instructor.name}</h3>
-                  <div className="mt-6 space-y-4 border-t border-[#e2ebee] pt-5 text-sm leading-6">
-                    <div><p className="text-xs font-bold text-[#087f9b]">보유 자격증</p><p className="mt-1 break-keep text-[#5c7381]">{instructor.certifications}</p></div>
-                    <div><p className="text-xs font-bold text-[#087f9b]">주요 경력</p><p className="mt-1 break-keep text-[#5c7381]">{instructor.experience}</p></div>
+                  <div className="mt-6 border-t border-[#e2ebee] pt-5 text-sm leading-6">
+                    <p className="text-xs font-bold text-[#087f9b]">소속 및 자격</p>
+                    <p className="mt-1 break-keep text-[#5c7381]">{instructor.experience} · {instructor.certifications}</p>
                   </div>
                   <div className="mt-6 flex flex-wrap gap-2">
                     {instructor.specialties.map((specialty) => <span key={specialty} className="rounded-full bg-[#e8f4f6] px-3 py-1.5 text-xs font-semibold text-[#0b607a]">{specialty}</span>)}
                   </div>
                   <div className="mt-auto pt-8">
-                    <button type="button" onClick={() => openInquiry("강사진 소개", instructor.id)} className="inline-flex min-h-12 w-full items-center justify-between gap-3 rounded-full bg-[#0b5b77] px-5 text-sm font-bold text-white shadow-[0_8px_20px_rgba(11,91,119,.18)] transition hover:-translate-y-0.5">
-                      이 강사에게 문의하기 <ArrowIcon diagonal />
+                    <button type="button" onClick={() => openInquiry()} className="inline-flex min-h-12 w-full items-center justify-between gap-3 rounded-full bg-[#0b5b77] px-5 text-sm font-bold text-white shadow-[0_8px_20px_rgba(11,91,119,.18)] transition hover:-translate-y-0.5">
+                      전체 강사진 및 문의 가능 코스 보기 <ArrowIcon diagonal />
                     </button>
                   </div>
                 </div>
               </article>
             ))}
           </div>
-          <button type="button" onClick={() => openInquiry()} className="mt-10 inline-flex min-h-12 items-center gap-4 rounded-full border border-[#8bbdca] bg-white px-6 text-sm font-bold text-[#0b5b77] transition hover:bg-[#e8f4f6]">전체 강사진 보기 <ArrowIcon /></button>
         </div>
       </section>
 
       <section id="reviews" className="bg-[#eaf2f5] px-6 py-24 sm:px-10 lg:px-16 lg:py-28">
         <div className="mx-auto max-w-[1312px]">
           <div className="max-w-2xl">
-            <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#087f9b]">Student stories</p>
-            <h2 className="mt-5 text-4xl font-semibold tracking-[-0.06em] sm:text-5xl">바다를 경험한 사람들의 이야기</h2>
-            <p className="mt-5 leading-8 text-[#587182]">아래 이름과 후기는 화면 구성을 위한 예시입니다. 실제 수강생의 동의를 받은 후기 원문으로 교체해 주세요.</p>
+            <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#087f9b]">Naver Place reviews</p>
+            <h2 className="mt-5 break-keep text-4xl font-semibold tracking-[-0.06em] sm:text-5xl">네이버 플레이스에서 남긴 이야기</h2>
+            <p className="mt-5 break-keep leading-8 text-[#587182]">블루피스 네이버 플레이스에 공개된 방문자 후기의 핵심 내용을 짧게 요약했습니다. 원문은 네이버 플레이스에서 확인할 수 있습니다.</p>
           </div>
           <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-            {sampleReviews.map((review) => (
+            {placeReviews.map((review) => (
               <article key={review.title} className="flex h-full flex-col rounded-[1.5rem] border border-[#dce8ec] bg-white p-7 shadow-[0_16px_45px_rgba(18,57,78,.07)]">
-                <div className="flex items-center justify-between gap-3"><span className="text-lg tracking-[0.12em] text-[#d6a859]" aria-label="별점 5점 만점">★★★★★</span><span className="text-[10px] font-bold text-[#86a0aa]">예시 후기</span></div>
+                <div className="flex items-center justify-between gap-3"><span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[#03c75a] text-lg font-black text-white" aria-hidden="true">N</span><span className="text-[10px] font-bold text-[#648278]">방문자 리뷰 요약</span></div>
                 <h3 className="mt-7 text-xl font-semibold">{review.title}</h3>
-                <p className="mt-4 flex-1 break-keep text-sm leading-7 text-[#708892]">“{review.quote}”</p>
+                <p className="mt-4 flex-1 break-keep text-sm leading-7 text-[#708892]">{review.quote}</p>
                 <div className="mt-8 border-t border-[#e5eef0] pt-5"><p className="text-sm font-bold text-[#12384c]">{review.author}</p><p className="mt-1 text-xs font-medium text-[#087f9b]">{review.course}</p></div>
               </article>
             ))}
           </div>
+          <a href={naverReviewUrl} target="_blank" rel="noopener noreferrer" className="mt-9 inline-flex min-h-12 items-center gap-4 rounded-full border border-[#8bbdca] bg-white px-6 text-sm font-bold text-[#0b5b77] transition hover:bg-[#e5f3f5]">네이버 플레이스 실시간 리뷰 보기 <ArrowIcon diagonal /></a>
         </div>
       </section>
 
@@ -573,6 +566,7 @@ export default function HomePage() {
                   <span className="min-w-0"><span className="block text-[11px] font-bold text-[#087f9b]">{instructor.role}</span><span className="block text-lg font-semibold">{instructor.name}</span></span>
                   <span aria-hidden="true" className={`ml-auto flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-xs ${selectedInstructorId === instructor.id ? "border-[#0b718a] bg-[#0b718a] text-white" : "border-[#a8c2ca] text-transparent"}`}>✓</span>
                 </span>
+                <span className="mt-3 block break-keep text-[11px] leading-5 text-[#66808a]">{instructor.experience} · {instructor.certifications}</span>
                 <span className="mt-4 flex flex-wrap gap-1.5">
                   {inquiryCourseTitle && <span className="rounded-full bg-[#d9f3ee] px-2.5 py-1 text-[10px] font-bold text-[#086e73]">{inquiryCourseTitle} 가능</span>}
                   {Object.keys(instructor.courses).map((id) => <span key={id} className="rounded-full bg-[#e4f2f5] px-2.5 py-1 text-[10px] font-bold text-[#0b607a]">{categories.find((category) => category.id === id)?.name}</span>)}
@@ -593,9 +587,9 @@ export default function HomePage() {
               ) : (
                 <button type="button" disabled className="inline-flex min-h-12 flex-1 cursor-not-allowed items-center justify-center rounded-full bg-[#c7d9df] px-5 text-sm font-bold text-[#6e8791]">강사를 먼저 선택해 주세요</button>
               )}
-              <a href={generalInquiryUrl} className="inline-flex min-h-12 flex-1 items-center justify-center rounded-full border border-[#a8c9d3] bg-white px-5 text-center text-sm font-bold text-[#0b5b77] transition hover:bg-[#eaf5f7]">전체 대표 번호 / 랜덤 배정 문의</a>
+              <a href={generalInquiryUrl} className="inline-flex min-h-12 flex-1 items-center justify-center rounded-full border border-[#a8c9d3] bg-white px-5 text-center text-sm font-bold text-[#0b5b77] transition hover:bg-[#eaf5f7]">전체 문의 / 강사 배정 요청</a>
             </div>
-            <p className="mt-4 break-keep text-xs leading-5 text-[#78909b]">현재 강사별 링크는 카카오 오픈채팅 홈으로 연결되는 예시입니다. 대표 번호 등록 전까지 전체 문의는 예시 이메일로 연결됩니다.</p>
+            <p className="mt-4 break-keep text-xs leading-5 text-[#78909b]">강사별 카카오 링크는 아직 임시 주소입니다. 전체 문의는 {contactEmail} 이메일로 연결됩니다.</p>
           </div>
         </div>
       </dialog>
@@ -603,7 +597,7 @@ export default function HomePage() {
       <footer className="bg-[#032b40] px-6 py-10 text-white/60 sm:px-10 lg:px-16">
         <div className="mx-auto flex max-w-[1312px] flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
           <div><p className="text-xl font-bold tracking-[-0.05em] text-white">Blue Peace<span className="text-[#76d8e8]">.</span></p><p className="mt-3 text-xs">© {new Date().getFullYear()} Blue Peace. All rights reserved.</p></div>
-          <p className="text-xs">문의: {contactEmail} <span className="text-white/35">(예시 주소)</span></p>
+          <p className="text-xs">문의: <a href={`mailto:${contactEmail}`} className="underline decoration-white/30 underline-offset-4 hover:text-white">{contactEmail}</a></p>
         </div>
       </footer>
     </main>
