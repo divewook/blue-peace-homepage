@@ -20,6 +20,7 @@ const instructorRecords = [
     photoUrl: "/KakaoTalk_20261014_203011.jpg",
     certifications: "AIDA / PSA / PSAI 자격 보유",
     experience: "BLUE PEACE 대표 강사",
+    kakaoUrl: "https://open.kakao.com/o/sJyAtrkg",
     courses: {
       adult: ["1레벨", "2레벨", "3레벨", "4레벨", "강사 과정"],
       youth: ["1레벨", "2레벨", "3레벨", "강사 과정"],
@@ -218,6 +219,7 @@ function SentenceText({ children }) {
 }
 
 const courseTabs = [{ id: "all", name: "전체" }, ...categories];
+const compactCourseNames = { adult: "성인 프리다이빙", youth: "유스", safety: "수중안전요원", mermaid: "머메이드", scuba: "스쿠버", special: "스페셜" };
 
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState("all");
@@ -227,7 +229,6 @@ export default function HomePage() {
   const [inquiryCategoryId, setInquiryCategoryId] = useState(null);
   const [inquiryCourseTitle, setInquiryCourseTitle] = useState(null);
   const [instructorFilter, setInstructorFilter] = useState("all");
-  const [instructorSearch, setInstructorSearch] = useState("");
   const [instructorOrder, setInstructorOrder] = useState(() => directoryInstructors.map((instructor) => instructor.id));
   const [reservationStep, setReservationStep] = useState("select");
   const [reservation, setReservation] = useState({ name: "", phone: "", people: "1", schedule: "", message: "" });
@@ -251,8 +252,7 @@ export default function HomePage() {
     return instructor.courses[inquiryCategoryId]?.includes(inquiryCourseTitle) || false;
   });
   const visibleInstructors = eligibleInstructors.filter((instructor) =>
-    (instructorFilter === "all" || Boolean(instructor.courses[instructorFilter])) &&
-    instructor.name.toLocaleLowerCase("ko").includes(instructorSearch.trim().toLocaleLowerCase("ko"))
+    instructorFilter === "all" || Boolean(instructor.courses[instructorFilter])
   );
 
   function openInquiry(course = "", instructorId = null, categoryId = null, courseTitle = null) {
@@ -262,7 +262,6 @@ export default function HomePage() {
     setInquiryCategoryId(categoryId);
     setInquiryCourseTitle(courseTitle);
     setInstructorFilter("all");
-    setInstructorSearch("");
     setReservationStep("select");
     setReservation({ name: "", phone: "", people: "1", schedule: "", message: "" });
     setSubmissionText("");
@@ -288,17 +287,14 @@ export default function HomePage() {
       `기타 문의사항: ${reservation.message.trim() || "없음"}`,
     ].join("\n");
     setSubmissionText(text);
-    // 새 창은 사용자의 클릭 이벤트 중 열어야 팝업 차단을 피할 수 있습니다.
-    const copyPromise = navigator.clipboard?.writeText(text);
-    window.open(selectedInstructor.kakaoUrl, "_blank", "noopener,noreferrer");
     try {
-      if (!copyPromise) throw new Error("Clipboard unavailable");
-      await copyPromise;
+      if (!navigator.clipboard?.writeText) throw new Error("Clipboard unavailable");
+      await navigator.clipboard.writeText(text);
       setCopySucceeded(true);
     } catch {
       setCopySucceeded(false);
     }
-    setReservationStep("done");
+    setReservationStep("confirm");
   }
 
   function handleTabKeyDown(event, index) {
@@ -389,7 +385,7 @@ export default function HomePage() {
             <p className="max-w-md break-keep text-sm leading-relaxed text-white/65">블루피스의 6가지 교육 분야를 살펴보고, 나에게 맞는 코스를 선택해 보세요.</p>
           </div>
 
-          <div role="tablist" aria-label="교육 분야 선택" className="no-scrollbar flex gap-1.5 overflow-x-auto rounded-2xl border border-white/15 bg-white/[.06] p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,.12)] backdrop-blur-xl sm:flex-wrap sm:gap-2">
+          <div role="tablist" aria-label="교육 분야 선택" className="grid grid-cols-4 gap-1.5 rounded-2xl border border-white/15 bg-white/[.06] p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,.12)] backdrop-blur-xl lg:grid-cols-7">
             {courseTabs.map((category, index) => (
               <button
                 key={category.id}
@@ -401,13 +397,12 @@ export default function HomePage() {
                 tabIndex={activeTab === category.id ? 0 : -1}
                 onClick={() => setActiveTab(category.id)}
                 onKeyDown={(event) => handleTabKeyDown(event, index)}
-                className={`min-h-11 shrink-0 whitespace-nowrap rounded-xl px-3 py-2.5 text-center text-xs font-semibold transition-colors duration-300 sm:px-4 sm:text-sm ${activeTab === category.id ? "bg-[#b4e8e8] text-[#042739] shadow-[0_6px_20px_rgba(87,217,225,.2)]" : "text-white/70 hover:bg-white/10 hover:text-white"}`}
+                className={`min-h-11 min-w-0 break-keep rounded-xl px-1.5 py-2 text-center text-[11px] font-semibold leading-tight transition-colors duration-300 sm:px-3 sm:text-sm ${activeTab === category.id ? "bg-[#b4e8e8] text-[#042739] shadow-[0_6px_20px_rgba(87,217,225,.2)]" : "text-white/70 hover:bg-white/10 hover:text-white"}`}
               >
-                {category.name}
+                {compactCourseNames[category.id] || category.name}
               </button>
             ))}
           </div>
-          <p className="mt-2 text-[11px] text-white/45 sm:hidden">분야와 카드는 좌우로 넘겨 볼 수 있습니다 ↔</p>
 
           <div id="course-panel" key={activeTab} role="tabpanel" aria-labelledby={`course-tab-${activeTab}`} tabIndex={0} className="mt-5 animate-[fadeIn_.35s_ease-out] outline-none motion-reduce:animate-none sm:mt-7">
             {activeTab === "all" ? (
@@ -576,13 +571,13 @@ export default function HomePage() {
         aria-describedby="inquiry-description"
         onClose={() => { setSelectedInstructorId(null); setReservationStep("select"); }}
         onClick={(event) => { if (event.target === event.currentTarget) dialogRef.current?.close(); }}
-        className="m-auto max-h-[90dvh] w-[94vw] max-w-5xl overflow-hidden rounded-2xl border border-[#c9dfe5] bg-[#f4f8fa] p-0 text-[#102e40] shadow-[0_35px_100px_rgba(2,24,42,.4)] backdrop:bg-[#021b2c]/75 [&[open]]:flex [&[open]]:flex-col"
+        className="fixed inset-0 m-auto h-[90dvh] max-h-[800px] w-[94vw] max-w-5xl overflow-hidden rounded-2xl border border-[#c9dfe5] bg-[#f4f8fa] p-0 text-[#102e40] shadow-[0_35px_100px_rgba(2,24,42,.4)] backdrop:bg-[#021b2c]/75 [&[open]]:flex [&[open]]:flex-col"
       >
         <div className="z-10 flex shrink-0 items-start justify-between gap-4 border-b border-[#d9e7ec] bg-[#f4f8fa]/95 px-5 py-4 backdrop-blur-md sm:px-8 sm:py-6">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-[#087f9b]">Blue Peace · Personal inquiry</p>
-            <h2 id="inquiry-title" className="mt-1 break-keep text-2xl font-semibold tracking-[-0.05em] sm:mt-2 sm:text-3xl">{reservationStep === "select" ? "강사 선택" : reservationStep === "form" ? "상담 예약 양식" : "상담 내용 준비 완료"}</h2>
-            <p id="inquiry-description" className="mt-1 break-keep text-xs leading-relaxed text-[#5b7481] sm:mt-2 sm:text-sm">{reservationStep === "select" ? "원하시는 블루피스 전문 강사를 선택해 주세요." : reservationStep === "form" ? "필요한 내용을 적으면 상담 문구가 자동으로 정리됩니다." : "복사한 내용을 오픈채팅창에 붙여넣어 주세요."}</p>
+            <h2 id="inquiry-title" className="mt-1 break-keep text-2xl font-semibold tracking-[-0.05em] sm:mt-2 sm:text-3xl">{reservationStep === "select" ? "강사 선택" : reservationStep === "form" ? "상담 예약 양식" : "상담 양식 확인"}</h2>
+            <p id="inquiry-description" className="mt-1 break-keep text-xs leading-relaxed text-[#5b7481] sm:mt-2 sm:text-sm">{reservationStep === "select" ? "원하시는 블루피스 전문 강사를 선택해 주세요." : reservationStep === "form" ? "필요한 내용을 적으면 상담 문구가 자동으로 정리됩니다." : "오픈채팅으로 메시지를 보내면 상담 신청이 전달됩니다."}</p>
           </div>
           <button type="button" onClick={() => dialogRef.current?.close()} aria-label="강사 선택 창 닫기" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#d1e0e5] bg-white text-xl text-[#31566a] transition hover:bg-[#e7f2f5]">×</button>
         </div>
@@ -591,22 +586,20 @@ export default function HomePage() {
           {inquiryCourse && <p className="mb-4 inline-flex max-w-full break-keep rounded-full bg-[#e0f1f4] px-4 py-2 text-xs font-bold text-[#0b6781]">문의 과정 · {inquiryCourse}</p>}
           {reservationStep === "select" && <>
           <div className="mb-5 border-b border-[#d9e7ec] pb-5">
-            <p className="mb-3 text-xs font-bold text-[#426575]">전문 분야별 필터 <span className="font-normal text-[#8199a3]">· 선택한 코스에 맞는 강사 안에서 검색합니다</span></p>
+            <p className="mb-3 text-xs font-bold text-[#426575]">전문 분야별 필터</p>
             <select aria-label="강사 전문 분야 선택" value={instructorFilter} onChange={(event) => { setInstructorFilter(event.target.value); setSelectedInstructorId(null); }} className="h-12 w-full rounded-xl border border-[#cfe1e6] bg-white px-4 text-sm font-semibold text-[#15394b] outline-none focus:border-[#0b718a] focus:ring-2 focus:ring-[#b2e2e9] md:hidden">
               {[{ id: "all", name: "전체" }, ...categories].map((category) => {
                 const count = category.id === "all" ? eligibleInstructors.length : eligibleInstructors.filter((instructor) => Boolean(instructor.courses[category.id])).length;
-                return <option key={category.id} value={category.id} disabled={count === 0}>{category.name} (이 코스 진행 가능 강사 {count}명)</option>;
+                return <option key={category.id} value={category.id} disabled={count === 0}>{category.name} ({count}명)</option>;
               })}
             </select>
             <div className="hidden gap-2 overflow-x-auto pb-2 md:flex" aria-label="강사 전문 분야 필터">
               {[{ id: "all", name: "전체" }, ...categories].map((category) => {
                 const count = category.id === "all" ? eligibleInstructors.length : eligibleInstructors.filter((instructor) => Boolean(instructor.courses[category.id])).length;
-                return <button key={category.id} type="button" aria-pressed={instructorFilter === category.id} disabled={count === 0} onClick={() => { setInstructorFilter(category.id); setSelectedInstructorId(null); }} className={`shrink-0 rounded-full border px-4 py-2 text-xs font-bold transition ${instructorFilter === category.id ? "border-[#0b5b77] bg-[#0b5b77] text-white" : "border-[#cfe1e6] bg-white text-[#527181] hover:border-[#76b8c7]"} disabled:cursor-not-allowed disabled:opacity-40`}>{category.name} <span className="ml-1 opacity-70">(이 코스 진행 가능 강사 {count}명)</span></button>;
+                return <button key={category.id} type="button" aria-pressed={instructorFilter === category.id} disabled={count === 0} onClick={() => { setInstructorFilter(category.id); setSelectedInstructorId(null); }} className={`shrink-0 whitespace-nowrap rounded-full border px-4 py-2 text-xs font-bold transition ${instructorFilter === category.id ? "border-[#0b5b77] bg-[#0b5b77] text-white" : "border-[#cfe1e6] bg-white text-[#527181] hover:border-[#76b8c7]"} disabled:cursor-not-allowed disabled:opacity-40`}>{category.name} <span className="ml-1 opacity-70">({count}명)</span></button>;
               })}
             </div>
-            <label htmlFor="instructor-search" className="mt-5 block text-xs font-bold text-[#426575]">강사 이름 검색</label>
-            <input id="instructor-search" type="search" value={instructorSearch} onChange={(event) => { setInstructorSearch(event.target.value); setSelectedInstructorId(null); }} placeholder="강사 이름을 입력해 주세요" className="mt-2 h-12 w-full rounded-xl border border-[#cfe1e6] bg-white px-4 text-sm text-[#15394b] outline-none transition placeholder:text-[#91a5ae] focus:border-[#0b718a] focus:ring-2 focus:ring-[#b2e2e9]" />
-            <p className="mt-3 text-xs text-[#66808a]" aria-live="polite">검색 결과 {visibleInstructors.length}명 · 강사별 가능 코스는 등록 정보 기준입니다.</p>
+            <p className="no-scrollbar mt-3 overflow-x-auto whitespace-nowrap rounded-lg bg-[#e0f1f4] px-3 py-2 text-xs font-semibold text-[#0b607a]" aria-live="polite">💡 선택하신 [{inquiryCourse || (instructorFilter === "all" ? "전체 교육" : categories.find((category) => category.id === instructorFilter)?.name)}] 과정을 진행할 수 있는 전문 강사 총 {visibleInstructors.length}명</p>
           </div>
           <div className="max-h-[400px] overflow-y-auto overscroll-contain rounded-2xl border border-[#d9e7ec] bg-[#edf4f6] p-3 sm:p-4">
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -648,15 +641,8 @@ export default function HomePage() {
                 <label className="block text-sm font-semibold text-[#31586a]">수업 희망 일정 <span className="text-[#b75353]">*</span><input name="schedule" type="text" required maxLength={100} value={reservation.schedule} onChange={(event) => updateReservation("schedule", event.target.value)} placeholder="예: 11월 첫째 주 토요일 오후" className="mt-2 h-12 w-full rounded-xl border border-[#cfe1e6] bg-white px-4 font-normal outline-none focus:border-[#0b718a] focus:ring-2 focus:ring-[#b2e2e9]" /></label>
               </div>
               <label className="block text-sm font-semibold text-[#31586a]">기타 문의사항<textarea name="message" rows={4} maxLength={1000} value={reservation.message} onChange={(event) => updateReservation("message", event.target.value)} placeholder="궁금한 점을 편하게 적어 주세요" className="mt-2 w-full resize-y rounded-xl border border-[#cfe1e6] bg-white px-4 py-3 font-normal outline-none focus:border-[#0b718a] focus:ring-2 focus:ring-[#b2e2e9]" /></label>
-              <p className="break-keep text-xs leading-relaxed text-[#6a8793]">입력 내용은 이 기기에서 상담 문구로 정리됩니다. 접수하기를 누르면 복사 후 강사 카카오톡이 열리며, 채팅창에 직접 붙여넣어 보내야 상담이 전달됩니다.</p>
+              <p className="break-keep text-xs leading-relaxed text-[#6a8793]">입력 내용은 이 기기에서 상담 문구로 정리됩니다. 접수하기를 누르면 복사 안내가 먼저 나타납니다. 이후 오픈채팅방으로 이동해 내용을 직접 보내야 상담이 전달됩니다.</p>
             </form>
-          )}
-          {reservationStep === "done" && (
-            <div className="mx-auto max-w-2xl space-y-4">
-              <p role="status" className={`break-keep rounded-xl border p-4 text-sm font-semibold leading-relaxed ${copySucceeded ? "border-[#aedcd1] bg-[#e7f6ee] text-[#15644c]" : "border-[#edcf9c] bg-[#fff5e1] text-[#775326]"}`}>{copySucceeded ? "상담 내용이 복사되었습니다. 오픈채팅창에 붙여넣기(Ctrl+V)를 해주세요!" : "자동 복사가 허용되지 않았습니다. 아래 내용을 직접 복사해 오픈채팅창에 붙여넣어 주세요."}</p>
-              <textarea aria-label="상담 내용 복사본" readOnly value={submissionText} rows={10} onFocus={(event) => event.target.select()} className="w-full rounded-xl border border-[#cfe1e6] bg-white p-4 text-xs leading-relaxed text-[#31586a]" />
-              <p className="break-keep text-xs leading-relaxed text-[#6a8793]">오픈채팅창에 메시지를 보내야 상담 요청이 접수됩니다. 강사별 카카오 링크는 실제 주소로 교체해야 합니다.</p>
-            </div>
           )}
         </div>
         <div className="z-10 shrink-0 border-t border-[#d9e7ec] bg-[#f4f8fa]/95 px-5 py-3 shadow-[0_-10px_30px_rgba(6,44,67,.08)] backdrop-blur-md sm:px-8 sm:py-4">
@@ -667,9 +653,30 @@ export default function HomePage() {
               <a href={generalInquiryUrl} className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl border border-[#a8c9d3] bg-white px-4 text-center text-xs font-bold text-[#0b5b77] transition hover:bg-[#eaf5f7] sm:min-h-12 sm:text-sm">전체 문의 / 강사 배정 요청</a>
             </div>
           </>}
-          {reservationStep === "form" && <div className="flex gap-2"><button type="button" onClick={() => setReservationStep("select")} className="min-h-12 rounded-xl border border-[#a8c9d3] bg-white px-4 text-sm font-bold text-[#0b5b77]">이전</button><button type="submit" form="consultation-form" className="min-h-12 flex-1 rounded-xl bg-[#0b5b77] px-5 text-sm font-bold text-white transition hover:bg-[#08465e]">접수하기 · 내용 복사 후 카카오톡 열기</button></div>}
-          {reservationStep === "done" && <div className="flex flex-col gap-2 sm:flex-row"><button type="button" onClick={async () => { try { await navigator.clipboard.writeText(submissionText); setCopySucceeded(true); } catch { setCopySucceeded(false); } }} className="min-h-11 flex-1 rounded-xl bg-[#0b5b77] px-4 text-sm font-bold text-white">상담 내용 다시 복사</button><a href={`mailto:${contactEmail}?subject=${encodeURIComponent("블루피스 교육 상담 예약")}&body=${encodeURIComponent(submissionText)}`} className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl border border-[#a8c9d3] bg-white px-4 text-sm font-bold text-[#0b5b77]">이메일로도 보내기</a></div>}
+          {reservationStep === "form" && <div className="flex gap-2"><button type="button" onClick={() => setReservationStep("select")} className="min-h-12 rounded-xl border border-[#a8c9d3] bg-white px-4 text-sm font-bold text-[#0b5b77]">이전</button><button type="submit" form="consultation-form" className="min-h-12 flex-1 rounded-xl bg-[#0b5b77] px-5 text-sm font-bold text-white transition hover:bg-[#08465e]">접수하기</button></div>}
         </div>
+        {reservationStep === "confirm" && (
+          <div role="dialog" aria-modal="true" aria-labelledby="confirmation-title" className="absolute inset-0 z-30 flex items-center justify-center overflow-y-auto bg-[#031c2c]/85 p-4 backdrop-blur-sm sm:p-8">
+            <div className="my-auto w-full max-w-lg rounded-2xl border border-[#add9e0] bg-[#f7fbfc] p-6 shadow-[0_25px_70px_rgba(0,0,0,.32)] sm:p-8">
+              <p className="text-[11px] font-bold uppercase tracking-[.2em] text-[#0b718a]">Blue Peace · Final check</p>
+              <h3 id="confirmation-title" className="mt-3 break-keep text-2xl font-semibold leading-tight text-[#102e40]">{copySucceeded ? "📋 상담 양식이 복사되었습니다" : "📋 상담 양식을 확인해 주세요"}</h3>
+              {copySucceeded ? (
+                <div className="mt-5 space-y-3 break-keep text-sm leading-relaxed text-[#4f6e7d]">
+                  <p>작성하신 상담 신청 양식이 클립보드에 자동 복사되었습니다.</p>
+                  <p>아래 [오픈채팅방 이동] 버튼을 누르신 후, 열리는 카카오톡 채팅창에 &lsquo;붙여넣기(Ctrl+V 또는 꾹 눌러 붙여넣기)&rsquo;하여 메시지를 보내주세요.</p>
+                  <p>담당 강사님이 내용을 확인하는 대로 빠르고 친절하게 안내해 드립니다.</p>
+                </div>
+              ) : (
+                <div className="mt-5 space-y-3 text-sm leading-relaxed text-[#4f6e7d]"><p>브라우저에서 자동 복사를 허용하지 않았습니다. 아래 내용을 직접 복사한 뒤 오픈채팅방에 붙여넣어 주세요.</p><textarea aria-label="상담 내용 복사본" readOnly value={submissionText} rows={6} onFocus={(event) => event.target.select()} className="w-full rounded-xl border border-[#cfe1e6] bg-white p-3 text-xs" /></div>
+              )}
+              <div className="mt-6 flex flex-col gap-2 sm:flex-row">
+                {!copySucceeded && <button type="button" onClick={async () => { try { await navigator.clipboard.writeText(submissionText); setCopySucceeded(true); } catch { setCopySucceeded(false); } }} className="min-h-12 rounded-xl border border-[#a8c9d3] bg-white px-4 text-sm font-bold text-[#0b5b77]">다시 복사</button>}
+                <a href={selectedInstructor?.kakaoUrl || "https://open.kakao.com/"} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-12 flex-1 items-center justify-center rounded-xl bg-[#0b5b77] px-5 text-center text-sm font-bold text-white transition hover:bg-[#08465e]">오픈채팅방으로 이동하기 ↗</a>
+                <button type="button" onClick={() => setReservationStep("form")} className="min-h-12 rounded-xl border border-[#a8c9d3] bg-white px-4 text-sm font-bold text-[#0b5b77]">양식 수정</button>
+              </div>
+            </div>
+          </div>
+        )}
       </dialog>
 
       <footer className="bg-[#032b40] px-6 py-10 text-white/60 sm:px-10 lg:px-16">
