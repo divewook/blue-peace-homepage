@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 
 const contactEmail = "divewook@naver.com";
-const naverReviewUrl = "https://map.naver.com/p/entry/place/1768533167?placePath=%2Freview";
+const naverReviewUrl = "https://map.naver.com/p/entry/place/1768533167/review";
 const heroImages = [
   "/DSC02297.jpg",
   "/DSC04128-Enhanced-NR.jpg",
@@ -211,8 +211,16 @@ function ArrowIcon({ diagonal = false }) {
   );
 }
 
+function SentenceText({ children }) {
+  return String(children).split(/(?<=\.)\s+(?=[가-힣])/u).map((sentence, index) => (
+    <span key={index} className="block">{sentence}</span>
+  ));
+}
+
+const courseTabs = [{ id: "all", name: "전체" }, ...categories];
+
 export default function HomePage() {
-  const [activeTab, setActiveTab] = useState(0);
+  const [activeTab, setActiveTab] = useState("all");
   const [heroIndex, setHeroIndex] = useState(0);
   const [selectedInstructorId, setSelectedInstructorId] = useState(null);
   const [inquiryCourse, setInquiryCourse] = useState("");
@@ -222,7 +230,7 @@ export default function HomePage() {
   const [instructorSearch, setInstructorSearch] = useState("");
   const [instructorOrder, setInstructorOrder] = useState(() => directoryInstructors.map((instructor) => instructor.id));
   const dialogRef = useRef(null);
-  const activeCategory = categories[activeTab];
+  const activeCategory = categories.find((category) => category.id === activeTab);
   const selectedInstructor = directoryInstructors.find((instructor) => instructor.id === selectedInstructorId);
   const generalInquiryUrl = `mailto:${contactEmail}?subject=${encodeURIComponent(`블루피스 ${inquiryCourse || "교육"} 전체 문의`)}`;
 
@@ -256,18 +264,19 @@ export default function HomePage() {
 
   function handleTabKeyDown(event, index) {
     let nextIndex = index;
-    if (event.key === "ArrowRight") nextIndex = (index + 1) % categories.length;
-    else if (event.key === "ArrowLeft") nextIndex = (index - 1 + categories.length) % categories.length;
+    if (event.key === "ArrowRight") nextIndex = (index + 1) % courseTabs.length;
+    else if (event.key === "ArrowLeft") nextIndex = (index - 1 + courseTabs.length) % courseTabs.length;
     else if (event.key === "Home") nextIndex = 0;
-    else if (event.key === "End") nextIndex = categories.length - 1;
+    else if (event.key === "End") nextIndex = courseTabs.length - 1;
     else return;
     event.preventDefault();
-    setActiveTab(nextIndex);
-    document.getElementById(`course-tab-${categories[nextIndex].id}`)?.focus();
+    setActiveTab(courseTabs[nextIndex].id);
+    document.getElementById(`course-tab-${courseTabs[nextIndex].id}`)?.focus();
   }
 
   return (
-    <main className="overflow-hidden bg-[#f5f8fa] text-[#102e40]">
+    <main className="overflow-hidden bg-[#061f32] text-white">
+      <style jsx global>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } } .no-scrollbar { scrollbar-width: none; } .no-scrollbar::-webkit-scrollbar { display: none; }`}</style>
       <header className="absolute inset-x-0 top-0 z-30 border-b border-white/15 text-white">
         <nav aria-label="주 메뉴" className="mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-5 px-6 py-5 sm:px-10 lg:px-16">
           <a href="#top" className="flex items-center gap-3 text-xl font-bold tracking-[-0.06em] sm:text-2xl">
@@ -284,28 +293,26 @@ export default function HomePage() {
         </nav>
       </header>
 
-      <section id="top" className="relative isolate flex min-h-[780px] items-center bg-[#073954] text-white sm:min-h-[850px]">
+      <section id="top" className="relative isolate flex min-h-[640px] items-center bg-[#031827] text-white sm:min-h-[760px]">
         {heroImages.map((src, index) => (
           <div key={src} className={`absolute inset-0 -z-20 transition-opacity duration-[1800ms] ease-in-out motion-reduce:transition-none ${heroIndex === index ? "opacity-100" : "opacity-0"}`} aria-hidden="true">
             <Image src={src} alt="" fill priority={index === 0} sizes="100vw" quality={85} className="object-cover object-center" />
           </div>
         ))}
-        <div className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(2,24,42,.84)_0%,rgba(3,35,55,.63)_48%,rgba(3,42,62,.22)_100%)]" />
+        <div className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(1,15,27,.90)_0%,rgba(2,27,45,.68)_48%,rgba(3,42,62,.25)_100%)]" />
         <div className="absolute inset-0 -z-10 bg-gradient-to-t from-[#031b2f]/75 via-transparent to-[#031b2f]/20" />
         <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_80%_18%,rgba(134,231,235,.22),transparent_42%),radial-gradient(ellipse_at_22%_100%,rgba(0,121,155,.25),transparent_48%)]" />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-44 bg-gradient-to-t from-[#042c43] to-transparent" />
-        <div className="mx-auto w-full max-w-[1440px] px-6 pb-28 pt-48 sm:px-10 lg:px-16 lg:pt-52">
+        <div className="mx-auto w-full max-w-[1440px] px-6 pb-20 pt-40 sm:px-10 sm:pb-28 lg:px-16 lg:pt-52">
           <div className="mb-8 flex items-center gap-4 text-[11px] font-semibold uppercase tracking-[0.35em] text-[#b4e8ed] sm:text-xs">
             <span className="h-px w-10 bg-[#8adbe6]" /> Into the blue
           </div>
           <p className="mb-4 text-base font-light tracking-[0.26em] text-white/80 sm:text-lg">BLUE PEACE · FREE DIVING EXPERIENCE</p>
-              <h1 className="max-w-5xl break-keep text-[clamp(2.5rem,7.2vw,7rem)] font-semibold leading-[1.09] tracking-[-0.075em] sm:text-[clamp(3.25rem,7.2vw,7rem)]">
+          <h1 className="max-w-5xl break-keep text-[clamp(2.5rem,7.2vw,7rem)] font-semibold leading-[1.09] tracking-[-0.075em] sm:text-[clamp(3.25rem,7.2vw,7rem)]">
             바다 속에서 만나는<br />가장 완벽한 <span className="text-[#a6e7eb]">자유</span>
           </h1>
-          <p className="mt-8 max-w-xl text-sm leading-8 text-white/80 sm:text-lg">
-            숨을 고르는 순간, 세상은 조용해집니다. 블루피스와 함께 처음의 설렘부터 깊은 몰입까지, 당신만의 바다를 만나보세요.
-          </p>
-          <div className="mt-10 flex flex-wrap gap-3 sm:gap-4">
+          <p className="mt-6 max-w-xl break-keep text-sm leading-relaxed text-white/80 sm:mt-8 sm:text-lg"><SentenceText>숨을 고르는 순간, 세상은 조용해집니다. 블루피스와 함께 처음의 설렘부터 깊은 몰입까지, 당신만의 바다를 만나보세요.</SentenceText></p>
+          <div className="mt-8 flex flex-wrap gap-3 sm:mt-10 sm:gap-4">
             <button type="button" onClick={() => openInquiry()} className="inline-flex min-h-14 items-center gap-8 rounded-full bg-[#b7ebf0] px-7 text-sm font-bold text-[#08384f] shadow-[0_10px_0_#58aab8,0_22px_35px_rgba(0,0,0,.28)] transition duration-200 hover:-translate-y-1 hover:shadow-[0_14px_0_#58aab8,0_26px_40px_rgba(0,0,0,.3)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">
               교육 문의하기 <ArrowIcon diagonal />
             </button>
@@ -319,13 +326,13 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section aria-label="블루피스 주요 수치" className="relative z-10 bg-[#042c43] px-6 py-9 text-white sm:px-10 lg:px-16">
+      <section aria-label="블루피스 주요 수치" className="relative z-10 bg-[#031e30] px-6 py-7 text-white sm:px-10 sm:py-9 lg:px-16">
         <div className="mx-auto max-w-[1312px]">
           <p className="mb-5 text-[11px] font-bold uppercase tracking-[0.25em] text-[#91dbe4]">Blue Peace in numbers</p>
-          <div className="grid grid-cols-2 gap-y-7 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-y-4 sm:grid-cols-4 sm:gap-y-7">
             {trustStats.map((stat, index) => (
               <div key={stat.label} className={`px-3 sm:px-6 ${index > 0 ? "border-l border-white/15" : ""}`}>
-                <p className="text-3xl font-semibold tracking-[-0.06em] text-[#b7ebf0] sm:text-4xl">{stat.value}</p>
+                <p className={`break-keep font-semibold tracking-[-0.06em] text-[#b7ebf0] sm:text-4xl ${index === 3 ? "text-[1.35rem]" : "text-2xl"}`}>{stat.value}</p>
                 <p className="mt-2 text-xs font-medium text-white/65 sm:text-sm">{stat.label}</p>
               </div>
             ))}
@@ -333,46 +340,57 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section id="courses" className="bg-[#eaf2f5] px-6 py-24 sm:px-10 lg:px-16 lg:py-32">
+      <section id="courses" className="bg-[#061f32] px-5 py-10 text-white sm:px-10 sm:py-20 lg:px-16 lg:py-24">
         <div className="mx-auto max-w-[1312px]">
-          <div className="mb-10 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+          <div className="mb-6 flex flex-col gap-3 sm:mb-9 sm:flex-row sm:items-end sm:justify-between sm:gap-5">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#087f9b]">Blue Peace programs</p>
-              <h2 className="mt-4 text-4xl font-semibold tracking-[-0.06em] sm:text-5xl">교육 과정 안내</h2>
+              <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#7ad7df]">Blue Peace programs</p>
+              <h2 className="mt-2 text-3xl font-semibold tracking-[-0.06em] sm:mt-4 sm:text-5xl">교육 과정 안내</h2>
             </div>
-            <p className="max-w-md text-sm leading-7 text-[#637b89]">블루피스의 6가지 교육 분야를 살펴보고, 나에게 맞는 코스를 선택해 보세요.</p>
+            <p className="max-w-md break-keep text-sm leading-relaxed text-white/65">블루피스의 6가지 교육 분야를 살펴보고, 나에게 맞는 코스를 선택해 보세요.</p>
           </div>
 
-          <div role="tablist" aria-label="교육 분야 선택" className="grid grid-cols-2 gap-2 rounded-[1.5rem] border border-[#d9e7ec] bg-white p-2 shadow-[0_12px_35px_rgba(18,57,78,.07)] sm:grid-cols-3 lg:grid-cols-6">
-            {categories.map((category, index) => (
+          <div role="tablist" aria-label="교육 분야 선택" className="no-scrollbar flex gap-1.5 overflow-x-auto rounded-2xl border border-white/15 bg-white/[.06] p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,.12)] backdrop-blur-xl sm:flex-wrap sm:gap-2">
+            {courseTabs.map((category, index) => (
               <button
                 key={category.id}
                 type="button"
                 role="tab"
                 id={`course-tab-${category.id}`}
                 aria-controls="course-panel"
-                aria-selected={activeTab === index}
-                tabIndex={activeTab === index ? 0 : -1}
-                onClick={() => setActiveTab(index)}
+                aria-selected={activeTab === category.id}
+                tabIndex={activeTab === category.id ? 0 : -1}
+                onClick={() => setActiveTab(category.id)}
                 onKeyDown={(event) => handleTabKeyDown(event, index)}
-                className={`min-h-14 break-keep rounded-2xl px-3 py-3 text-center text-xs font-bold leading-5 transition sm:text-sm ${activeTab === index ? "bg-[#083b57] text-white shadow-[0_9px_20px_rgba(8,59,87,.25)]" : "text-[#456879] hover:bg-[#edf6f8] hover:text-[#083b57]"}`}
+                className={`min-h-11 shrink-0 whitespace-nowrap rounded-xl px-3 py-2.5 text-center text-xs font-semibold transition-colors duration-300 sm:px-4 sm:text-sm ${activeTab === category.id ? "bg-[#b4e8e8] text-[#042739] shadow-[0_6px_20px_rgba(87,217,225,.2)]" : "text-white/70 hover:bg-white/10 hover:text-white"}`}
               >
                 {category.name}
               </button>
             ))}
           </div>
+          <p className="mt-2 text-[11px] text-white/45 sm:hidden">분야와 카드는 좌우로 넘겨 볼 수 있습니다 ↔</p>
 
-          <div id="course-panel" role="tabpanel" aria-labelledby={`course-tab-${activeCategory.id}`} tabIndex={0} className="mt-8 outline-none">
-            <div className="mb-8 flex flex-col gap-4 rounded-[1.75rem] bg-[#0b4b67] px-7 py-7 text-white shadow-[0_18px_45px_rgba(8,59,87,.14)] sm:flex-row sm:items-center sm:justify-between sm:px-9">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#8ce0e7]">Selected program</p>
-                <h3 className="mt-2 text-2xl font-semibold tracking-[-0.04em] sm:text-3xl">{activeCategory.name}</h3>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-white/75">{activeCategory.intro}</p>
+          <div id="course-panel" key={activeTab} role="tabpanel" aria-labelledby={`course-tab-${activeTab}`} tabIndex={0} className="mt-5 animate-[fadeIn_.35s_ease-out] outline-none motion-reduce:animate-none sm:mt-7">
+            {activeTab === "all" ? (
+              <div className="no-scrollbar -mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:px-0 lg:grid-cols-3">
+                {categories.map((category, index) => (
+                  <button key={category.id} type="button" onClick={() => setActiveTab(category.id)} className="group flex min-h-28 w-[78vw] max-w-[340px] shrink-0 snap-center items-center justify-between gap-4 rounded-2xl border border-white/15 bg-white/[.07] p-4 text-left shadow-[inset_0_1px_0_rgba(255,255,255,.1)] backdrop-blur-lg transition hover:border-[#91dee3]/60 hover:bg-white/[.12] sm:min-h-32 sm:w-auto sm:max-w-none sm:p-6">
+                    <span><span className="block text-[10px] font-bold tracking-[.2em] text-[#85cfd8]">0{index + 1} / {category.association}</span><span className="mt-2 block break-keep text-lg font-semibold tracking-tight sm:text-xl">{category.name}</span><span className="mt-1 block text-xs text-white/55">{category.courses.length}개 과정</span></span>
+                    <span className="shrink-0 text-[#8cdde3] transition-transform group-hover:translate-x-1"><ArrowIcon /></span>
+                  </button>
+                ))}
               </div>
-              <span className="inline-flex self-start rounded-full border border-white/30 bg-white/10 px-4 py-2 text-xs font-bold text-white sm:self-center">발급 협회 · {activeCategory.association}</span>
+            ) : <>
+            <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-white/15 bg-white/[.07] px-5 py-5 shadow-[inset_0_1px_0_rgba(255,255,255,.1)] backdrop-blur-xl sm:mb-6 sm:flex-row sm:items-center sm:justify-between sm:px-7">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#8ce0e7]">Selected program</p>
+                <h3 className="mt-1 text-xl font-semibold tracking-[-0.04em] sm:text-3xl">{activeCategory.name}</h3>
+                <p className="mt-1 max-w-2xl break-keep text-xs leading-relaxed text-white/70 sm:text-sm"><SentenceText>{activeCategory.intro}</SentenceText></p>
+              </div>
+              <span className="inline-flex self-start rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-[11px] font-bold text-white sm:self-center">발급 협회 · {activeCategory.association}</span>
             </div>
 
-            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            <div className="no-scrollbar -mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-3 md:mx-0 md:grid md:grid-cols-2 md:overflow-visible md:px-0 xl:grid-cols-3">
               {activeCategory.courses.map((course, index) => {
                 const curriculum = course.curriculum;
                 const curriculumFields = [
@@ -382,69 +400,70 @@ export default function HomePage() {
                   { key: "price", label: "총 비용", symbol: "₩" },
                 ];
                 return (
-                  <article key={`${activeCategory.id}-${course.title}`} className={`flex h-full min-w-0 flex-col rounded-[1.75rem] border p-6 transition duration-300 hover:-translate-y-1 sm:p-8 ${course.instructor ? "border-[#c49b58] bg-[#0d4056] text-white shadow-[0_22px_55px_rgba(8,59,87,.2)]" : "border-[#d9e7ec] bg-white text-[#102e40] shadow-[0_16px_42px_rgba(18,57,78,.08)]"}`}>
-                    <div className="flex h-8 items-start justify-between gap-4">
-                      <span className={`rounded-full px-3 py-1.5 text-[11px] font-bold tracking-wide ${course.instructor ? "bg-[#e6bd73] text-[#15384a]" : "bg-[#e5f4f6] text-[#08728d]"}`}>발급 협회 · {activeCategory.association}</span>
-                      <span className={`text-xs font-semibold ${course.instructor ? "text-[#e6bd73]" : "text-[#9ab2bc]"}`}>{String(index + 1).padStart(2, "0")}</span>
+                  <article key={`${activeCategory.id}-${course.title}`} className={`flex h-full w-[84vw] max-w-[360px] shrink-0 snap-center flex-col rounded-2xl border p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.13),0_14px_36px_rgba(0,0,0,.13)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 sm:p-6 md:w-auto md:max-w-none ${course.instructor ? "border-[#d8b777]/65 bg-[linear-gradient(145deg,rgba(119,94,50,.22),rgba(255,255,255,.06))]" : "border-white/15 bg-white/[.07]"}`}>
+                    <div className="flex h-6 items-start justify-between gap-4">
+                      <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold tracking-wide ${course.instructor ? "bg-[#e6bd73] text-[#15384a]" : "bg-[#b4e8e8]/15 text-[#aee4e8]"}`}>발급 협회 · {activeCategory.association}</span>
+                      <span className="text-xs font-semibold text-white/35">{String(index + 1).padStart(2, "0")}</span>
                     </div>
-                    <div className="flex h-16 items-center" aria-label={course.instructor ? "강사 과정 별도 문의" : course.unlimited ? "자격증 취득할 때까지 무제한 진행" : undefined}>
+                    <div className="flex h-10 items-center sm:h-12" aria-label={course.instructor ? "강사 과정 별도 문의" : course.unlimited ? "자격증 취득할 때까지 무제한 진행" : undefined}>
                       {course.instructor && <span className="inline-flex max-w-full rounded-full border border-[#e6bd73]/60 px-3 py-1.5 text-[11px] font-extrabold leading-5 text-[#f3d396]">★ 강사 과정 · 별도 문의</span>}
-                      {course.unlimited && <span className="inline-flex max-w-full rounded-full bg-[#d9f3ee] px-3 py-1.5 text-[11px] font-extrabold leading-5 text-[#086e73]">∞ 자격증 취득할 때까지 무제한 진행</span>}
+                      {course.unlimited && <span className="inline-flex max-w-full rounded-full bg-[#b4e8e8]/15 px-3 py-1.5 text-[11px] font-extrabold leading-5 text-[#aee4e8]">∞ 자격증 취득할 때까지 무제한 진행</span>}
                     </div>
-                    <div className="min-h-20 break-keep md:min-h-28">
-                      <h4 className="text-2xl font-semibold leading-tight tracking-[-0.04em] sm:text-[1.65rem]">{course.title}</h4>
-                      {course.subtitle && <p className={`mt-1 text-sm font-medium ${course.instructor ? "text-[#a6d5df]" : "text-[#087f9b]"}`}>{course.subtitle}</p>}
+                    <div className="min-h-14 break-keep sm:min-h-20">
+                      <h4 className="text-xl font-semibold leading-tight tracking-[-0.04em] sm:text-2xl">{course.title}</h4>
+                      {course.subtitle && <p className="mt-0.5 text-xs font-medium text-[#9ed8de] sm:text-sm">{course.subtitle}</p>}
                     </div>
-                    <p className={`min-h-24 break-keep text-sm leading-7 md:min-h-36 ${course.instructor ? "text-white/75" : "text-[#5c7381]"}`}>{course.description}</p>
+                    <p className="min-h-12 break-keep text-xs leading-relaxed text-white/70 sm:min-h-16 sm:text-sm"><SentenceText>{course.description}</SentenceText></p>
 
-                    <dl className="mb-7 mt-4 grid grid-cols-2 gap-2.5">
+                    <dl className="mb-4 mt-3 grid grid-cols-2 gap-2 sm:mb-5 sm:mt-4">
                       {curriculumFields.map((field) => (
-                        <div key={field.key} className={`flex h-[102px] min-w-0 flex-col justify-center rounded-2xl border px-3 py-3 sm:h-[108px] sm:px-4 ${course.instructor ? "border-white/15 bg-white/10" : field.key === "price" ? "border-[#b6dce4] bg-[#e3f3f6]" : "border-[#e1ebef] bg-[#f2f7f9]"}`}>
-                          <dt className={`flex items-center gap-1.5 whitespace-nowrap text-[10px] font-bold leading-4 sm:text-[11px] ${course.instructor ? "text-[#d4e9ec]" : "text-[#577786]"}`}>
-                            <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[9px] sm:h-6 sm:w-6 sm:text-[10px] ${course.instructor ? "bg-[#e6bd73] text-[#12384c]" : "bg-white text-[#087f9b]"}`}>{field.symbol}</span>
+                        <div key={field.key} className={`flex h-[68px] min-w-0 flex-col justify-center rounded-xl border px-2.5 py-2 sm:h-[76px] sm:px-3 ${field.key === "price" ? "border-[#9ed8de]/35 bg-[#9ed8de]/15" : "border-white/10 bg-white/[.055]"}`}>
+                          <dt className="flex items-center gap-1 whitespace-nowrap text-[10px] font-bold leading-4 text-white/55 sm:text-[11px]">
+                            <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[8px] ${course.instructor ? "bg-[#e6bd73] text-[#12384c]" : "bg-white/10 text-[#9ed8de]"}`}>{field.symbol}</span>
                             {field.label}
                           </dt>
-                          <dd title={activeCategory.id === "adult" && index === 0 && (field.key === "pool" || field.key === "ocean") ? "풀장 실습 2회 또는 해양 실습 2회 중 하나를 선택합니다." : undefined} className={`mt-2 whitespace-nowrap text-[13px] font-semibold leading-5 sm:text-[15px] ${course.instructor ? "text-white" : field.key === "price" ? "text-[#075d78]" : "text-[#173c4c]"}`}>{curriculum[field.key]}</dd>
+                          <dd title={activeCategory.id === "adult" && index === 0 && (field.key === "pool" || field.key === "ocean") ? "풀장 실습 2회 또는 해양 실습 2회 중 하나를 선택합니다." : undefined} className={`mt-1 whitespace-nowrap text-[12px] font-semibold leading-5 sm:text-[14px] ${field.key === "price" ? "text-[#b6eeee]" : "text-white"}`}>{curriculum[field.key]}</dd>
                         </div>
                       ))}
                     </dl>
-                    <button type="button" onClick={() => openInquiry(`${activeCategory.name} · ${course.title}`, null, activeCategory.id, course.title)} className={`mt-auto inline-flex min-h-12 items-center justify-between gap-4 rounded-full px-5 text-sm font-bold transition hover:-translate-y-0.5 ${course.instructor ? "bg-[#e6bd73] text-[#12384c] shadow-[0_8px_20px_rgba(0,0,0,.18)]" : "bg-[#0b5b77] text-white shadow-[0_8px_20px_rgba(11,91,119,.18)]"}`}>교육 문의하기 <ArrowIcon diagonal /></button>
+                    <button type="button" onClick={() => openInquiry(`${activeCategory.name} · ${course.title}`, null, activeCategory.id, course.title)} className={`mt-auto inline-flex min-h-11 items-center justify-between gap-4 rounded-xl px-4 text-xs font-bold transition hover:-translate-y-0.5 sm:text-sm ${course.instructor ? "bg-[#e6bd73] text-[#12384c]" : "bg-[#aee4e8] text-[#062b3d]"}`}>교육 문의하기 <ArrowIcon diagonal /></button>
                   </article>
                 );
               })}
             </div>
-            <p className="mt-7 text-xs leading-6 text-[#617e8a]">표시된 총 비용은 교육비와 발급비를 합한 금액입니다. 일정과 응시 조건은 블루피스에 문의해 주세요. 수중레저안전요원 자격과 야간 해루질 활동 가능 범위는 지역 규정, 허가 및 현장 조건을 별도로 확인해 주세요.</p>
+            <p className="mt-5 break-keep text-xs leading-relaxed text-white/50"><SentenceText>표시된 총 비용은 교육비와 발급비를 합한 금액입니다. 일정과 응시 조건은 블루피스에 문의해 주세요. 수중레저안전요원 자격과 야간 해루질 활동 가능 범위는 지역 규정, 허가 및 현장 조건을 별도로 확인해 주세요.</SentenceText></p>
+            </>}
           </div>
         </div>
       </section>
 
-      <section id="gallery" className="bg-[#062c43] px-6 py-24 text-white sm:px-10 lg:px-16 lg:py-32">
-        <div className="mx-auto grid max-w-[1312px] gap-12 lg:grid-cols-[.8fr_1.2fr] lg:items-center lg:gap-20">
+      <section id="gallery" className="bg-[#09273b] px-6 py-10 text-white sm:px-10 sm:py-20 lg:px-16 lg:py-24">
+        <div className="mx-auto grid max-w-[1312px] gap-5 lg:grid-cols-[.8fr_1.2fr] lg:items-center lg:gap-16">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#7bd7e5]">The blue moment</p>
-            <h2 className="mt-5 text-4xl font-semibold leading-[1.2] tracking-[-0.06em] sm:text-5xl">말보다 오래 남는<br />바다의 순간</h2>
-            <p className="mt-6 max-w-md break-keep text-lg leading-8 text-white/75">고요한 물속, 부드러운 빛, 자유로운 움직임.</p>
-            <p className="mt-3 max-w-md break-keep text-lg leading-8 text-white/75">블루피스가 사랑하는 바다의 장면을 만나보세요.</p>
+            <h2 className="mt-2 text-3xl font-semibold leading-tight tracking-[-0.06em] sm:mt-5 sm:text-5xl">말보다 오래 남는<br />바다의 순간</h2>
+            <p className="mt-4 max-w-md break-keep text-sm leading-relaxed text-white/75 sm:mt-6 sm:text-lg">고요한 물속, 부드러운 빛, 자유로운 움직임.</p>
+            <p className="mt-1 max-w-md break-keep text-sm leading-relaxed text-white/75 sm:mt-3 sm:text-lg">블루피스가 사랑하는 바다의 장면을 만나보세요.</p>
           </div>
-          <div className="relative mx-auto aspect-[2/3] w-full max-w-[460px] overflow-hidden rounded-[2rem] bg-[#0c6a84] shadow-[0_30px_80px_rgba(0,0,0,.28)]">
+          <div className="relative mx-auto aspect-[2/3] w-full max-w-[240px] overflow-hidden rounded-2xl bg-[#0c6a84] shadow-[0_25px_60px_rgba(0,0,0,.26)] sm:max-w-[360px] lg:max-w-[400px]">
             <Image src="/DSC02240.jpg" alt="햇살이 들어오는 물속에서 다이빙하는 블루피스의 장면" fill sizes="(min-width: 1024px) 460px, 90vw" className="object-contain" />
           </div>
         </div>
       </section>
 
-      <section id="instructors" className="px-6 py-24 sm:px-10 lg:px-16 lg:py-32">
+      <section id="instructors" className="bg-[#061f32] px-6 py-10 sm:px-10 sm:py-20 lg:px-16 lg:py-24">
         <div className="mx-auto max-w-[1312px]">
-          <div className="mb-11 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div className="mb-5 flex flex-col gap-2 sm:mb-10 lg:flex-row lg:items-end lg:justify-between lg:gap-5">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#087f9b]">Meet our instructors</p>
-              <h2 className="mt-5 break-keep text-4xl font-semibold leading-[1.2] tracking-[-0.06em] sm:text-5xl">나의 바다를 함께할 강사진</h2>
+              <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#7ad7df]">Meet our instructors</p>
+              <h2 className="mt-2 break-keep text-3xl font-semibold leading-tight tracking-[-0.06em] sm:mt-5 sm:text-5xl">나의 바다를 함께할 강사진</h2>
             </div>
-            <p className="max-w-lg break-keep text-sm leading-7 text-[#587182] sm:text-base">BLUE PEACE 대표강사 김상욱을 소개합니다. 전체 강사진과 각 강사의 문의 가능 코스는 강사 선택 창에서 확인해 주세요.</p>
+            <p className="max-w-lg break-keep text-xs leading-relaxed text-white/60 sm:text-base"><SentenceText>BLUE PEACE 대표강사 김상욱을 소개합니다. 전체 강사진과 각 강사의 문의 가능 코스는 강사 선택 창에서 확인해 주세요.</SentenceText></p>
           </div>
           <div className="mx-auto max-w-4xl">
             {[directoryInstructors[0]].map((instructor) => (
-              <article key={instructor.id} className="flex h-full min-w-0 flex-col overflow-hidden rounded-[1.75rem] border border-[#d9e7ec] bg-white shadow-[0_18px_50px_rgba(18,57,78,.09)] transition hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(18,57,78,.15)] md:flex-row">
-                <div className="relative flex aspect-square items-center justify-center overflow-hidden bg-[linear-gradient(145deg,#0d6780,#062f4b)] text-white md:h-[360px] md:w-[360px] md:shrink-0 md:self-start">
+              <article key={instructor.id} className="flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border border-white/15 bg-white/[.06] shadow-[inset_0_1px_0_rgba(255,255,255,.13),0_20px_50px_rgba(0,0,0,.2)] backdrop-blur-xl transition hover:border-white/25 md:flex-row">
+                <div className="relative mx-auto mt-4 flex h-44 w-44 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[linear-gradient(145deg,#0d6780,#062f4b)] text-white sm:mt-6 sm:h-64 sm:w-64 md:m-0 md:h-[360px] md:w-[360px] md:self-start md:rounded-none">
                   {instructor.photoUrl ? (
                     <Image src={instructor.photoUrl} alt={`${instructor.name} 강사 프로필`} fill sizes="(min-width: 768px) 360px, 90vw" className="object-cover object-[center_35%]" />
                   ) : (
@@ -456,18 +475,18 @@ export default function HomePage() {
                   )}
                   {!instructor.photoUrl && <span className="absolute bottom-5 left-6 rounded-full border border-white/40 bg-[#062f4b]/55 px-3 py-1.5 text-[11px] font-semibold text-white backdrop-blur-sm">사진 등록 예정</span>}
                 </div>
-                <div className="flex flex-1 flex-col p-7 sm:p-8">
-                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#087f9b]">{instructor.role}</p>
-                  <h3 className="mt-2 text-3xl font-semibold tracking-[-0.05em]">{instructor.name}</h3>
-                  <div className="mt-6 border-t border-[#e2ebee] pt-5 text-sm leading-6">
-                    <p className="text-xs font-bold text-[#087f9b]">소속 및 자격</p>
-                    <p className="mt-1 break-keep text-[#5c7381]">{instructor.experience} · {instructor.certifications}</p>
+                <div className="flex flex-1 flex-col p-5 sm:p-8">
+                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#8adddf]">{instructor.role}</p>
+                  <h3 className="mt-1 text-2xl font-semibold tracking-[-0.05em] sm:mt-2 sm:text-3xl">{instructor.name}</h3>
+                  <div className="mt-3 border-t border-white/15 pt-3 text-sm leading-relaxed sm:mt-6 sm:pt-5">
+                    <p className="text-xs font-bold text-[#8adddf]">소속 및 자격</p>
+                    <p className="mt-1 break-keep text-white/65">{instructor.experience} · {instructor.certifications}</p>
                   </div>
-                  <div className="mt-6 flex flex-wrap gap-2">
-                    {instructor.specialties.map((specialty) => <span key={specialty} className="rounded-full bg-[#e8f4f6] px-3 py-1.5 text-xs font-semibold text-[#0b607a]">{specialty}</span>)}
+                  <div className="mt-3 flex flex-wrap gap-1.5 sm:mt-6 sm:gap-2">
+                    {instructor.specialties.map((specialty) => <span key={specialty} className="rounded-full border border-white/15 bg-white/[.08] px-2.5 py-1 text-[11px] font-semibold text-[#bce8e8] sm:px-3 sm:py-1.5 sm:text-xs">{specialty}</span>)}
                   </div>
-                  <div className="mt-auto pt-8">
-                    <button type="button" onClick={() => openInquiry()} className="inline-flex min-h-12 w-full items-center justify-between gap-3 rounded-full bg-[#0b5b77] px-5 text-sm font-bold text-white shadow-[0_8px_20px_rgba(11,91,119,.18)] transition hover:-translate-y-0.5">
+                  <div className="mt-auto pt-4 sm:pt-8">
+                    <button type="button" onClick={() => openInquiry()} className="inline-flex min-h-11 w-full items-center justify-between gap-3 rounded-xl bg-[#aee4e8] px-4 text-xs font-bold text-[#062b3d] transition hover:bg-white sm:min-h-12 sm:px-5 sm:text-sm">
                       전체 강사진 및 문의 가능 코스 보기 <ArrowIcon diagonal />
                     </button>
                   </div>
@@ -478,35 +497,35 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section id="reviews" className="bg-[#eaf2f5] px-6 py-24 sm:px-10 lg:px-16 lg:py-28">
+      <section id="reviews" className="bg-[#09283d] px-6 py-10 sm:px-10 sm:py-20 lg:px-16 lg:py-24">
         <div className="mx-auto max-w-[1312px]">
           <div className="max-w-2xl">
-            <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#087f9b]">Naver Place reviews</p>
-            <h2 className="mt-5 break-keep text-4xl font-semibold tracking-[-0.06em] sm:text-5xl">네이버 플레이스에서 남긴 이야기</h2>
-            <p className="mt-5 break-keep leading-8 text-[#587182]">블루피스 네이버 플레이스에 공개된 방문자 후기의 핵심 내용을 짧게 요약했습니다. 원문은 네이버 플레이스에서 확인할 수 있습니다.</p>
+            <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#7ad7df]">Naver Place reviews</p>
+            <h2 className="mt-2 break-keep text-3xl font-semibold tracking-[-0.06em] sm:mt-5 sm:text-5xl">네이버 플레이스에서 남긴 이야기</h2>
+            <p className="mt-3 break-keep text-xs leading-relaxed text-white/60 sm:mt-5 sm:text-base"><SentenceText>블루피스 네이버 플레이스에 공개된 방문자 후기의 핵심 내용을 짧게 요약했습니다. 원문은 네이버 플레이스에서 확인할 수 있습니다.</SentenceText></p>
           </div>
-          <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+          <div className="no-scrollbar -mx-6 mt-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-6 pb-3 sm:mx-0 sm:mt-10 sm:grid sm:grid-cols-2 sm:gap-5 sm:overflow-visible sm:px-0 xl:grid-cols-4">
             {placeReviews.map((review) => (
-              <article key={review.title} className="flex h-full flex-col rounded-[1.5rem] border border-[#dce8ec] bg-white p-7 shadow-[0_16px_45px_rgba(18,57,78,.07)]">
-                <div className="flex items-center justify-between gap-3"><span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[#03c75a] text-lg font-black text-white" aria-hidden="true">N</span><span className="text-[10px] font-bold text-[#648278]">방문자 리뷰 요약</span></div>
-                <h3 className="mt-7 text-xl font-semibold">{review.title}</h3>
-                <p className="mt-4 flex-1 break-keep text-sm leading-7 text-[#708892]">{review.quote}</p>
-                <div className="mt-8 border-t border-[#e5eef0] pt-5"><p className="text-sm font-bold text-[#12384c]">{review.author}</p><p className="mt-1 text-xs font-medium text-[#087f9b]">{review.course}</p></div>
+              <article key={review.title} className="flex w-[82vw] max-w-[310px] shrink-0 snap-center flex-col rounded-2xl border border-white/15 bg-white/[.07] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.12),0_14px_36px_rgba(0,0,0,.14)] backdrop-blur-xl sm:h-full sm:w-auto sm:max-w-none sm:p-7">
+                <div className="flex items-center justify-between gap-3"><span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[#03c75a] text-lg font-black text-white" aria-hidden="true">N</span><span className="text-[10px] font-bold text-white/50">방문자 리뷰 요약</span></div>
+                <h3 className="mt-4 text-lg font-semibold sm:mt-7 sm:text-xl">{review.title}</h3>
+                <p className="mt-2 flex-1 break-keep text-xs leading-relaxed text-white/70 sm:mt-4 sm:text-sm"><SentenceText>{review.quote}</SentenceText></p>
+                <div className="mt-5 border-t border-white/15 pt-3 sm:mt-8 sm:pt-5"><p className="text-sm font-bold text-white">{review.author}</p><p className="mt-1 text-xs font-medium text-[#8adddf]">{review.course}</p></div>
               </article>
             ))}
           </div>
-          <a href={naverReviewUrl} target="_blank" rel="noopener noreferrer" className="mt-9 inline-flex min-h-12 items-center gap-4 rounded-full border border-[#8bbdca] bg-white px-6 text-sm font-bold text-[#0b5b77] transition hover:bg-[#e5f3f5]">네이버 플레이스 실시간 리뷰 보기 <ArrowIcon diagonal /></a>
+          <a href={naverReviewUrl} target="_blank" rel="noopener noreferrer" className="mt-4 inline-flex min-h-11 items-center gap-4 rounded-xl border border-white/25 bg-white/[.08] px-4 text-xs font-bold text-white backdrop-blur-lg transition hover:bg-white/15 sm:mt-9 sm:min-h-12 sm:px-6 sm:text-sm">네이버 플레이스 실시간 리뷰 보기 <ArrowIcon diagonal /></a>
         </div>
       </section>
 
-      <section id="contact" className="relative overflow-hidden bg-[#06364e] px-6 py-24 text-white sm:px-10 lg:px-16 lg:py-28">
+      <section id="contact" className="relative overflow-hidden bg-[#051b2d] px-6 py-10 text-white sm:px-10 sm:py-20 lg:px-16 lg:py-24">
         <div className="absolute -right-20 -top-48 h-[450px] w-[450px] rounded-full border border-white/10" />
         <div className="absolute -right-10 -top-36 h-[450px] w-[450px] rounded-full border border-white/10" />
-        <div className="relative mx-auto flex max-w-[1312px] flex-col gap-10 lg:flex-row lg:items-end lg:justify-between">
+        <div className="relative mx-auto flex max-w-[1312px] flex-col gap-6 lg:flex-row lg:items-end lg:justify-between lg:gap-10">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#7bd7e5]">Your journey starts here</p>
-            <h2 className="mt-5 text-4xl font-semibold leading-[1.15] tracking-[-0.06em] sm:text-6xl">당신의 바다는<br />여기서 시작됩니다.</h2>
-            <p className="mt-6 text-base text-white/65">블루피스의 교육 코스와 일정을 편하게 문의해 주세요.</p>
+            <h2 className="mt-2 text-3xl font-semibold leading-tight tracking-[-0.06em] sm:mt-5 sm:text-6xl">당신의 바다는<br />여기서 시작됩니다.</h2>
+            <p className="mt-3 text-sm leading-relaxed text-white/65 sm:mt-6 sm:text-base">블루피스의 교육 코스와 일정을 편하게 문의해 주세요.</p>
           </div>
           <button type="button" onClick={() => openInquiry()} className="inline-flex min-h-14 items-center justify-between gap-10 self-start rounded-full bg-[#b7ebf0] px-7 text-sm font-bold text-[#08384f] shadow-[0_10px_0_#58aab8,0_22px_35px_rgba(0,0,0,.22)] transition hover:-translate-y-1 lg:self-auto">교육 문의하기 <ArrowIcon diagonal /></button>
         </div>
