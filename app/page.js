@@ -15,10 +15,10 @@ const categories = [
     association: "AIDA / PSA",
     intro: "처음 숨을 고르는 순간부터 더 깊은 도전까지, 블루피스와 함께 단계별로 배웁니다.",
     courses: [
-      { title: "1레벨", subtitle: "Freediver", description: "프리다이빙의 기초를 시작하는 과정입니다.", curriculum: { theory: "1시간", pool: "2회 (해양 2회와 택1)", ocean: "2회 (풀장 2회와 택1)", price: "15만원" } },
-      { title: "2레벨", subtitle: "Open Water", description: "기본기를 바탕으로 개방 수역 경험을 넓혀가는 과정입니다.", unlimited: true, curriculum: { theory: "2시간", pool: "무제한 (취득까지)", ocean: "무제한 (취득까지)", price: "40만원" } },
-      { title: "3레벨", subtitle: "Advanced", description: "기술과 안전 절차를 더 깊이 익히는 심화 과정입니다.", unlimited: true, curriculum: { theory: "2시간", pool: "무제한 (취득까지)", ocean: "무제한 (취득까지)", price: "55만원" } },
-      { title: "4레벨", subtitle: "Master", description: "숙련도를 높이고 다음 단계를 준비하는 과정입니다.", unlimited: true, curriculum: { theory: "2시간", pool: "무제한 (취득까지)", ocean: "무제한 (취득까지)", price: "85만원" } },
+      { title: "1레벨", subtitle: "Freediver", description: "프리다이빙의 기초를 시작하는 과정입니다. 풀장 또는 해양 실습 중 하나를 선택해 2회 진행합니다.", curriculum: { theory: "1시간", pool: "2회 (택1)", ocean: "2회 (택1)", price: "15만원" } },
+      { title: "2레벨", subtitle: "Open Water", description: "기본기를 바탕으로 개방 수역 경험을 넓혀가는 과정입니다.", unlimited: true, curriculum: { theory: "2시간", pool: "무제한", ocean: "무제한", price: "40만원" } },
+      { title: "3레벨", subtitle: "Advanced", description: "기술과 안전 절차를 더 깊이 익히는 심화 과정입니다.", unlimited: true, curriculum: { theory: "2시간", pool: "무제한", ocean: "무제한", price: "55만원" } },
+      { title: "4레벨", subtitle: "Master", description: "숙련도를 높이고 다음 단계를 준비하는 과정입니다.", unlimited: true, curriculum: { theory: "2시간", pool: "무제한", ocean: "무제한", price: "85만원" } },
       { title: "강사 과정", subtitle: "Instructor", description: "교육자로 나아가기 위한 과정입니다. 자격 요건과 일정은 블루피스에 문의해 주세요.", instructor: true, curriculum: { theory: "별도 문의", pool: "별도 문의", ocean: "별도 문의", price: "별도 문의" } },
     ],
   },
@@ -40,8 +40,8 @@ const categories = [
     association: "PSA",
     intro: "수중 활동의 안전 역량을 단계별로 배우는 블루피스 교육입니다.",
     courses: [
-      { title: "수중레저안전요원", description: "야간 해루질 관련 자격 과정입니다. 실제 활동 가능 범위는 지역 규정을 확인해 주세요.", unlimited: true, curriculum: { theory: "2시간", pool: "무제한 (자격증 취득까지)", ocean: "희망 시 가능", price: "35만원" } },
-      { title: "마스터 수중레저안전요원", description: "야간 해루질 관련 상위 등급 자격 과정입니다. 실제 활동 가능 범위는 지역 규정을 확인해 주세요.", unlimited: true, curriculum: { theory: "2시간", pool: "무제한 (자격증 취득까지)", ocean: "희망 시 가능", price: "55만원" } },
+      { title: "수중레저안전요원", description: "야간 해루질 관련 자격 과정입니다. 실제 활동 가능 범위는 지역 규정을 확인해 주세요.", unlimited: true, curriculum: { theory: "2시간", pool: "무제한", ocean: "희망 시 가능", price: "35만원" } },
+      { title: "마스터 수중레저안전요원", description: "야간 해루질 관련 상위 등급 자격 과정입니다. 실제 활동 가능 범위는 지역 규정을 확인해 주세요.", unlimited: true, curriculum: { theory: "2시간", pool: "무제한", ocean: "희망 시 가능", price: "55만원" } },
       { title: "수중레저안전요원 강사 과정", description: "야간 1인 해루질 관련 자격 과정입니다. 실제 활동 가능 범위는 지역 규정을 확인해 주세요.", instructor: true, curriculum: { theory: "별도 문의", pool: "별도 문의", ocean: "필수 진행", price: "별도 문의" } },
     ],
   },
@@ -51,9 +51,9 @@ const categories = [
     association: "PSA",
     intro: "움직임과 표현의 즐거움을 만나는 블루피스 머메이드 과정입니다.",
     courses: [
-      { title: "베이직 머메이드", description: "머메이드 다이빙의 기초 움직임을 배우는 과정입니다.", unlimited: true, curriculum: { theory: "2시간", pool: "무제한 (자격증 취득까지)", ocean: "없음", price: "35만원" } },
-      { title: "머메이드", description: "기본 동작을 확장하며 물속 표현을 익히는 과정입니다.", unlimited: true, curriculum: { theory: "2시간", pool: "무제한 (자격증 취득까지)", ocean: "없음", price: "45만원" } },
-      { title: "오션 머메이드", description: "머메이드 동작을 심화하는 과정입니다.", unlimited: true, curriculum: { theory: "2시간", pool: "무제한 (자격증 취득까지)", ocean: "없음", price: "55만원" } },
+      { title: "베이직 머메이드", description: "머메이드 다이빙의 기초 움직임을 배우는 과정입니다.", unlimited: true, curriculum: { theory: "2시간", pool: "무제한", ocean: "없음", price: "35만원" } },
+      { title: "머메이드", description: "기본 동작을 확장하며 물속 표현을 익히는 과정입니다.", unlimited: true, curriculum: { theory: "2시간", pool: "무제한", ocean: "없음", price: "45만원" } },
+      { title: "오션 머메이드", description: "머메이드 동작을 심화하는 과정입니다.", unlimited: true, curriculum: { theory: "2시간", pool: "무제한", ocean: "없음", price: "55만원" } },
       { title: "강사 과정", subtitle: "Mermaid Instructor", description: "머메이드 교육자를 위한 과정입니다. 자격 요건과 일정은 블루피스에 문의해 주세요.", instructor: true, curriculum: { theory: "별도 문의", pool: "별도 문의", ocean: "없음", price: "별도 문의" } },
     ],
   },
@@ -204,7 +204,7 @@ export default function HomePage() {
                 tabIndex={activeTab === index ? 0 : -1}
                 onClick={() => setActiveTab(index)}
                 onKeyDown={(event) => handleTabKeyDown(event, index)}
-                className={`min-h-14 rounded-2xl px-3 py-3 text-center text-xs font-bold leading-5 transition sm:text-sm ${activeTab === index ? "bg-[#083b57] text-white shadow-[0_9px_20px_rgba(8,59,87,.25)]" : "text-[#456879] hover:bg-[#edf6f8] hover:text-[#083b57]"}`}
+                className={`min-h-14 break-keep rounded-2xl px-3 py-3 text-center text-xs font-bold leading-5 transition sm:text-sm ${activeTab === index ? "bg-[#083b57] text-white shadow-[0_9px_20px_rgba(8,59,87,.25)]" : "text-[#456879] hover:bg-[#edf6f8] hover:text-[#083b57]"}`}
               >
                 {category.name}
               </button>
@@ -228,32 +228,36 @@ export default function HomePage() {
                   { key: "theory", label: "이론 시간", symbol: "01" },
                   { key: "pool", label: "풀장 실습", symbol: "02" },
                   { key: "ocean", label: "해양 실습", symbol: "03" },
-                  { key: "price", label: "총 비용 · 교육비 + 발급비", symbol: "₩" },
+                  { key: "price", label: "총 비용", symbol: "₩" },
                 ];
                 return (
-                  <article key={`${activeCategory.id}-${course.title}`} className={`flex h-full flex-col rounded-[1.75rem] border p-7 transition duration-300 hover:-translate-y-1 sm:p-8 ${course.instructor ? "border-[#c49b58] bg-[#0d4056] text-white shadow-[0_22px_55px_rgba(8,59,87,.2)]" : "border-[#d9e7ec] bg-white text-[#102e40] shadow-[0_16px_42px_rgba(18,57,78,.08)]"}`}>
-                    <div className="flex items-start justify-between gap-4">
+                  <article key={`${activeCategory.id}-${course.title}`} className={`flex h-full min-w-0 flex-col rounded-[1.75rem] border p-6 transition duration-300 hover:-translate-y-1 sm:p-8 ${course.instructor ? "border-[#c49b58] bg-[#0d4056] text-white shadow-[0_22px_55px_rgba(8,59,87,.2)]" : "border-[#d9e7ec] bg-white text-[#102e40] shadow-[0_16px_42px_rgba(18,57,78,.08)]"}`}>
+                    <div className="flex h-8 items-start justify-between gap-4">
                       <span className={`rounded-full px-3 py-1.5 text-[11px] font-bold tracking-wide ${course.instructor ? "bg-[#e6bd73] text-[#15384a]" : "bg-[#e5f4f6] text-[#08728d]"}`}>발급 협회 · {activeCategory.association}</span>
                       <span className={`text-xs font-semibold ${course.instructor ? "text-[#e6bd73]" : "text-[#9ab2bc]"}`}>{String(index + 1).padStart(2, "0")}</span>
                     </div>
-                    {course.instructor && <span className="mt-8 inline-flex self-start rounded-full border border-[#e6bd73]/60 px-3 py-1.5 text-[11px] font-extrabold tracking-wide text-[#f3d396]">★ 강사 과정 · 별도 문의</span>}
-                    {course.unlimited && <span className="mt-8 inline-flex max-w-full self-start rounded-full bg-[#d9f3ee] px-3 py-1.5 text-[11px] font-extrabold leading-5 text-[#086e73]">∞ 자격증 취득할 때까지 {activeCategory.id === "adult" ? "풀장/해양 실습" : "풀장 실습"} 무제한 진행</span>}
-                    <h4 className={`${course.instructor || course.unlimited ? "mt-4 text-2xl sm:text-[1.7rem]" : "mt-10 text-2xl"} font-semibold leading-tight tracking-[-0.04em]`}>{course.title}</h4>
-                    {course.subtitle && <p className={`mt-1 text-sm font-medium ${course.instructor ? "text-[#a6d5df]" : "text-[#087f9b]"}`}>{course.subtitle}</p>}
-                    <p className={`mt-5 min-h-16 text-sm leading-7 ${course.instructor ? "text-white/75" : "text-[#5c7381]"}`}>{course.description}</p>
+                    <div className="flex h-16 items-center" aria-label={course.instructor ? "강사 과정 별도 문의" : course.unlimited ? "자격증 취득할 때까지 무제한 진행" : undefined}>
+                      {course.instructor && <span className="inline-flex max-w-full rounded-full border border-[#e6bd73]/60 px-3 py-1.5 text-[11px] font-extrabold leading-5 text-[#f3d396]">★ 강사 과정 · 별도 문의</span>}
+                      {course.unlimited && <span className="inline-flex max-w-full rounded-full bg-[#d9f3ee] px-3 py-1.5 text-[11px] font-extrabold leading-5 text-[#086e73]">∞ 자격증 취득할 때까지 무제한 진행</span>}
+                    </div>
+                    <div className="min-h-20 break-keep md:min-h-28">
+                      <h4 className="text-2xl font-semibold leading-tight tracking-[-0.04em] sm:text-[1.65rem]">{course.title}</h4>
+                      {course.subtitle && <p className={`mt-1 text-sm font-medium ${course.instructor ? "text-[#a6d5df]" : "text-[#087f9b]"}`}>{course.subtitle}</p>}
+                    </div>
+                    <p className={`min-h-24 break-keep text-sm leading-7 md:min-h-36 ${course.instructor ? "text-white/75" : "text-[#5c7381]"}`}>{course.description}</p>
 
-                    <dl className="mt-6 grid grid-cols-2 gap-2.5">
+                    <dl className="mb-7 mt-4 grid grid-cols-2 gap-2.5">
                       {curriculumFields.map((field) => (
-                        <div key={field.key} className={`min-h-28 rounded-2xl border p-4 ${course.instructor ? "border-white/15 bg-white/10" : field.key === "price" ? "border-[#b6dce4] bg-[#e3f3f6]" : "border-[#e1ebef] bg-[#f2f7f9]"}`}>
-                          <dt className={`flex items-center gap-2 text-[11px] font-bold leading-4 ${course.instructor ? "text-[#d4e9ec]" : "text-[#577786]"}`}>
-                            <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] ${course.instructor ? "bg-[#e6bd73] text-[#12384c]" : "bg-white text-[#087f9b]"}`}>{field.symbol}</span>
+                        <div key={field.key} className={`flex h-[102px] min-w-0 flex-col justify-center rounded-2xl border px-3 py-3 sm:h-[108px] sm:px-4 ${course.instructor ? "border-white/15 bg-white/10" : field.key === "price" ? "border-[#b6dce4] bg-[#e3f3f6]" : "border-[#e1ebef] bg-[#f2f7f9]"}`}>
+                          <dt className={`flex items-center gap-1.5 whitespace-nowrap text-[10px] font-bold leading-4 sm:text-[11px] ${course.instructor ? "text-[#d4e9ec]" : "text-[#577786]"}`}>
+                            <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[9px] sm:h-6 sm:w-6 sm:text-[10px] ${course.instructor ? "bg-[#e6bd73] text-[#12384c]" : "bg-white text-[#087f9b]"}`}>{field.symbol}</span>
                             {field.label}
                           </dt>
-                          <dd className={`mt-3 break-keep text-sm font-semibold leading-6 sm:text-base ${course.instructor ? "text-white" : field.key === "price" ? "text-[#075d78]" : "text-[#173c4c]"}`}>{curriculum[field.key]}</dd>
+                          <dd title={activeCategory.id === "adult" && index === 0 && (field.key === "pool" || field.key === "ocean") ? "풀장 실습 2회 또는 해양 실습 2회 중 하나를 선택합니다." : undefined} className={`mt-2 whitespace-nowrap text-[13px] font-semibold leading-5 sm:text-[15px] ${course.instructor ? "text-white" : field.key === "price" ? "text-[#075d78]" : "text-[#173c4c]"}`}>{curriculum[field.key]}</dd>
                         </div>
                       ))}
                     </dl>
-                    <a href={`mailto:${contactEmail}?subject=${encodeURIComponent(`블루피스 ${activeCategory.name} - ${course.title} 교육 문의`)}`} className={`mt-7 inline-flex min-h-12 items-center justify-between gap-4 rounded-full px-5 text-sm font-bold transition hover:-translate-y-0.5 ${course.instructor ? "bg-[#e6bd73] text-[#12384c] shadow-[0_8px_20px_rgba(0,0,0,.18)]" : "bg-[#0b5b77] text-white shadow-[0_8px_20px_rgba(11,91,119,.18)]"}`}>교육 문의하기 <ArrowIcon diagonal /></a>
+                    <a href={`mailto:${contactEmail}?subject=${encodeURIComponent(`블루피스 ${activeCategory.name} - ${course.title} 교육 문의`)}`} className={`mt-auto inline-flex min-h-12 items-center justify-between gap-4 rounded-full px-5 text-sm font-bold transition hover:-translate-y-0.5 ${course.instructor ? "bg-[#e6bd73] text-[#12384c] shadow-[0_8px_20px_rgba(0,0,0,.18)]" : "bg-[#0b5b77] text-white shadow-[0_8px_20px_rgba(11,91,119,.18)]"}`}>교육 문의하기 <ArrowIcon diagonal /></a>
                   </article>
                 );
               })}
