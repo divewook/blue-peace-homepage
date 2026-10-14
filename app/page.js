@@ -13,12 +13,12 @@ const instructors = [
     name: "상욱",
     role: "대표강사",
     initials: "SW",
-    photoUrl: "",
-    certifications: "AIDA / PSA 프리다이빙 강사 (예시)",
-    experience: "프리다이빙 교육 8년 · 강사 교육 진행 (예시)",
-    specialties: ["성인 프리다이빙", "강사 과정"],
+    photoUrl: "/KakaoTalk_20261014_203011.jpg",
+    certifications: "AIDA / PSA / PSAI 자격 보유",
+    experience: "BLUE PEACE 대표 강사",
+    specialties: ["성인 프리다이빙", "스쿠버다이빙", "강사 과정"],
     kakaoUrl: "https://open.kakao.com/",
-    demo: true,
+    demo: false,
   },
   {
     id: "minseo",
@@ -425,14 +425,14 @@ export default function HomePage() {
               <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#087f9b]">Meet our instructors</p>
               <h2 className="mt-5 break-keep text-4xl font-semibold leading-[1.2] tracking-[-0.06em] sm:text-5xl">나의 바다를 함께할 강사진</h2>
             </div>
-            <p className="max-w-lg break-keep text-sm leading-7 text-[#587182] sm:text-base">블루피스의 교육 분야를 살펴보고, 상담하고 싶은 강사를 직접 선택해 주세요. 아래 프로필은 실제 정보 등록 전의 예시입니다.</p>
+            <p className="max-w-lg break-keep text-sm leading-7 text-[#587182] sm:text-base">블루피스의 교육 분야를 살펴보고, 상담하고 싶은 강사를 직접 선택해 주세요. 상욱 강사를 제외한 프로필은 실제 정보 등록 전의 예시입니다.</p>
           </div>
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
             {instructors.map((instructor) => (
               <article key={instructor.id} className="flex h-full min-w-0 flex-col overflow-hidden rounded-[1.75rem] border border-[#d9e7ec] bg-white shadow-[0_18px_50px_rgba(18,57,78,.09)] transition hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(18,57,78,.15)]">
                 <div className="relative flex h-56 items-center justify-center overflow-hidden bg-[linear-gradient(145deg,#0d6780,#062f4b)] text-white sm:h-64">
                   {instructor.photoUrl ? (
-                    <img src={instructor.photoUrl} alt={`${instructor.name} 강사 프로필`} className="h-full w-full object-cover" />
+                    <img src={instructor.photoUrl} alt={`${instructor.name} 강사 프로필`} className="h-full w-full object-cover object-[center_35%]" />
                   ) : (
                     <>
                       <div className="absolute -right-12 -top-20 h-64 w-64 rounded-full border border-white/20" />
@@ -527,7 +527,7 @@ export default function HomePage() {
               >
                 <span className="flex items-center gap-3">
                   <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#0b5b77] text-sm font-semibold text-white">
-                    {instructor.photoUrl ? <img src={instructor.photoUrl} alt="" className="h-full w-full object-cover" /> : instructor.initials}
+                    {instructor.photoUrl ? <img src={instructor.photoUrl} alt="" className="h-full w-full object-cover object-[center_35%]" /> : instructor.initials}
                   </span>
                   <span className="min-w-0"><span className="block text-[11px] font-bold text-[#087f9b]">{instructor.role}</span><span className="block text-lg font-semibold">{instructor.name}</span></span>
                   <span aria-hidden="true" className={`ml-auto flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-xs ${selectedInstructorId === instructor.id ? "border-[#0b718a] bg-[#0b718a] text-white" : "border-[#a8c2ca] text-transparent"}`}>✓</span>
