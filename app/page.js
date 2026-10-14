@@ -229,6 +229,10 @@ export default function HomePage() {
   const [instructorFilter, setInstructorFilter] = useState("all");
   const [instructorSearch, setInstructorSearch] = useState("");
   const [instructorOrder, setInstructorOrder] = useState(() => directoryInstructors.map((instructor) => instructor.id));
+  const [reservationStep, setReservationStep] = useState("select");
+  const [reservation, setReservation] = useState({ name: "", phone: "", people: "1", schedule: "", message: "" });
+  const [submissionText, setSubmissionText] = useState("");
+  const [copySucceeded, setCopySucceeded] = useState(false);
   const dialogRef = useRef(null);
   const activeCategory = categories.find((category) => category.id === activeTab);
   const selectedInstructor = directoryInstructors.find((instructor) => instructor.id === selectedInstructorId);
@@ -259,7 +263,42 @@ export default function HomePage() {
     setInquiryCourseTitle(courseTitle);
     setInstructorFilter("all");
     setInstructorSearch("");
+    setReservationStep("select");
+    setReservation({ name: "", phone: "", people: "1", schedule: "", message: "" });
+    setSubmissionText("");
+    setCopySucceeded(false);
     if (!dialogRef.current?.open) dialogRef.current?.showModal();
+  }
+
+  function updateReservation(field, value) {
+    setReservation((current) => ({ ...current, [field]: value }));
+  }
+
+  async function submitReservation(event) {
+    event.preventDefault();
+    if (!selectedInstructor) return;
+    const text = [
+      "[블루피스 교육 상담 예약]",
+      `담당 강사: ${selectedInstructor.role} ${selectedInstructor.name}`,
+      `문의 과정: ${inquiryCourse || "상담 후 결정"}`,
+      `성함: ${reservation.name.trim()}`,
+      `연락처: ${reservation.phone.trim()}`,
+      `인원: ${reservation.people}명`,
+      `수업 희망 일정: ${reservation.schedule.trim()}`,
+      `기타 문의사항: ${reservation.message.trim() || "없음"}`,
+    ].join("\n");
+    setSubmissionText(text);
+    // 새 창은 사용자의 클릭 이벤트 중 열어야 팝업 차단을 피할 수 있습니다.
+    const copyPromise = navigator.clipboard?.writeText(text);
+    window.open(selectedInstructor.kakaoUrl, "_blank", "noopener,noreferrer");
+    try {
+      if (!copyPromise) throw new Error("Clipboard unavailable");
+      await copyPromise;
+      setCopySucceeded(true);
+    } catch {
+      setCopySucceeded(false);
+    }
+    setReservationStep("done");
   }
 
   function handleTabKeyDown(event, index) {
@@ -535,33 +574,34 @@ export default function HomePage() {
         ref={dialogRef}
         aria-labelledby="inquiry-title"
         aria-describedby="inquiry-description"
-        onClose={() => setSelectedInstructorId(null)}
+        onClose={() => { setSelectedInstructorId(null); setReservationStep("select"); }}
         onClick={(event) => { if (event.target === event.currentTarget) dialogRef.current?.close(); }}
-        className="m-auto max-h-[90dvh] w-[92vw] max-w-5xl overflow-y-auto rounded-[1.75rem] border border-[#c9dfe5] bg-[#f4f8fa] p-0 text-[#102e40] shadow-[0_35px_100px_rgba(2,24,42,.4)] backdrop:bg-[#021b2c]/75"
+        className="m-auto max-h-[90dvh] w-[94vw] max-w-5xl overflow-hidden rounded-2xl border border-[#c9dfe5] bg-[#f4f8fa] p-0 text-[#102e40] shadow-[0_35px_100px_rgba(2,24,42,.4)] backdrop:bg-[#021b2c]/75 [&[open]]:flex [&[open]]:flex-col"
       >
-        <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-[#d9e7ec] bg-[#f4f8fa]/95 px-5 py-5 backdrop-blur-md sm:px-8 sm:py-6">
+        <div className="z-10 flex shrink-0 items-start justify-between gap-4 border-b border-[#d9e7ec] bg-[#f4f8fa]/95 px-5 py-4 backdrop-blur-md sm:px-8 sm:py-6">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-[#087f9b]">Blue Peace · Personal inquiry</p>
-            <h2 id="inquiry-title" className="mt-2 break-keep text-2xl font-semibold tracking-[-0.05em] sm:text-3xl">강사 선택</h2>
-            <p id="inquiry-description" className="mt-2 break-keep text-sm leading-6 text-[#5b7481]">원하시는 블루피스 전문 강사를 선택해 주세요.</p>
+            <h2 id="inquiry-title" className="mt-1 break-keep text-2xl font-semibold tracking-[-0.05em] sm:mt-2 sm:text-3xl">{reservationStep === "select" ? "강사 선택" : reservationStep === "form" ? "상담 예약 양식" : "상담 내용 준비 완료"}</h2>
+            <p id="inquiry-description" className="mt-1 break-keep text-xs leading-relaxed text-[#5b7481] sm:mt-2 sm:text-sm">{reservationStep === "select" ? "원하시는 블루피스 전문 강사를 선택해 주세요." : reservationStep === "form" ? "필요한 내용을 적으면 상담 문구가 자동으로 정리됩니다." : "복사한 내용을 오픈채팅창에 붙여넣어 주세요."}</p>
           </div>
           <button type="button" onClick={() => dialogRef.current?.close()} aria-label="강사 선택 창 닫기" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#d1e0e5] bg-white text-xl text-[#31566a] transition hover:bg-[#e7f2f5]">×</button>
         </div>
 
-        <div className="px-5 py-6 sm:px-8 sm:py-8">
-          {inquiryCourse && <p className="mb-6 inline-flex max-w-full break-keep rounded-full bg-[#e0f1f4] px-4 py-2 text-xs font-bold text-[#0b6781]">문의 과정 · {inquiryCourse}</p>}
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 sm:px-8 sm:py-7">
+          {inquiryCourse && <p className="mb-4 inline-flex max-w-full break-keep rounded-full bg-[#e0f1f4] px-4 py-2 text-xs font-bold text-[#0b6781]">문의 과정 · {inquiryCourse}</p>}
+          {reservationStep === "select" && <>
           <div className="mb-5 border-b border-[#d9e7ec] pb-5">
             <p className="mb-3 text-xs font-bold text-[#426575]">전문 분야별 필터 <span className="font-normal text-[#8199a3]">· 선택한 코스에 맞는 강사 안에서 검색합니다</span></p>
             <select aria-label="강사 전문 분야 선택" value={instructorFilter} onChange={(event) => { setInstructorFilter(event.target.value); setSelectedInstructorId(null); }} className="h-12 w-full rounded-xl border border-[#cfe1e6] bg-white px-4 text-sm font-semibold text-[#15394b] outline-none focus:border-[#0b718a] focus:ring-2 focus:ring-[#b2e2e9] md:hidden">
               {[{ id: "all", name: "전체" }, ...categories].map((category) => {
                 const count = category.id === "all" ? eligibleInstructors.length : eligibleInstructors.filter((instructor) => Boolean(instructor.courses[category.id])).length;
-                return <option key={category.id} value={category.id} disabled={count === 0}>{category.name} ({count}명)</option>;
+                return <option key={category.id} value={category.id} disabled={count === 0}>{category.name} (이 코스 진행 가능 강사 {count}명)</option>;
               })}
             </select>
             <div className="hidden gap-2 overflow-x-auto pb-2 md:flex" aria-label="강사 전문 분야 필터">
               {[{ id: "all", name: "전체" }, ...categories].map((category) => {
                 const count = category.id === "all" ? eligibleInstructors.length : eligibleInstructors.filter((instructor) => Boolean(instructor.courses[category.id])).length;
-                return <button key={category.id} type="button" aria-pressed={instructorFilter === category.id} disabled={count === 0} onClick={() => { setInstructorFilter(category.id); setSelectedInstructorId(null); }} className={`shrink-0 rounded-full border px-4 py-2 text-xs font-bold transition ${instructorFilter === category.id ? "border-[#0b5b77] bg-[#0b5b77] text-white" : "border-[#cfe1e6] bg-white text-[#527181] hover:border-[#76b8c7]"} disabled:cursor-not-allowed disabled:opacity-40`}>{category.name} <span className="ml-1 opacity-70">{count}</span></button>;
+                return <button key={category.id} type="button" aria-pressed={instructorFilter === category.id} disabled={count === 0} onClick={() => { setInstructorFilter(category.id); setSelectedInstructorId(null); }} className={`shrink-0 rounded-full border px-4 py-2 text-xs font-bold transition ${instructorFilter === category.id ? "border-[#0b5b77] bg-[#0b5b77] text-white" : "border-[#cfe1e6] bg-white text-[#527181] hover:border-[#76b8c7]"} disabled:cursor-not-allowed disabled:opacity-40`}>{category.name} <span className="ml-1 opacity-70">(이 코스 진행 가능 강사 {count}명)</span></button>;
               })}
             </div>
             <label htmlFor="instructor-search" className="mt-5 block text-xs font-bold text-[#426575]">강사 이름 검색</label>
@@ -597,19 +637,38 @@ export default function HomePage() {
             {visibleInstructors.length === 0 && <p className="px-4 py-14 text-center text-sm text-[#66808a]">{eligibleInstructors.length === 0 ? "현재 이 과정의 담당 강사가 등록되지 않았습니다. 전체 문의를 이용해 주세요." : "조건에 맞는 강사가 없습니다. 필터나 이름을 다시 확인해 주세요."}</p>}
           </div>
 
-          <div className="mt-7 rounded-2xl border border-[#d7e7eb] bg-white p-5 sm:p-6">
-            <p className="text-xs font-bold text-[#087f9b]">선택한 강사</p>
-            <p className="mt-2 break-keep text-sm text-[#506c7a]">{selectedInstructor ? `${selectedInstructor.role} ${selectedInstructor.name}님께 상담을 요청합니다.` : "위 목록에서 상담하고 싶은 강사를 선택해 주세요."}</p>
-            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-              {selectedInstructor ? (
-                <a href={selectedInstructor.kakaoUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full bg-[#0b5b77] px-5 text-center text-sm font-bold text-white transition hover:bg-[#08465e]">이 강사에게 상담 문의하기 <ArrowIcon diagonal /></a>
-              ) : (
-                <button type="button" disabled className="inline-flex min-h-12 flex-1 cursor-not-allowed items-center justify-center rounded-full bg-[#c7d9df] px-5 text-sm font-bold text-[#6e8791]">강사를 먼저 선택해 주세요</button>
-              )}
-              <a href={generalInquiryUrl} className="inline-flex min-h-12 flex-1 items-center justify-center rounded-full border border-[#a8c9d3] bg-white px-5 text-center text-sm font-bold text-[#0b5b77] transition hover:bg-[#eaf5f7]">전체 문의 / 강사 배정 요청</a>
+          </>}
+          {reservationStep === "form" && selectedInstructor && (
+            <form id="consultation-form" onSubmit={submitReservation} className="mx-auto max-w-2xl space-y-4">
+              <div className="rounded-xl border border-[#bddde4] bg-[#e8f4f6] p-4 text-sm text-[#28586b]">담당 강사 <strong className="ml-2 text-[#093e58]">{selectedInstructor.role} {selectedInstructor.name}</strong></div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block text-sm font-semibold text-[#31586a]">성함 <span className="text-[#b75353]">*</span><input name="name" type="text" autoComplete="name" required maxLength={40} value={reservation.name} onChange={(event) => updateReservation("name", event.target.value)} placeholder="성함을 입력해 주세요" className="mt-2 h-12 w-full rounded-xl border border-[#cfe1e6] bg-white px-4 font-normal outline-none focus:border-[#0b718a] focus:ring-2 focus:ring-[#b2e2e9]" /></label>
+                <label className="block text-sm font-semibold text-[#31586a]">연락처 <span className="text-[#b75353]">*</span><input name="phone" type="tel" autoComplete="tel" required minLength={8} maxLength={20} value={reservation.phone} onChange={(event) => updateReservation("phone", event.target.value)} placeholder="010-0000-0000" className="mt-2 h-12 w-full rounded-xl border border-[#cfe1e6] bg-white px-4 font-normal outline-none focus:border-[#0b718a] focus:ring-2 focus:ring-[#b2e2e9]" /></label>
+                <label className="block text-sm font-semibold text-[#31586a]">인원 <span className="text-[#b75353]">*</span><input name="people" type="number" min="1" max="99" required value={reservation.people} onChange={(event) => updateReservation("people", event.target.value)} className="mt-2 h-12 w-full rounded-xl border border-[#cfe1e6] bg-white px-4 font-normal outline-none focus:border-[#0b718a] focus:ring-2 focus:ring-[#b2e2e9]" /></label>
+                <label className="block text-sm font-semibold text-[#31586a]">수업 희망 일정 <span className="text-[#b75353]">*</span><input name="schedule" type="text" required maxLength={100} value={reservation.schedule} onChange={(event) => updateReservation("schedule", event.target.value)} placeholder="예: 11월 첫째 주 토요일 오후" className="mt-2 h-12 w-full rounded-xl border border-[#cfe1e6] bg-white px-4 font-normal outline-none focus:border-[#0b718a] focus:ring-2 focus:ring-[#b2e2e9]" /></label>
+              </div>
+              <label className="block text-sm font-semibold text-[#31586a]">기타 문의사항<textarea name="message" rows={4} maxLength={1000} value={reservation.message} onChange={(event) => updateReservation("message", event.target.value)} placeholder="궁금한 점을 편하게 적어 주세요" className="mt-2 w-full resize-y rounded-xl border border-[#cfe1e6] bg-white px-4 py-3 font-normal outline-none focus:border-[#0b718a] focus:ring-2 focus:ring-[#b2e2e9]" /></label>
+              <p className="break-keep text-xs leading-relaxed text-[#6a8793]">입력 내용은 이 기기에서 상담 문구로 정리됩니다. 접수하기를 누르면 복사 후 강사 카카오톡이 열리며, 채팅창에 직접 붙여넣어 보내야 상담이 전달됩니다.</p>
+            </form>
+          )}
+          {reservationStep === "done" && (
+            <div className="mx-auto max-w-2xl space-y-4">
+              <p role="status" className={`break-keep rounded-xl border p-4 text-sm font-semibold leading-relaxed ${copySucceeded ? "border-[#aedcd1] bg-[#e7f6ee] text-[#15644c]" : "border-[#edcf9c] bg-[#fff5e1] text-[#775326]"}`}>{copySucceeded ? "상담 내용이 복사되었습니다. 오픈채팅창에 붙여넣기(Ctrl+V)를 해주세요!" : "자동 복사가 허용되지 않았습니다. 아래 내용을 직접 복사해 오픈채팅창에 붙여넣어 주세요."}</p>
+              <textarea aria-label="상담 내용 복사본" readOnly value={submissionText} rows={10} onFocus={(event) => event.target.select()} className="w-full rounded-xl border border-[#cfe1e6] bg-white p-4 text-xs leading-relaxed text-[#31586a]" />
+              <p className="break-keep text-xs leading-relaxed text-[#6a8793]">오픈채팅창에 메시지를 보내야 상담 요청이 접수됩니다. 강사별 카카오 링크는 실제 주소로 교체해야 합니다.</p>
             </div>
-            <p className="mt-4 break-keep text-xs leading-5 text-[#78909b]">강사별 카카오 링크는 아직 임시 주소입니다. 전체 문의는 {contactEmail} 이메일로 연결됩니다.</p>
-          </div>
+          )}
+        </div>
+        <div className="z-10 shrink-0 border-t border-[#d9e7ec] bg-[#f4f8fa]/95 px-5 py-3 shadow-[0_-10px_30px_rgba(6,44,67,.08)] backdrop-blur-md sm:px-8 sm:py-4">
+          {reservationStep === "select" && <>
+            <p className="mb-2 truncate text-xs font-medium text-[#426575]">{selectedInstructor ? `선택한 강사 · ${selectedInstructor.role} ${selectedInstructor.name}` : "상담할 강사를 선택해 주세요"}</p>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <button type="button" disabled={!selectedInstructor} onClick={() => setReservationStep("form")} className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[#0b5b77] px-4 text-center text-sm font-bold text-white transition hover:bg-[#08465e] disabled:cursor-not-allowed disabled:bg-[#c7d9df] disabled:text-[#6e8791]">{selectedInstructor ? "이 강사에게 상담 문의하기" : "강사를 먼저 선택해 주세요"} <ArrowIcon diagonal /></button>
+              <a href={generalInquiryUrl} className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl border border-[#a8c9d3] bg-white px-4 text-center text-xs font-bold text-[#0b5b77] transition hover:bg-[#eaf5f7] sm:min-h-12 sm:text-sm">전체 문의 / 강사 배정 요청</a>
+            </div>
+          </>}
+          {reservationStep === "form" && <div className="flex gap-2"><button type="button" onClick={() => setReservationStep("select")} className="min-h-12 rounded-xl border border-[#a8c9d3] bg-white px-4 text-sm font-bold text-[#0b5b77]">이전</button><button type="submit" form="consultation-form" className="min-h-12 flex-1 rounded-xl bg-[#0b5b77] px-5 text-sm font-bold text-white transition hover:bg-[#08465e]">접수하기 · 내용 복사 후 카카오톡 열기</button></div>}
+          {reservationStep === "done" && <div className="flex flex-col gap-2 sm:flex-row"><button type="button" onClick={async () => { try { await navigator.clipboard.writeText(submissionText); setCopySucceeded(true); } catch { setCopySucceeded(false); } }} className="min-h-11 flex-1 rounded-xl bg-[#0b5b77] px-4 text-sm font-bold text-white">상담 내용 다시 복사</button><a href={`mailto:${contactEmail}?subject=${encodeURIComponent("블루피스 교육 상담 예약")}&body=${encodeURIComponent(submissionText)}`} className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl border border-[#a8c9d3] bg-white px-4 text-sm font-bold text-[#0b5b77]">이메일로도 보내기</a></div>}
         </div>
       </dialog>
 
