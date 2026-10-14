@@ -1,9 +1,134 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 // 운영 전 문의 이메일과 예시 후기를 실제 정보로 교체하세요.
 const contactEmail = "hello@example.com";
+
+// 실제 운영 전 강사 사진·자격·경력 및 각자의 오픈채팅 URL을 교체하세요.
+// 예시 URL은 카카오 오픈채팅 홈으로 연결되며, 특정 강사의 채팅방은 아닙니다.
+const instructors = [
+  {
+    id: "sanguk",
+    name: "상욱",
+    role: "대표강사",
+    initials: "SW",
+    photoUrl: "",
+    certifications: "AIDA / PSA 프리다이빙 강사 (예시)",
+    experience: "프리다이빙 교육 8년 · 강사 교육 진행 (예시)",
+    specialties: ["성인 프리다이빙", "강사 과정"],
+    kakaoUrl: "https://open.kakao.com/",
+    demo: true,
+  },
+  {
+    id: "minseo",
+    name: "민서",
+    role: "교육강사",
+    initials: "MS",
+    photoUrl: "",
+    certifications: "PSA 유스 · 머메이드 강사 (예시)",
+    experience: "유스 및 머메이드 교육 5년 (예시)",
+    specialties: ["유스 프리다이빙", "머메이드 다이빙"],
+    kakaoUrl: "https://open.kakao.com/",
+    demo: true,
+  },
+  {
+    id: "jihoon",
+    name: "지훈",
+    role: "교육강사",
+    initials: "JH",
+    photoUrl: "",
+    certifications: "PSAI 스쿠버 · PSA 응급처치 강사 (예시)",
+    experience: "스쿠버 교육 및 현장 안전 운영 6년 (예시)",
+    specialties: ["스쿠버다이빙", "스페셜 교육"],
+    kakaoUrl: "https://open.kakao.com/",
+    demo: true,
+  },
+  {
+    id: "hayeon",
+    name: "하연",
+    role: "프리다이빙 강사",
+    initials: "HY",
+    photoUrl: "",
+    certifications: "AIDA 프리다이빙 강사 (예시)",
+    experience: "입문·오픈워터 교육 4년 (예시)",
+    specialties: ["성인 프리다이빙", "입문 교육"],
+    kakaoUrl: "https://open.kakao.com/",
+    demo: true,
+  },
+  {
+    id: "doyun",
+    name: "도윤",
+    role: "프리다이빙 강사",
+    initials: "DY",
+    photoUrl: "",
+    certifications: "PSA 프리다이빙 강사 (예시)",
+    experience: "어드밴스드 과정 지도 5년 (예시)",
+    specialties: ["성인 프리다이빙", "심화 과정"],
+    kakaoUrl: "https://open.kakao.com/",
+    demo: true,
+  },
+  {
+    id: "yuna",
+    name: "유나",
+    role: "유스 교육강사",
+    initials: "YN",
+    photoUrl: "",
+    certifications: "PSA 유스 프리다이빙 강사 (예시)",
+    experience: "청소년 수중 교육 4년 (예시)",
+    specialties: ["유스 프리다이빙", "기초 안전"],
+    kakaoUrl: "https://open.kakao.com/",
+    demo: true,
+  },
+  {
+    id: "taeho",
+    name: "태호",
+    role: "수중안전 강사",
+    initials: "TH",
+    photoUrl: "",
+    certifications: "PSA 수중레저안전요원 강사 (예시)",
+    experience: "수중 안전 교육 및 현장 운영 7년 (예시)",
+    specialties: ["수중레저안전요원", "응급처치"],
+    kakaoUrl: "https://open.kakao.com/",
+    demo: true,
+  },
+  {
+    id: "soyeon",
+    name: "소연",
+    role: "머메이드 강사",
+    initials: "SY",
+    photoUrl: "",
+    certifications: "PSA 머메이드 강사 (예시)",
+    experience: "머메이드·수중 퍼포먼스 교육 5년 (예시)",
+    specialties: ["머메이드 다이빙", "수중 표현"],
+    kakaoUrl: "https://open.kakao.com/",
+    demo: true,
+  },
+  {
+    id: "junho",
+    name: "준호",
+    role: "스쿠버 강사",
+    initials: "JH",
+    photoUrl: "",
+    certifications: "PSAI 스쿠버 강사 (예시)",
+    experience: "해양 스쿠버 교육 6년 (예시)",
+    specialties: ["스쿠버다이빙", "해양 실습"],
+    kakaoUrl: "https://open.kakao.com/",
+    demo: true,
+  },
+  {
+    id: "narin",
+    name: "나린",
+    role: "스페셜 교육강사",
+    initials: "NR",
+    photoUrl: "",
+    certifications: "PSA 응급처치 · 수중 촬영 교육 자격 (예시)",
+    experience: "응급처치 및 수중 촬영 교육 3년 (예시)",
+    specialties: ["응급처치 및 CPR", "수중 사진 촬영"],
+    kakaoUrl: "https://open.kakao.com/",
+    demo: true,
+  },
+];
 
 // 교육 내용 변경 시 각 코스의 curriculum 값만 수정하면 카드에 반영됩니다.
 // price는 교육비와 발급비를 합한 총 비용입니다.
@@ -108,7 +233,18 @@ function ArrowIcon({ diagonal = false }) {
 
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState(0);
+  const [selectedInstructorId, setSelectedInstructorId] = useState(null);
+  const [inquiryCourse, setInquiryCourse] = useState("");
+  const dialogRef = useRef(null);
   const activeCategory = categories[activeTab];
+  const selectedInstructor = instructors.find((instructor) => instructor.id === selectedInstructorId);
+  const generalInquiryUrl = `mailto:${contactEmail}?subject=${encodeURIComponent(`블루피스 ${inquiryCourse || "교육"} 전체 문의`)}`;
+
+  function openInquiry(course = "", instructorId = null) {
+    setInquiryCourse(course);
+    setSelectedInstructorId(instructorId);
+    if (!dialogRef.current?.open) dialogRef.current?.showModal();
+  }
 
   function handleTabKeyDown(event, index) {
     let nextIndex = index;
@@ -133,9 +269,9 @@ export default function HomePage() {
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs font-medium sm:text-sm lg:gap-x-9">
             <a href="#courses" className="transition hover:text-[#8ce5ed]">교육 과정</a>
             <a href="#gallery" className="transition hover:text-[#8ce5ed]">갤러리</a>
-            <a href="#instructors" className="transition hover:text-[#8ce5ed]">블루피스 소개</a>
+            <a href="#instructors" className="transition hover:text-[#8ce5ed]">강사진 소개</a>
             <a href="#reviews" className="transition hover:text-[#8ce5ed]">수강생 후기</a>
-            <a href="#contact" className="hidden rounded-full border border-white/55 px-5 py-2.5 transition hover:bg-white hover:text-[#073d57] md:inline-flex">교육 문의 ↗</a>
+            <button type="button" onClick={() => openInquiry()} className="hidden rounded-full border border-white/55 px-5 py-2.5 transition hover:bg-white hover:text-[#073d57] md:inline-flex">교육 문의 ↗</button>
           </div>
         </nav>
       </header>
@@ -159,9 +295,9 @@ export default function HomePage() {
             숨을 고르는 순간, 세상은 조용해집니다. 블루피스와 함께 처음의 설렘부터 깊은 몰입까지, 당신만의 바다를 만나보세요.
           </p>
           <div className="mt-10 flex flex-wrap gap-3 sm:gap-4">
-            <a href="#contact" className="inline-flex min-h-14 items-center gap-8 rounded-full bg-[#b7ebf0] px-7 text-sm font-bold text-[#08384f] shadow-[0_10px_0_#58aab8,0_22px_35px_rgba(0,0,0,.28)] transition duration-200 hover:-translate-y-1 hover:shadow-[0_14px_0_#58aab8,0_26px_40px_rgba(0,0,0,.3)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">
+            <button type="button" onClick={() => openInquiry()} className="inline-flex min-h-14 items-center gap-8 rounded-full bg-[#b7ebf0] px-7 text-sm font-bold text-[#08384f] shadow-[0_10px_0_#58aab8,0_22px_35px_rgba(0,0,0,.28)] transition duration-200 hover:-translate-y-1 hover:shadow-[0_14px_0_#58aab8,0_26px_40px_rgba(0,0,0,.3)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">
               교육 문의하기 <ArrowIcon diagonal />
-            </a>
+            </button>
             <a href="#courses" className="inline-flex min-h-14 items-center gap-8 rounded-full border border-white/60 bg-white/10 px-7 text-sm font-semibold text-white shadow-[0_12px_28px_rgba(0,0,0,.18)] backdrop-blur-md transition hover:-translate-y-1 hover:bg-white/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">
               코스 둘러보기 <ArrowIcon />
             </a>
@@ -257,7 +393,7 @@ export default function HomePage() {
                         </div>
                       ))}
                     </dl>
-                    <a href={`mailto:${contactEmail}?subject=${encodeURIComponent(`블루피스 ${activeCategory.name} - ${course.title} 교육 문의`)}`} className={`mt-auto inline-flex min-h-12 items-center justify-between gap-4 rounded-full px-5 text-sm font-bold transition hover:-translate-y-0.5 ${course.instructor ? "bg-[#e6bd73] text-[#12384c] shadow-[0_8px_20px_rgba(0,0,0,.18)]" : "bg-[#0b5b77] text-white shadow-[0_8px_20px_rgba(11,91,119,.18)]"}`}>교육 문의하기 <ArrowIcon diagonal /></a>
+                    <button type="button" onClick={() => openInquiry(`${activeCategory.name} · ${course.title}`)} className={`mt-auto inline-flex min-h-12 items-center justify-between gap-4 rounded-full px-5 text-sm font-bold transition hover:-translate-y-0.5 ${course.instructor ? "bg-[#e6bd73] text-[#12384c] shadow-[0_8px_20px_rgba(0,0,0,.18)]" : "bg-[#0b5b77] text-white shadow-[0_8px_20px_rgba(11,91,119,.18)]"}`}>교육 문의하기 <ArrowIcon diagonal /></button>
                   </article>
                 );
               })}
@@ -283,21 +419,47 @@ export default function HomePage() {
       </section>
 
       <section id="instructors" className="px-6 py-24 sm:px-10 lg:px-16 lg:py-32">
-        <div className="mx-auto grid max-w-[1312px] items-center gap-12 lg:grid-cols-2 lg:gap-20">
-          <div className="relative h-[440px] overflow-hidden rounded-[2rem] bg-[#0e607b] shadow-[0_25px_70px_rgba(18,57,78,.16)] sm:h-[560px]">
-            <div className="absolute inset-0 bg-cover bg-center" role="img" aria-label="바다에서 다이빙하는 프리다이버의 참고 이미지" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1674786375512-0b1d38fda375?auto=format&fit=crop&w=1300&q=85')" }} />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#082b44]/65 to-transparent" />
-            <span className="absolute bottom-7 left-7 rounded-full border border-white/60 bg-white/10 px-4 py-2 text-xs text-white backdrop-blur-sm">블루피스 소개용 예시 이미지</span>
-          </div>
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#087f9b]">About Blue Peace</p>
-            <h2 className="mt-5 text-4xl font-semibold leading-[1.2] tracking-[-0.06em] sm:text-5xl">바다를 함께할<br />블루피스</h2>
-            <p className="mt-7 max-w-lg text-base leading-8 text-[#587182]">블루피스는 처음 물속으로 향하는 순간부터 다음 단계의 도전까지, 각 과정의 목표에 맞춘 교육 경험을 안내합니다. 호흡과 움직임, 안전을 차근차근 익히며 자신만의 바다를 만나보세요.</p>
-            <div className="mt-9 rounded-2xl border border-[#d9e8ec] bg-white p-6 shadow-[0_14px_40px_rgba(18,57,78,.06)]">
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#087f9b]">Blue Peace education</p>
-              <p className="mt-3 text-xl font-semibold">각자의 속도로, 바다와 더 가까이</p>
-              <p className="mt-2 text-sm leading-7 text-[#6a818b]">교육 과정과 담당 강사진의 실제 소개는 준비되는 대로 블루피스 이름으로 안내합니다. 세부 일정과 참여 조건은 교육 문의를 통해 확인해 주세요.</p>
+        <div className="mx-auto max-w-[1312px]">
+          <div className="mb-11 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#087f9b]">Meet our instructors</p>
+              <h2 className="mt-5 break-keep text-4xl font-semibold leading-[1.2] tracking-[-0.06em] sm:text-5xl">나의 바다를 함께할 강사진</h2>
             </div>
+            <p className="max-w-lg break-keep text-sm leading-7 text-[#587182] sm:text-base">블루피스의 교육 분야를 살펴보고, 상담하고 싶은 강사를 직접 선택해 주세요. 아래 프로필은 실제 정보 등록 전의 예시입니다.</p>
+          </div>
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+            {instructors.map((instructor) => (
+              <article key={instructor.id} className="flex h-full min-w-0 flex-col overflow-hidden rounded-[1.75rem] border border-[#d9e7ec] bg-white shadow-[0_18px_50px_rgba(18,57,78,.09)] transition hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(18,57,78,.15)]">
+                <div className="relative flex h-56 items-center justify-center overflow-hidden bg-[linear-gradient(145deg,#0d6780,#062f4b)] text-white sm:h-64">
+                  {instructor.photoUrl ? (
+                    <img src={instructor.photoUrl} alt={`${instructor.name} 강사 프로필`} className="h-full w-full object-cover" />
+                  ) : (
+                    <>
+                      <div className="absolute -right-12 -top-20 h-64 w-64 rounded-full border border-white/20" />
+                      <div className="absolute -right-4 -top-12 h-64 w-64 rounded-full border border-white/15" />
+                      <span className="relative text-7xl font-light tracking-[-0.08em] text-white/85">{instructor.initials}</span>
+                    </>
+                  )}
+                  {instructor.demo && <span className="absolute bottom-5 left-6 rounded-full border border-white/40 bg-[#062f4b]/55 px-3 py-1.5 text-[11px] font-semibold text-white backdrop-blur-sm">예시 프로필 · 사진 등록 예정</span>}
+                </div>
+                <div className="flex flex-1 flex-col p-7 sm:p-8">
+                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#087f9b]">{instructor.role}</p>
+                  <h3 className="mt-2 text-3xl font-semibold tracking-[-0.05em]">{instructor.name}</h3>
+                  <div className="mt-6 space-y-4 border-t border-[#e2ebee] pt-5 text-sm leading-6">
+                    <div><p className="text-xs font-bold text-[#087f9b]">보유 자격증</p><p className="mt-1 break-keep text-[#5c7381]">{instructor.certifications}</p></div>
+                    <div><p className="text-xs font-bold text-[#087f9b]">주요 경력</p><p className="mt-1 break-keep text-[#5c7381]">{instructor.experience}</p></div>
+                  </div>
+                  <div className="mt-6 flex flex-wrap gap-2">
+                    {instructor.specialties.map((specialty) => <span key={specialty} className="rounded-full bg-[#e8f4f6] px-3 py-1.5 text-xs font-semibold text-[#0b607a]">{specialty}</span>)}
+                  </div>
+                  <div className="mt-auto pt-8">
+                    <button type="button" onClick={() => openInquiry("강사진 소개", instructor.id)} className="inline-flex min-h-12 w-full items-center justify-between gap-3 rounded-full bg-[#0b5b77] px-5 text-sm font-bold text-white shadow-[0_8px_20px_rgba(11,91,119,.18)] transition hover:-translate-y-0.5">
+                      이 강사에게 문의하기 <ArrowIcon diagonal />
+                    </button>
+                  </div>
+                </div>
+              </article>
+            ))}
           </div>
         </div>
       </section>
@@ -331,9 +493,65 @@ export default function HomePage() {
             <h2 className="mt-5 text-4xl font-semibold leading-[1.15] tracking-[-0.06em] sm:text-6xl">당신의 바다는<br />여기서 시작됩니다.</h2>
             <p className="mt-6 text-base text-white/65">블루피스의 교육 코스와 일정을 편하게 문의해 주세요.</p>
           </div>
-          <a href={`mailto:${contactEmail}`} className="inline-flex min-h-14 items-center justify-between gap-10 self-start rounded-full bg-[#b7ebf0] px-7 text-sm font-bold text-[#08384f] shadow-[0_10px_0_#58aab8,0_22px_35px_rgba(0,0,0,.22)] transition hover:-translate-y-1 lg:self-auto">교육 문의하기 <ArrowIcon diagonal /></a>
+          <button type="button" onClick={() => openInquiry()} className="inline-flex min-h-14 items-center justify-between gap-10 self-start rounded-full bg-[#b7ebf0] px-7 text-sm font-bold text-[#08384f] shadow-[0_10px_0_#58aab8,0_22px_35px_rgba(0,0,0,.22)] transition hover:-translate-y-1 lg:self-auto">교육 문의하기 <ArrowIcon diagonal /></button>
         </div>
       </section>
+
+      <dialog
+        ref={dialogRef}
+        aria-labelledby="inquiry-title"
+        aria-describedby="inquiry-description"
+        onClose={() => setSelectedInstructorId(null)}
+        onClick={(event) => { if (event.target === event.currentTarget) dialogRef.current?.close(); }}
+        className="m-auto max-h-[90dvh] w-[92vw] max-w-5xl overflow-y-auto rounded-[1.75rem] border border-[#c9dfe5] bg-[#f4f8fa] p-0 text-[#102e40] shadow-[0_35px_100px_rgba(2,24,42,.4)] backdrop:bg-[#021b2c]/75"
+      >
+        <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-[#d9e7ec] bg-[#f4f8fa]/95 px-5 py-5 backdrop-blur-md sm:px-8 sm:py-6">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-[#087f9b]">Blue Peace · Personal inquiry</p>
+            <h2 id="inquiry-title" className="mt-2 break-keep text-2xl font-semibold tracking-[-0.05em] sm:text-3xl">강사 선택</h2>
+            <p id="inquiry-description" className="mt-2 break-keep text-sm leading-6 text-[#5b7481]">원하시는 블루피스 전문 강사를 선택해 주세요.</p>
+          </div>
+          <button type="button" onClick={() => dialogRef.current?.close()} aria-label="강사 선택 창 닫기" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#d1e0e5] bg-white text-xl text-[#31566a] transition hover:bg-[#e7f2f5]">×</button>
+        </div>
+
+        <div className="px-5 py-6 sm:px-8 sm:py-8">
+          {inquiryCourse && <p className="mb-6 inline-flex max-w-full break-keep rounded-full bg-[#e0f1f4] px-4 py-2 text-xs font-bold text-[#0b6781]">문의 과정 · {inquiryCourse}</p>}
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {instructors.map((instructor) => (
+              <button
+                key={instructor.id}
+                type="button"
+                aria-pressed={selectedInstructorId === instructor.id}
+                onClick={() => setSelectedInstructorId(instructor.id)}
+                className={`min-w-0 rounded-2xl border p-4 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f9b] ${selectedInstructorId === instructor.id ? "border-[#0b718a] bg-[#e6f4f6] shadow-[0_8px_25px_rgba(11,113,138,.14)]" : "border-[#d9e7ec] bg-white hover:border-[#8dc6d3]"}`}
+              >
+                <span className="flex items-center gap-3">
+                  <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#0b5b77] text-sm font-semibold text-white">
+                    {instructor.photoUrl ? <img src={instructor.photoUrl} alt="" className="h-full w-full object-cover" /> : instructor.initials}
+                  </span>
+                  <span className="min-w-0"><span className="block text-[11px] font-bold text-[#087f9b]">{instructor.role}</span><span className="block text-lg font-semibold">{instructor.name}</span></span>
+                  <span aria-hidden="true" className={`ml-auto flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-xs ${selectedInstructorId === instructor.id ? "border-[#0b718a] bg-[#0b718a] text-white" : "border-[#a8c2ca] text-transparent"}`}>✓</span>
+                </span>
+                <span className="mt-4 block break-keep text-xs leading-5 text-[#66808a]">전문 분야 · {instructor.specialties.join(" / ")}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-7 rounded-2xl border border-[#d7e7eb] bg-white p-5 sm:p-6">
+            <p className="text-xs font-bold text-[#087f9b]">선택한 강사</p>
+            <p className="mt-2 break-keep text-sm text-[#506c7a]">{selectedInstructor ? `${selectedInstructor.role} ${selectedInstructor.name} 강사에게 상담을 요청합니다.` : "위 목록에서 상담하고 싶은 강사를 선택해 주세요."}</p>
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+              {selectedInstructor ? (
+                <a href={selectedInstructor.kakaoUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full bg-[#0b5b77] px-5 text-center text-sm font-bold text-white transition hover:bg-[#08465e]">이 강사에게 상담 문의하기 <ArrowIcon diagonal /></a>
+              ) : (
+                <button type="button" disabled className="inline-flex min-h-12 flex-1 cursor-not-allowed items-center justify-center rounded-full bg-[#c7d9df] px-5 text-sm font-bold text-[#6e8791]">강사를 먼저 선택해 주세요</button>
+              )}
+              <a href={generalInquiryUrl} className="inline-flex min-h-12 flex-1 items-center justify-center rounded-full border border-[#a8c9d3] bg-white px-5 text-center text-sm font-bold text-[#0b5b77] transition hover:bg-[#eaf5f7]">전체 대표 번호 / 랜덤 배정 문의</a>
+            </div>
+            <p className="mt-4 break-keep text-xs leading-5 text-[#78909b]">현재 강사별 링크는 카카오 오픈채팅 홈으로 연결되는 예시입니다. 대표 번호 등록 전까지 전체 문의는 예시 이메일로 연결됩니다.</p>
+          </div>
+        </div>
+      </dialog>
 
       <footer className="bg-[#032b40] px-6 py-10 text-white/60 sm:px-10 lg:px-16">
         <div className="mx-auto flex max-w-[1312px] flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
