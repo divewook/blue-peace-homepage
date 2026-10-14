@@ -17,6 +17,8 @@ const instructors = [
     certifications: "AIDA / PSA / PSAI 자격 보유",
     experience: "BLUE PEACE 대표 강사",
     specialties: ["성인 프리다이빙", "스쿠버다이빙", "강사 과정"],
+    eligibleCategoryIds: ["adult", "scuba"],
+    instructorCourseCategoryIds: ["adult"],
     kakaoUrl: "https://open.kakao.com/",
     demo: false,
   },
@@ -29,6 +31,7 @@ const instructors = [
     certifications: "PSA 유스 · 머메이드 강사 (예시)",
     experience: "유스 및 머메이드 교육 5년 (예시)",
     specialties: ["유스 프리다이빙", "머메이드 다이빙"],
+    eligibleCategoryIds: ["youth", "mermaid"],
     kakaoUrl: "https://open.kakao.com/",
     demo: true,
   },
@@ -41,6 +44,8 @@ const instructors = [
     certifications: "PSAI 스쿠버 · PSA 응급처치 강사 (예시)",
     experience: "스쿠버 교육 및 현장 안전 운영 6년 (예시)",
     specialties: ["스쿠버다이빙", "스페셜 교육"],
+    eligibleCategoryIds: ["scuba", "special"],
+    specialCourseTitles: ["응급처치 및 CPR 교육"],
     kakaoUrl: "https://open.kakao.com/",
     demo: true,
   },
@@ -53,6 +58,8 @@ const instructors = [
     certifications: "AIDA 프리다이빙 강사 (예시)",
     experience: "입문·오픈워터 교육 4년 (예시)",
     specialties: ["성인 프리다이빙", "입문 교육"],
+    eligibleCategoryIds: ["adult"],
+    eligibleCourseTitles: { adult: ["1레벨", "2레벨"] },
     kakaoUrl: "https://open.kakao.com/",
     demo: true,
   },
@@ -65,6 +72,8 @@ const instructors = [
     certifications: "PSA 프리다이빙 강사 (예시)",
     experience: "어드밴스드 과정 지도 5년 (예시)",
     specialties: ["성인 프리다이빙", "심화 과정"],
+    eligibleCategoryIds: ["adult"],
+    eligibleCourseTitles: { adult: ["3레벨", "4레벨"] },
     kakaoUrl: "https://open.kakao.com/",
     demo: true,
   },
@@ -77,6 +86,8 @@ const instructors = [
     certifications: "PSA 유스 프리다이빙 강사 (예시)",
     experience: "청소년 수중 교육 4년 (예시)",
     specialties: ["유스 프리다이빙", "기초 안전"],
+    eligibleCategoryIds: ["youth"],
+    eligibleCourseTitles: { youth: ["1레벨", "2레벨"] },
     kakaoUrl: "https://open.kakao.com/",
     demo: true,
   },
@@ -89,6 +100,9 @@ const instructors = [
     certifications: "PSA 수중레저안전요원 강사 (예시)",
     experience: "수중 안전 교육 및 현장 운영 7년 (예시)",
     specialties: ["수중레저안전요원", "응급처치"],
+    eligibleCategoryIds: ["safety", "special"],
+    specialCourseTitles: ["응급처치 및 CPR 교육"],
+    instructorCourseCategoryIds: ["safety"],
     kakaoUrl: "https://open.kakao.com/",
     demo: true,
   },
@@ -101,6 +115,7 @@ const instructors = [
     certifications: "PSA 머메이드 강사 (예시)",
     experience: "머메이드·수중 퍼포먼스 교육 5년 (예시)",
     specialties: ["머메이드 다이빙", "수중 표현"],
+    eligibleCategoryIds: ["mermaid"],
     kakaoUrl: "https://open.kakao.com/",
     demo: true,
   },
@@ -113,6 +128,7 @@ const instructors = [
     certifications: "PSAI 스쿠버 강사 (예시)",
     experience: "해양 스쿠버 교육 6년 (예시)",
     specialties: ["스쿠버다이빙", "해양 실습"],
+    eligibleCategoryIds: ["scuba"],
     kakaoUrl: "https://open.kakao.com/",
     demo: true,
   },
@@ -125,6 +141,8 @@ const instructors = [
     certifications: "PSA 응급처치 · 수중 촬영 교육 자격 (예시)",
     experience: "응급처치 및 수중 촬영 교육 3년 (예시)",
     specialties: ["응급처치 및 CPR", "수중 사진 촬영"],
+    eligibleCategoryIds: ["special"],
+    specialCourseTitles: ["응급처치 및 CPR 교육", "수중 사진 촬영 교육"],
     kakaoUrl: "https://open.kakao.com/",
     demo: true,
   },
@@ -205,21 +223,65 @@ const categories = [
   },
 ];
 
+// 추가 프로필은 20명 이상일 때의 검색·스크롤 화면을 확인하기 위한 예시입니다.
+const additionalInstructorProfiles = [
+  ["서진", "성인 프리다이빙", "adult"], ["현우", "스쿠버다이빙", "scuba"],
+  ["다은", "머메이드 다이빙", "mermaid"], ["시온", "유스 프리다이빙", "youth"],
+  ["재민", "수중레저안전요원", "safety"], ["은별", "스페셜 교육", "special"],
+  ["건우", "성인 프리다이빙", "adult"], ["지아", "머메이드 다이빙", "mermaid"],
+  ["승민", "스쿠버다이빙", "scuba"], ["채원", "유스 프리다이빙", "youth"],
+  ["서율", "수중레저안전요원", "safety"], ["우진", "성인 프리다이빙", "adult"],
+];
+
+const directoryInstructors = [
+  ...instructors,
+  ...additionalInstructorProfiles.map(([name, specialty, categoryId], index) => ({
+    id: `sample-${index + 1}`,
+    name,
+    role: "교육강사 · 예시",
+    initials: name.slice(0, 1),
+    photoUrl: "",
+    certifications: `${specialty} 교육 자격 (예시)`,
+    experience: `${specialty} 교육 경력 (예시)`,
+    specialties: [specialty],
+    eligibleCategoryIds: [categoryId],
+    specialCourseTitles: categoryId === "special" ? ["응급처치 및 CPR 교육", "수중 사진 촬영 교육"] : undefined,
+    kakaoUrl: "https://open.kakao.com/",
+    demo: true,
+  })),
+];
+
+const trustStats = [
+  { value: "2,000명+", label: "누적 교육생" },
+  { value: "20명+", label: "소속 전문강사" },
+  { value: "100%", label: "자격증 발급률" },
+  { value: "무제한", label: "실습 보장" },
+];
+
 const sampleReviews = [
   {
     title: "첫 바다의 기억",
     quote: "물속에 들어가기 전엔 긴장했는데, 호흡부터 천천히 배우니 어느새 바다를 즐기고 있었어요.",
-    author: "블루피스 성인 프리다이빙 · 예시 후기",
+    author: "김○○",
+    course: "성인 프리다이빙",
   },
   {
     title: "배움의 순간",
     quote: "작은 자세 하나가 달라졌을 뿐인데 물속 움직임이 훨씬 편해졌어요. 제 속도에 맞춰 배울 수 있어 좋았습니다.",
-    author: "블루피스 유스 프리다이빙 · 예시 후기",
+    author: "박○○",
+    course: "유스 프리다이빙",
   },
   {
     title: "다음 도전의 시작",
     quote: "기록보다 안전과 기본을 먼저 생각하게 됐어요. 다음 바다에서는 조금 더 여유롭게 다이빙하고 싶습니다.",
-    author: "블루피스 스쿠버다이빙 · 예시 후기",
+    author: "이○○",
+    course: "스쿠버다이빙",
+  },
+  {
+    title: "새로운 움직임",
+    quote: "물속에서 움직이는 시간이 편안하고 즐거웠어요. 처음부터 차근차근 알려주셔서 부담 없이 배웠습니다.",
+    author: "정○○",
+    course: "머메이드 다이빙",
   },
 ];
 
@@ -235,14 +297,37 @@ export default function HomePage() {
   const [activeTab, setActiveTab] = useState(0);
   const [selectedInstructorId, setSelectedInstructorId] = useState(null);
   const [inquiryCourse, setInquiryCourse] = useState("");
+  const [inquiryCategoryId, setInquiryCategoryId] = useState(null);
+  const [inquiryCourseTitle, setInquiryCourseTitle] = useState(null);
+  const [inquiryIsInstructorCourse, setInquiryIsInstructorCourse] = useState(false);
+  const [instructorFilter, setInstructorFilter] = useState("all");
+  const [instructorSearch, setInstructorSearch] = useState("");
   const dialogRef = useRef(null);
   const activeCategory = categories[activeTab];
-  const selectedInstructor = instructors.find((instructor) => instructor.id === selectedInstructorId);
+  const selectedInstructor = directoryInstructors.find((instructor) => instructor.id === selectedInstructorId);
   const generalInquiryUrl = `mailto:${contactEmail}?subject=${encodeURIComponent(`블루피스 ${inquiryCourse || "교육"} 전체 문의`)}`;
 
-  function openInquiry(course = "", instructorId = null) {
+  const eligibleInstructors = directoryInstructors.filter((instructor) => {
+    if (!inquiryCategoryId) return true;
+    if (!instructor.eligibleCategoryIds.includes(inquiryCategoryId)) return false;
+    if (inquiryIsInstructorCourse && !instructor.instructorCourseCategoryIds?.includes(inquiryCategoryId)) return false;
+    if (inquiryCourseTitle && instructor.eligibleCourseTitles?.[inquiryCategoryId] && !instructor.eligibleCourseTitles[inquiryCategoryId].includes(inquiryCourseTitle)) return false;
+    if (inquiryCategoryId === "special" && inquiryCourseTitle && !instructor.specialCourseTitles?.includes(inquiryCourseTitle)) return false;
+    return true;
+  });
+  const visibleInstructors = eligibleInstructors.filter((instructor) =>
+    (instructorFilter === "all" || instructor.eligibleCategoryIds.includes(instructorFilter)) &&
+    instructor.name.toLocaleLowerCase("ko").includes(instructorSearch.trim().toLocaleLowerCase("ko"))
+  );
+
+  function openInquiry(course = "", instructorId = null, categoryId = null, courseTitle = null, isInstructorCourse = false) {
     setInquiryCourse(course);
     setSelectedInstructorId(instructorId);
+    setInquiryCategoryId(categoryId);
+    setInquiryCourseTitle(courseTitle);
+    setInquiryIsInstructorCourse(isInstructorCourse);
+    setInstructorFilter("all");
+    setInstructorSearch("");
     if (!dialogRef.current?.open) dialogRef.current?.showModal();
   }
 
@@ -278,11 +363,13 @@ export default function HomePage() {
 
       <section id="top" className="relative isolate flex min-h-[780px] items-center bg-[#073954] text-white sm:min-h-[850px]">
         <div
-          className="absolute inset-0 -z-20 bg-cover bg-[center_36%]"
+          className="absolute inset-0 -z-20 bg-cover bg-[center_36%] lg:bg-fixed"
           style={{ backgroundImage: "url('https://images.unsplash.com/photo-1743656619958-68d85790bdb4?auto=format&fit=crop&w=2400&q=90')" }}
         />
         <div className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(2,24,42,.84)_0%,rgba(3,35,55,.63)_48%,rgba(3,42,62,.22)_100%)]" />
         <div className="absolute inset-0 -z-10 bg-gradient-to-t from-[#031b2f]/75 via-transparent to-[#031b2f]/20" />
+        <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_80%_18%,rgba(134,231,235,.22),transparent_42%),radial-gradient(ellipse_at_22%_100%,rgba(0,121,155,.25),transparent_48%)]" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-44 bg-gradient-to-t from-[#042c43] to-transparent" />
         <div className="mx-auto w-full max-w-[1440px] px-6 pb-28 pt-48 sm:px-10 lg:px-16 lg:pt-52">
           <div className="mb-8 flex items-center gap-4 text-[11px] font-semibold uppercase tracking-[0.35em] text-[#b4e8ed] sm:text-xs">
             <span className="h-px w-10 bg-[#8adbe6]" /> Into the blue
@@ -305,6 +392,20 @@ export default function HomePage() {
         </div>
         <div className="absolute bottom-7 left-6 right-6 mx-auto flex max-w-[1312px] items-center justify-between border-t border-white/25 pt-5 text-[10px] font-semibold uppercase tracking-[0.28em] text-white/65 sm:left-10 sm:right-10 lg:left-16 lg:right-16">
           <span>Ocean is calling</span><span>Scroll to explore ↓</span>
+        </div>
+      </section>
+
+      <section aria-label="블루피스 주요 수치 예시" className="relative z-10 bg-[#042c43] px-6 py-9 text-white sm:px-10 lg:px-16">
+        <div className="mx-auto max-w-[1312px]">
+          <p className="mb-5 text-[11px] font-bold uppercase tracking-[0.25em] text-[#91dbe4]">Blue Peace in numbers <span className="ml-2 rounded-full border border-white/25 px-2 py-1 normal-case tracking-normal text-white/60">예시 수치 · 확인 후 교체</span></p>
+          <div className="grid grid-cols-2 gap-y-7 sm:grid-cols-4">
+            {trustStats.map((stat, index) => (
+              <div key={stat.label} className={`px-3 sm:px-6 ${index > 0 ? "border-l border-white/15" : ""}`}>
+                <p className="text-3xl font-semibold tracking-[-0.06em] text-[#b7ebf0] sm:text-4xl">{stat.value}</p>
+                <p className="mt-2 text-xs font-medium text-white/65 sm:text-sm">{stat.label}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -393,7 +494,7 @@ export default function HomePage() {
                         </div>
                       ))}
                     </dl>
-                    <button type="button" onClick={() => openInquiry(`${activeCategory.name} · ${course.title}`)} className={`mt-auto inline-flex min-h-12 items-center justify-between gap-4 rounded-full px-5 text-sm font-bold transition hover:-translate-y-0.5 ${course.instructor ? "bg-[#e6bd73] text-[#12384c] shadow-[0_8px_20px_rgba(0,0,0,.18)]" : "bg-[#0b5b77] text-white shadow-[0_8px_20px_rgba(11,91,119,.18)]"}`}>교육 문의하기 <ArrowIcon diagonal /></button>
+                    <button type="button" onClick={() => openInquiry(`${activeCategory.name} · ${course.title}`, null, activeCategory.id, course.title, Boolean(course.instructor))} className={`mt-auto inline-flex min-h-12 items-center justify-between gap-4 rounded-full px-5 text-sm font-bold transition hover:-translate-y-0.5 ${course.instructor ? "bg-[#e6bd73] text-[#12384c] shadow-[0_8px_20px_rgba(0,0,0,.18)]" : "bg-[#0b5b77] text-white shadow-[0_8px_20px_rgba(11,91,119,.18)]"}`}>교육 문의하기 <ArrowIcon diagonal /></button>
                   </article>
                 );
               })}
@@ -425,10 +526,10 @@ export default function HomePage() {
               <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#087f9b]">Meet our instructors</p>
               <h2 className="mt-5 break-keep text-4xl font-semibold leading-[1.2] tracking-[-0.06em] sm:text-5xl">나의 바다를 함께할 강사진</h2>
             </div>
-            <p className="max-w-lg break-keep text-sm leading-7 text-[#587182] sm:text-base">블루피스의 교육 분야를 살펴보고, 상담하고 싶은 강사를 직접 선택해 주세요. 상욱 강사를 제외한 프로필은 실제 정보 등록 전의 예시입니다.</p>
+            <p className="max-w-lg break-keep text-sm leading-7 text-[#587182] sm:text-base">블루피스의 교육 분야를 살펴보고, 상담하고 싶은 강사를 직접 선택해 주세요. 아래는 대표 프로필이며 전체 22명 목록은 문의 창에서 볼 수 있습니다. 상욱 강사를 제외한 프로필은 예시입니다.</p>
           </div>
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-            {instructors.map((instructor) => (
+            {directoryInstructors.slice(0, 6).map((instructor) => (
               <article key={instructor.id} className="flex h-full min-w-0 flex-col overflow-hidden rounded-[1.75rem] border border-[#d9e7ec] bg-white shadow-[0_18px_50px_rgba(18,57,78,.09)] transition hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(18,57,78,.15)]">
                 <div className="relative flex h-56 items-center justify-center overflow-hidden bg-[linear-gradient(145deg,#0d6780,#062f4b)] text-white sm:h-64">
                   {instructor.photoUrl ? (
@@ -461,6 +562,7 @@ export default function HomePage() {
               </article>
             ))}
           </div>
+          <button type="button" onClick={() => openInquiry()} className="mt-10 inline-flex min-h-12 items-center gap-4 rounded-full border border-[#8bbdca] bg-white px-6 text-sm font-bold text-[#0b5b77] transition hover:bg-[#e8f4f6]">전체 강사진 보기 <ArrowIcon /></button>
         </div>
       </section>
 
@@ -469,15 +571,15 @@ export default function HomePage() {
           <div className="max-w-2xl">
             <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#087f9b]">Student stories</p>
             <h2 className="mt-5 text-4xl font-semibold tracking-[-0.06em] sm:text-5xl">바다를 경험한 사람들의 이야기</h2>
-            <p className="mt-5 leading-8 text-[#587182]">아래 문구는 블루피스 사이트 화면 구성을 위한 예시입니다. 실제 수강생의 동의를 받은 후기로 교체해 주세요.</p>
+            <p className="mt-5 leading-8 text-[#587182]">아래 이름과 후기는 화면 구성을 위한 예시입니다. 실제 수강생의 동의를 받은 후기 원문으로 교체해 주세요.</p>
           </div>
-          <div className="mt-10 grid gap-5 md:grid-cols-3">
+          <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
             {sampleReviews.map((review) => (
-              <article key={review.title} className="rounded-[1.5rem] border border-[#dce8ec] bg-white p-8 shadow-[0_16px_45px_rgba(18,57,78,.07)]">
-                <span className="text-5xl leading-none text-[#7fcbd7]" aria-hidden="true">“</span>
-                <h3 className="mt-8 text-xl font-semibold">{review.title}</h3>
-                <p className="mt-4 min-h-20 text-sm leading-7 text-[#708892]">{review.quote}</p>
-                <div className="mt-6 border-t border-[#e5eef0] pt-5 text-xs font-medium text-[#087f9b]">{review.author}</div>
+              <article key={review.title} className="flex h-full flex-col rounded-[1.5rem] border border-[#dce8ec] bg-white p-7 shadow-[0_16px_45px_rgba(18,57,78,.07)]">
+                <div className="flex items-center justify-between gap-3"><span className="text-lg tracking-[0.12em] text-[#d6a859]" aria-label="별점 5점 만점">★★★★★</span><span className="text-[10px] font-bold text-[#86a0aa]">예시 후기</span></div>
+                <h3 className="mt-7 text-xl font-semibold">{review.title}</h3>
+                <p className="mt-4 flex-1 break-keep text-sm leading-7 text-[#708892]">“{review.quote}”</p>
+                <div className="mt-8 border-t border-[#e5eef0] pt-5"><p className="text-sm font-bold text-[#12384c]">{review.author}</p><p className="mt-1 text-xs font-medium text-[#087f9b]">{review.course}</p></div>
               </article>
             ))}
           </div>
@@ -516,8 +618,21 @@ export default function HomePage() {
 
         <div className="px-5 py-6 sm:px-8 sm:py-8">
           {inquiryCourse && <p className="mb-6 inline-flex max-w-full break-keep rounded-full bg-[#e0f1f4] px-4 py-2 text-xs font-bold text-[#0b6781]">문의 과정 · {inquiryCourse}</p>}
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {instructors.map((instructor) => (
+          <div className="mb-5 border-b border-[#d9e7ec] pb-5">
+            <p className="mb-3 text-xs font-bold text-[#426575]">전문 분야별 필터 <span className="font-normal text-[#8199a3]">· 선택한 코스에 맞는 강사 안에서 검색합니다</span></p>
+            <div className="flex gap-2 overflow-x-auto pb-2" aria-label="강사 전문 분야 필터">
+              {[{ id: "all", name: "전체" }, ...categories].map((category) => {
+                const count = category.id === "all" ? eligibleInstructors.length : eligibleInstructors.filter((instructor) => instructor.eligibleCategoryIds.includes(category.id)).length;
+                return <button key={category.id} type="button" aria-pressed={instructorFilter === category.id} disabled={count === 0} onClick={() => { setInstructorFilter(category.id); setSelectedInstructorId(null); }} className={`shrink-0 rounded-full border px-4 py-2 text-xs font-bold transition ${instructorFilter === category.id ? "border-[#0b5b77] bg-[#0b5b77] text-white" : "border-[#cfe1e6] bg-white text-[#527181] hover:border-[#76b8c7]"} disabled:cursor-not-allowed disabled:opacity-40`}>{category.name} <span className="ml-1 opacity-70">{count}</span></button>;
+              })}
+            </div>
+            <label htmlFor="instructor-search" className="mt-5 block text-xs font-bold text-[#426575]">강사 이름 검색</label>
+            <input id="instructor-search" type="search" value={instructorSearch} onChange={(event) => { setInstructorSearch(event.target.value); setSelectedInstructorId(null); }} placeholder="강사 이름을 입력해 주세요" className="mt-2 h-12 w-full rounded-xl border border-[#cfe1e6] bg-white px-4 text-sm text-[#15394b] outline-none transition placeholder:text-[#91a5ae] focus:border-[#0b718a] focus:ring-2 focus:ring-[#b2e2e9]" />
+            <p className="mt-3 text-xs text-[#66808a]" aria-live="polite">검색 결과 {visibleInstructors.length}명 · 강사별 가능 코스는 등록 정보 기준입니다.</p>
+          </div>
+          <div className="max-h-[400px] overflow-y-auto overscroll-contain rounded-2xl border border-[#d9e7ec] bg-[#edf4f6] p-3 sm:p-4">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {visibleInstructors.map((instructor) => (
               <button
                 key={instructor.id}
                 type="button"
@@ -532,9 +647,16 @@ export default function HomePage() {
                   <span className="min-w-0"><span className="block text-[11px] font-bold text-[#087f9b]">{instructor.role}</span><span className="block text-lg font-semibold">{instructor.name}</span></span>
                   <span aria-hidden="true" className={`ml-auto flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-xs ${selectedInstructorId === instructor.id ? "border-[#0b718a] bg-[#0b718a] text-white" : "border-[#a8c2ca] text-transparent"}`}>✓</span>
                 </span>
-                <span className="mt-4 block break-keep text-xs leading-5 text-[#66808a]">전문 분야 · {instructor.specialties.join(" / ")}</span>
+                <span className="mt-4 flex flex-wrap gap-1.5">
+                  {inquiryCourseTitle && <span className="rounded-full bg-[#d9f3ee] px-2.5 py-1 text-[10px] font-bold text-[#086e73]">{inquiryCourseTitle} 가능</span>}
+                  {instructor.eligibleCategoryIds.map((id) => <span key={id} className="rounded-full bg-[#e4f2f5] px-2.5 py-1 text-[10px] font-bold text-[#0b607a]">{categories.find((category) => category.id === id)?.name}</span>)}
+                  {instructor.instructorCourseCategoryIds?.map((id) => <span key={`instructor-${id}`} className="rounded-full bg-[#f9edcf] px-2.5 py-1 text-[10px] font-bold text-[#8b6222]">{categories.find((category) => category.id === id)?.name} 강사 과정</span>)}
+                </span>
+                {instructor.demo && <span className="mt-3 block text-[10px] text-[#92a3aa]">예시 프로필</span>}
               </button>
             ))}
+            </div>
+            {visibleInstructors.length === 0 && <p className="px-4 py-14 text-center text-sm text-[#66808a]">조건에 맞는 강사가 없습니다. 필터나 이름을 다시 확인해 주세요.</p>}
           </div>
 
           <div className="mt-7 rounded-2xl border border-[#d7e7eb] bg-white p-5 sm:p-6">
