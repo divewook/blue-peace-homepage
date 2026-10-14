@@ -79,7 +79,7 @@ const instructorRecords = [
 const categories = [
   {
     id: "adult",
-    name: "성인 프리다이빙",
+    name: "프리다이빙",
     association: "AIDA / PSA",
     intro: "처음 숨을 고르는 순간부터 더 깊은 도전까지, 블루피스와 함께 단계별로 배웁니다.",
     courses: [
@@ -200,7 +200,7 @@ const placeReviews = [
     title: "조금씩 쌓인 자신감",
     quote: "강사님들의 단계적인 지도 덕분에 예전에는 어려웠던 10m 깊이도 한결 편안해졌어요.",
     author: "썸띵헬ㅆl",
-    course: "성인 프리다이빙",
+    course: "프리다이빙",
   },
 ];
 
@@ -219,7 +219,24 @@ function SentenceText({ children }) {
 }
 
 const courseTabs = [{ id: "all", name: "전체" }, ...categories];
-const compactCourseNames = { adult: "성인 프리다이빙", youth: "유스", safety: "수중안전요원", mermaid: "머메이드", scuba: "스쿠버", special: "스페셜" };
+const courseTabNames = { adult: "프리다이빙", youth: "유스 프리다이빙", safety: "수중레저안전요원(해루질)", mermaid: "머메이드 다이빙", scuba: "스쿠버다이빙", special: "스페셜 교육" };
+const mobileCourseRows = [["adult", "youth", "mermaid", "safety"], ["scuba", "special"]];
+
+function formatPhone(value) {
+  const digits = value.replace(/\D/g, "").slice(0, 11);
+  if (digits.length > 7) return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
+  if (digits.length > 3) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+  return digits;
+}
+
+function OverviewCard({ category, index, onSelect, mobile = false }) {
+  return (
+    <button type="button" onClick={() => onSelect(category.id)} className={`group flex shrink-0 snap-start items-center justify-between gap-2 rounded-2xl border border-white/15 bg-white/[.07] text-left shadow-[inset_0_1px_0_rgba(255,255,255,.1)] backdrop-blur-lg transition hover:border-[#91dee3]/60 hover:bg-white/[.12] ${mobile ? "min-h-24 w-[44vw] max-w-[190px] p-3" : "min-h-32 p-6"}`}>
+      <span className="min-w-0"><span className="block text-[9px] font-bold tracking-[.14em] text-[#85cfd8] sm:text-[10px]">0{index + 1} / {category.association}</span><span className={`mt-1.5 block break-keep font-semibold tracking-tight ${mobile ? "text-sm leading-snug" : "text-xl"}`}>{category.name}</span><span className="mt-1 block text-[10px] text-white/55 sm:text-xs">{category.courses.length}개 과정</span></span>
+      <span className="shrink-0 text-[#8cdde3] transition-transform group-hover:translate-x-1"><ArrowIcon /></span>
+    </button>
+  );
+}
 
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState("all");
@@ -270,7 +287,7 @@ export default function HomePage() {
   }
 
   function updateReservation(field, value) {
-    setReservation((current) => ({ ...current, [field]: value }));
+    setReservation((current) => ({ ...current, [field]: field === "phone" ? formatPhone(value) : value }));
   }
 
   async function submitReservation(event) {
@@ -385,7 +402,7 @@ export default function HomePage() {
             <p className="max-w-md break-keep text-sm leading-relaxed text-white/65">블루피스의 6가지 교육 분야를 살펴보고, 나에게 맞는 코스를 선택해 보세요.</p>
           </div>
 
-          <div role="tablist" aria-label="교육 분야 선택" className="grid grid-cols-4 gap-1.5 rounded-2xl border border-white/15 bg-white/[.06] p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,.12)] backdrop-blur-xl lg:grid-cols-7">
+          <div role="tablist" aria-label="교육 분야 선택" className="grid grid-cols-3 gap-2 rounded-2xl border border-white/15 bg-white/[.06] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,.12)] backdrop-blur-xl sm:grid-cols-4 lg:grid-cols-7">
             {courseTabs.map((category, index) => (
               <button
                 key={category.id}
@@ -397,23 +414,30 @@ export default function HomePage() {
                 tabIndex={activeTab === category.id ? 0 : -1}
                 onClick={() => setActiveTab(category.id)}
                 onKeyDown={(event) => handleTabKeyDown(event, index)}
-                className={`min-h-11 min-w-0 break-keep rounded-xl px-1.5 py-2 text-center text-[11px] font-semibold leading-tight transition-colors duration-300 sm:px-3 sm:text-sm ${activeTab === category.id ? "bg-[#b4e8e8] text-[#042739] shadow-[0_6px_20px_rgba(87,217,225,.2)]" : "text-white/70 hover:bg-white/10 hover:text-white"}`}
+                className={`min-h-12 min-w-0 break-keep rounded-xl px-2 py-2.5 text-center text-[11px] font-semibold leading-snug transition-colors duration-300 sm:px-3 sm:text-xs xl:text-sm ${activeTab === category.id ? "bg-[#b4e8e8] text-[#042739] shadow-[0_6px_20px_rgba(87,217,225,.2)]" : "text-white/70 hover:bg-white/10 hover:text-white"}`}
               >
-                {compactCourseNames[category.id] || category.name}
+                {courseTabNames[category.id] || category.name}
               </button>
             ))}
           </div>
 
           <div id="course-panel" key={activeTab} role="tabpanel" aria-labelledby={`course-tab-${activeTab}`} tabIndex={0} className="mt-5 animate-[fadeIn_.35s_ease-out] outline-none motion-reduce:animate-none sm:mt-7">
             {activeTab === "all" ? (
-              <div className="no-scrollbar -mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:px-0 lg:grid-cols-3">
-                {categories.map((category, index) => (
-                  <button key={category.id} type="button" onClick={() => setActiveTab(category.id)} className="group flex min-h-28 w-[78vw] max-w-[340px] shrink-0 snap-center items-center justify-between gap-4 rounded-2xl border border-white/15 bg-white/[.07] p-4 text-left shadow-[inset_0_1px_0_rgba(255,255,255,.1)] backdrop-blur-lg transition hover:border-[#91dee3]/60 hover:bg-white/[.12] sm:min-h-32 sm:w-auto sm:max-w-none sm:p-6">
-                    <span><span className="block text-[10px] font-bold tracking-[.2em] text-[#85cfd8]">0{index + 1} / {category.association}</span><span className="mt-2 block break-keep text-lg font-semibold tracking-tight sm:text-xl">{category.name}</span><span className="mt-1 block text-xs text-white/55">{category.courses.length}개 과정</span></span>
-                    <span className="shrink-0 text-[#8cdde3] transition-transform group-hover:translate-x-1"><ArrowIcon /></span>
-                  </button>
-                ))}
-              </div>
+              <>
+                <div className="space-y-2.5 sm:hidden">
+                  {mobileCourseRows.map((row, rowIndex) => (
+                    <div key={rowIndex} className="no-scrollbar -mx-5 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-5 pb-1">
+                      {row.map((id) => {
+                        const category = categories.find((item) => item.id === id);
+                        return <OverviewCard key={id} category={category} index={categories.findIndex((item) => item.id === id)} onSelect={setActiveTab} mobile />;
+                      })}
+                    </div>
+                  ))}
+                </div>
+                <div className="hidden gap-4 sm:grid sm:grid-cols-2 lg:grid-cols-3">
+                  {categories.map((category, index) => <OverviewCard key={category.id} category={category} index={index} onSelect={setActiveTab} />)}
+                </div>
+              </>
             ) : <>
             <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-white/15 bg-white/[.07] px-5 py-5 shadow-[inset_0_1px_0_rgba(255,255,255,.1)] backdrop-blur-xl sm:mb-6 sm:flex-row sm:items-center sm:justify-between sm:px-7">
               <div>
@@ -636,9 +660,9 @@ export default function HomePage() {
               <div className="rounded-xl border border-[#bddde4] bg-[#e8f4f6] p-4 text-sm text-[#28586b]">담당 강사 <strong className="ml-2 text-[#093e58]">{selectedInstructor.role} {selectedInstructor.name}</strong></div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="block text-sm font-semibold text-[#31586a]">성함 <span className="text-[#b75353]">*</span><input name="name" type="text" autoComplete="name" required maxLength={40} value={reservation.name} onChange={(event) => updateReservation("name", event.target.value)} placeholder="성함을 입력해 주세요" className="mt-2 h-12 w-full rounded-xl border border-[#cfe1e6] bg-white px-4 font-normal outline-none focus:border-[#0b718a] focus:ring-2 focus:ring-[#b2e2e9]" /></label>
-                <label className="block text-sm font-semibold text-[#31586a]">연락처 <span className="text-[#b75353]">*</span><input name="phone" type="tel" autoComplete="tel" required minLength={8} maxLength={20} value={reservation.phone} onChange={(event) => updateReservation("phone", event.target.value)} placeholder="010-0000-0000" className="mt-2 h-12 w-full rounded-xl border border-[#cfe1e6] bg-white px-4 font-normal outline-none focus:border-[#0b718a] focus:ring-2 focus:ring-[#b2e2e9]" /></label>
+                <label className="block text-sm font-semibold text-[#31586a]">연락처 <span className="text-[#b75353]">*</span><input name="phone" type="tel" inputMode="numeric" autoComplete="tel" required pattern="[0-9]{3}-[0-9]{4}-[0-9]{4}" maxLength={13} value={reservation.phone} onChange={(event) => updateReservation("phone", event.target.value)} placeholder="010-0000-0000" title="휴대전화 번호 11자리를 입력해 주세요" className="mt-2 h-12 w-full rounded-xl border border-[#cfe1e6] bg-white px-4 font-normal outline-none focus:border-[#0b718a] focus:ring-2 focus:ring-[#b2e2e9]" /></label>
                 <label className="block text-sm font-semibold text-[#31586a]">인원 <span className="text-[#b75353]">*</span><input name="people" type="number" min="1" max="99" required value={reservation.people} onChange={(event) => updateReservation("people", event.target.value)} className="mt-2 h-12 w-full rounded-xl border border-[#cfe1e6] bg-white px-4 font-normal outline-none focus:border-[#0b718a] focus:ring-2 focus:ring-[#b2e2e9]" /></label>
-                <label className="block text-sm font-semibold text-[#31586a]">수업 희망 일정 <span className="text-[#b75353]">*</span><input name="schedule" type="text" required maxLength={100} value={reservation.schedule} onChange={(event) => updateReservation("schedule", event.target.value)} placeholder="예: 11월 첫째 주 토요일 오후" className="mt-2 h-12 w-full rounded-xl border border-[#cfe1e6] bg-white px-4 font-normal outline-none focus:border-[#0b718a] focus:ring-2 focus:ring-[#b2e2e9]" /></label>
+                <label className="block text-sm font-semibold text-[#31586a]">수업 희망 일정 <span className="text-[#b75353]">*</span><input name="schedule" type="date" required value={reservation.schedule} onChange={(event) => updateReservation("schedule", event.target.value)} className="mt-2 h-12 w-full rounded-xl border border-[#cfe1e6] bg-white px-4 font-normal text-[#15394b] outline-none focus:border-[#0b718a] focus:ring-2 focus:ring-[#b2e2e9]" /></label>
               </div>
               <label className="block text-sm font-semibold text-[#31586a]">기타 문의사항<textarea name="message" rows={4} maxLength={1000} value={reservation.message} onChange={(event) => updateReservation("message", event.target.value)} placeholder="궁금한 점을 편하게 적어 주세요" className="mt-2 w-full resize-y rounded-xl border border-[#cfe1e6] bg-white px-4 py-3 font-normal outline-none focus:border-[#0b718a] focus:ring-2 focus:ring-[#b2e2e9]" /></label>
               <p className="break-keep text-xs leading-relaxed text-[#6a8793]">입력 내용은 이 기기에서 상담 문구로 정리됩니다. 접수하기를 누르면 복사 안내가 먼저 나타납니다. 이후 오픈채팅방으로 이동해 내용을 직접 보내야 상담이 전달됩니다.</p>
