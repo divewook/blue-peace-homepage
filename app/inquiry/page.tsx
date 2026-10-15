@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -63,19 +63,36 @@ export default function InquiryPage() {
     t0: false, t1: true, t2: true, t3: false, t4: false, t5: false, t6: false,
   });
 
+  // 풀장 체크 해제 시 해당 시간대 세팅 초기화
+  useEffect(() => {
+    if (!pools.passnine) {
+      setPassnineTimes({ t1: false, t2: false, t3: false, t4: false });
+    } else {
+      setPassnineTimes({ t1: true, t2: true, t3: false, t4: false });
+    }
+  }, [pools.passnine]);
+
+  useEffect(() => {
+    if (!pools.miryang) {
+      setMiryangTimes({ t0: false, t1: false, t2: false, t3: false, t4: false, t5: false, t6: false });
+    } else {
+      setMiryangTimes({ t0: false, t1: true, t2: true, t3: false, t4: false, t5: false, t6: false });
+    }
+  }, [pools.miryang]);
+
   const [loading, setLoading] = useState(false);
   const [matchedInstructor, setMatchedInstructor] = useState<Instructor | null>(null);
   const [noMatch, setNoMatch] = useState(false);
 
-  // 과정 변경 시 기본 레벨 초기화
+  // 과정 변경 시 레벨 기본값 세팅
   const handleCourseChange = (newCourse: string) => {
     setCourse(newCourse);
     if (newCourse === 'freediving') setLevel(0);
-    else if (newCourse === 'mermaid') setLevel(0);
     else if (newCourse === 'youth') setLevel(0);
-    else if (newCourse === 'safety') setLevel(1);
+    else if (newCourse === 'mermaid') setLevel(0);
+    else if (newCourse === 'safety') setLevel(101);
     else if (newCourse === 'scuba') setLevel(0);
-    else if (newCourse === 'special') setLevel(1);
+    else if (newCourse === 'special') setLevel(201);
   };
 
   const handleSubmit = async () => {
@@ -94,7 +111,6 @@ export default function InquiryPage() {
       }
 
       const filtered = (instructors as Instructor[]).filter((ins) => {
-        // 과정 및 레벨 검증
         if (course === 'freediving' && typeof level === 'number' && ins.max_freediving_level < level) return false;
         if (course === 'mermaid' && typeof level === 'number' && ins.max_mermaid_level < level) return false;
         if (course === 'youth' && typeof level === 'number' && ins.max_youth_level < level) return false;
@@ -102,12 +118,10 @@ export default function InquiryPage() {
         if (course === 'scuba' && !ins.can_scuba) return false;
         if (course === 'special' && !ins.can_special) return false;
 
-        // 풀장 검증
         if (pools.passnine && !ins.can_passnine) return false;
         if (pools.miryang && !ins.can_miryang) return false;
         if (pools.duryu && !ins.can_duryu) return false;
 
-        // 요일 검증
         const selectedDays = Object.keys(days).filter((d) => days[d]);
         const dayMap: { [key: string]: keyof Instructor } = {
           mon: 'available_mon', tue: 'available_tue', wed: 'available_wed',
@@ -116,7 +130,6 @@ export default function InquiryPage() {
         const hasMatchingDay = selectedDays.some((d) => ins[dayMap[d]] === true);
         if (selectedDays.length > 0 && !hasMatchingDay) return false;
 
-        // 패스나인 시간대 검증
         if (pools.passnine) {
           const selectedPnTimes = Object.keys(passnineTimes).filter((t) => passnineTimes[t]);
           const pnMap: { [key: string]: keyof Instructor } = {
@@ -126,7 +139,6 @@ export default function InquiryPage() {
           if (selectedPnTimes.length > 0 && !hasMatchingPnTime) return false;
         }
 
-        // 밀양 시간대 검증
         if (pools.miryang) {
           const selectedMrTimes = Object.keys(miryangTimes).filter((t) => miryangTimes[t]);
           const mrMap: { [key: string]: keyof Instructor } = {
@@ -153,6 +165,8 @@ export default function InquiryPage() {
       setLoading(false);
     }
   };
+
+  const isWeekendSelected = days.sat || days.sun;
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-6 max-w-2xl mx-auto font-sans">
@@ -196,11 +210,11 @@ export default function InquiryPage() {
         </div>
       </section>
 
-      {/* 2. 희망 레벨 / 패키지 선택 */}
+      {/* 2. 희망 레벨 및 과정 선택 */}
       <section className="bg-slate-900/80 backdrop-blur p-4 sm:p-5 rounded-2xl mb-5 border border-slate-800 shadow-xl">
         <h2 className="text-base font-bold mb-3 text-cyan-400 flex items-center gap-2">
           <span className="w-6 h-6 rounded-lg bg-cyan-500/20 flex items-center justify-center text-xs text-cyan-300">2</span>
-          희망 레벨 및 패키지
+          희망 레벨 및 과정 선택
         </h2>
 
         {course === 'freediving' && (
@@ -229,13 +243,13 @@ export default function InquiryPage() {
               </div>
             </div>
             <div>
-              <p className="text-xs text-cyan-400/80 mb-2 font-semibold uppercase tracking-wider">🌟 인기 추천 패키지 코스</p>
+              <p className="text-xs text-cyan-400/80 mb-2 font-semibold uppercase tracking-wider">🌟 추천 패키지 & 전문 과정</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {[
                   { lvl: 'p_1_2', title: '1 + 2 레벨 패키지', desc: '입문부터 오픈워터까지 한번에' },
                   { lvl: 'p_1_3', title: '1 + 2 + 3 레벨 패키지', desc: '어드밴스드 마스터 과정' },
-                  { lvl: 'p_1_4', title: 'All 패키지 (1~4레벨)', desc: '프로 마스터 통합 패키지' },
-                  { lvl: 'p_instructor', title: 'Instructor 패키지', desc: '강사 양성 전문 코스' },
+                  { lvl: 'p_1_4', title: 'All 패키지 (1~4레벨)', desc: '통합 패키지 (강사과정 제외)' },
+                  { lvl: 'instructor', title: '🔥 강사 과정 (Instructor)', desc: '4레벨 보유자 대상 양성 코스' },
                 ].map((item) => (
                   <button
                     key={item.lvl}
@@ -277,22 +291,33 @@ export default function InquiryPage() {
               </div>
             </div>
             <div>
-              <p className="text-xs text-cyan-400/80 mb-2 font-semibold">🌟 패키지 코스</p>
-              <div className="grid grid-cols-2 gap-2">
+              <p className="text-xs text-cyan-400/80 mb-2 font-semibold">🌟 패키지 & 전문 과정</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 {[
-                  { lvl: 'm_package_1', title: '베이직 + 머메이드 패키지' },
-                  { lvl: 'm_package_all', title: 'All 패키지 (강사과정 포함)' },
+                  { lvl: 'm_pkg_1_2', title: '베이직 + 머메이드' },
+                  { lvl: 'm_pkg_2_3', title: '머메이드 + 오션' },
+                  { lvl: 'm_pkg_all', title: '베이직+머메이드+오션' },
                 ].map((item) => (
                   <button
                     key={item.lvl}
                     onClick={() => setLevel(item.lvl)}
-                    className={`p-3 rounded-xl border text-center transition ${
+                    className={`p-2.5 rounded-xl border text-center transition ${
                       level === item.lvl ? 'bg-cyan-600 border-cyan-400 text-white' : 'bg-slate-800/60 border-slate-700 text-slate-300'
                     }`}
                   >
-                    <span className="font-bold text-sm">{item.title}</span>
+                    <span className="font-bold text-xs">{item.title}</span>
                   </button>
                 ))}
+              </div>
+              <div className="mt-2">
+                <button
+                  onClick={() => setLevel('m_instructor')}
+                  className={`w-full p-3 rounded-xl border text-center transition ${
+                    level === 'm_instructor' ? 'bg-cyan-600 border-cyan-400 text-white' : 'bg-slate-800/60 border-slate-700 text-slate-300'
+                  }`}
+                >
+                  <span className="font-bold text-sm">🔥 머메이드 강사 과정</span>
+                </button>
               </div>
             </div>
           </div>
@@ -323,35 +348,32 @@ export default function InquiryPage() {
             </div>
             <div>
               <p className="text-xs text-cyan-400/80 mb-2 font-semibold">🌟 유스 패키지 코스</p>
-              <button
-                onClick={() => setLevel('y_package')}
-                className={`w-full p-3 rounded-xl border text-center transition ${
-                  level === 'y_package' ? 'bg-cyan-600 border-cyan-400 text-white' : 'bg-slate-800/60 border-slate-700 text-slate-300'
-                }`}
-              >
-                <span className="font-bold text-sm">유스 주니어 종합 패키지</span>
-              </button>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { lvl: 'y_pkg_1_2', title: '돌핀 + 오르카 패키지' },
+                  { lvl: 'y_pkg_2_3', title: '오르카 + 샤크 패키지' },
+                ].map((item) => (
+                  <button
+                    key={item.lvl}
+                    onClick={() => setLevel(item.lvl)}
+                    className={`p-3 rounded-xl border text-center transition ${
+                      level === item.lvl ? 'bg-cyan-600 border-cyan-400 text-white' : 'bg-slate-800/60 border-slate-700 text-slate-300'
+                    }`}
+                  >
+                    <span className="font-bold text-xs">{item.title}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         )}
 
         {course === 'safety' && (
-          <div className="grid grid-cols-2 gap-2">
-            <button onClick={() => setLevel(1)} className="p-3 rounded-xl border bg-cyan-600 border-cyan-400 text-white font-bold text-sm">
-              수중레저안전요원 단일 과정
-            </button>
-            <button onClick={() => setLevel('s_package')} className="p-3 rounded-xl border bg-slate-800 border-slate-700 text-slate-300 font-bold text-sm">
-              안전요원 + 심화 패키지
-            </button>
-          </div>
-        )}
-
-        {course === 'scuba' && (
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             {[
-              { lvl: 0, title: '체험 스쿠버' },
-              { lvl: 1, title: '오픈워터' },
-              { lvl: 2, title: '어드밴스드' },
+              { lvl: 101, title: '수중레저안전요원' },
+              { lvl: 102, title: '마스터 수중레저안전요원' },
+              { lvl: 103, title: '안전요원 강사과정' },
             ].map((item) => (
               <button
                 key={item.lvl}
@@ -360,17 +382,47 @@ export default function InquiryPage() {
                   level === item.lvl ? 'bg-cyan-600 border-cyan-400 text-white' : 'bg-slate-800/60 border-slate-700 text-slate-300'
                 }`}
               >
-                <span className="font-bold text-sm">{item.title}</span>
+                <span className="font-bold text-xs">{item.title}</span>
               </button>
             ))}
+          </div>
+        )}
+
+        {course === 'scuba' && (
+          <div className="space-y-2">
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { lvl: 0, title: '체험 스쿠버' },
+                { lvl: 1, title: '오픈워터' },
+                { lvl: 2, title: '어드밴스드' },
+              ].map((item) => (
+                <button
+                  key={item.lvl}
+                  onClick={() => setLevel(item.lvl)}
+                  className={`p-3 rounded-xl border text-center transition ${
+                    level === item.lvl ? 'bg-cyan-600 border-cyan-400 text-white' : 'bg-slate-800/60 border-slate-700 text-slate-300'
+                  }`}
+                >
+                  <span className="font-bold text-sm">{item.title}</span>
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setLevel('scuba_pkg')}
+              className={`w-full p-3 rounded-xl border text-center transition ${
+                level === 'scuba_pkg' ? 'bg-cyan-600 border-cyan-400 text-white' : 'bg-slate-800/60 border-slate-700 text-slate-300'
+              }`}
+            >
+              <span className="font-bold text-sm">스쿠버 오픈워터 + 어드밴스드 패키지</span>
+            </button>
           </div>
         )}
 
         {course === 'special' && (
           <div className="grid grid-cols-2 gap-2">
             {[
-              { lvl: 1, title: '모노핀 전문 교육' },
-              { lvl: 2, title: '스테틱/딥다이빙 심화' },
+              { lvl: 201, title: '응급처치 교육 CPR' },
+              { lvl: 202, title: '수중 사진 촬영' },
             ].map((item) => (
               <button
                 key={item.lvl}
@@ -409,7 +461,7 @@ export default function InquiryPage() {
               onChange={(e) => setPools({ ...pools, miryang: e.target.checked })}
               className="w-4 h-4 accent-cyan-500"
             />
-            <span className="text-sm font-medium">밀양 풀장</span>
+            <span className="text-sm font-medium">밀양 아리랑 풀장</span>
           </label>
           <label className="flex items-center justify-between bg-slate-800/30 p-3 rounded-xl opacity-50 border border-slate-800">
             <div className="flex items-center space-x-3">
@@ -435,118 +487,4 @@ export default function InquiryPage() {
             <button
               key={d.id}
               onClick={() => setDays({ ...days, [d.id]: !days[d.id] })}
-              className={`flex-1 py-2.5 rounded-xl border text-center font-bold text-xs sm:text-sm transition ${
-                days[d.id] ? 'bg-cyan-600 border-cyan-400 text-white shadow-md' : 'bg-slate-800/60 border-slate-700 text-slate-400'
-              }`}
-            >
-              {d.label}
-            </button>
-          ))}
-        </div>
-      </section>
-
-      {/* 5-1. 패스나인 시간대 (체크했을 때만 동적 노출) */}
-      {pools.passnine && (
-        <section className="bg-slate-900/80 backdrop-blur p-4 sm:p-5 rounded-2xl mb-5 border border-cyan-500/30 shadow-xl animate-fadeIn">
-          <h2 className="text-sm font-bold mb-3 text-cyan-300 flex items-center justify-between">
-            <span>📍 5-1. 칠곡 패스나인 세부 시간대</span>
-            <span className="text-[10px] text-cyan-400 bg-cyan-950 px-2 py-0.5 rounded border border-cyan-800">Active</span>
-          </h2>
-          <div className="grid grid-cols-2 gap-2.5">
-            {[
-              { id: 't1', label: '1부 (09:00 ~ 11:30)' },
-              { id: 't2', label: '2부 (12:30 ~ 15:00)' },
-              { id: 't3', label: '3부 (16:00 ~ 18:30)' },
-              { id: 't4', label: '4부 (19:30 ~ 22:00)' },
-            ].map((t) => (
-              <label key={t.id} className="flex items-center space-x-2.5 bg-slate-800/60 p-2.5 rounded-xl cursor-pointer border border-slate-700 text-xs sm:text-sm">
-                <input
-                  type="checkbox"
-                  checked={passnineTimes[t.id]}
-                  onChange={(e) => setPassnineTimes({ ...passnineTimes, [t.id]: e.target.checked })}
-                  className="w-4 h-4 accent-cyan-500"
-                />
-                <span>{t.label}</span>
-              </label>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* 5-2. 밀양 시간대 (체크했을 때만 동적 노출) */}
-      {pools.miryang && (
-        <section className="bg-slate-900/80 backdrop-blur p-4 sm:p-5 rounded-2xl mb-6 border border-cyan-500/30 shadow-xl animate-fadeIn">
-          <h2 className="text-sm font-bold mb-3 text-cyan-300 flex items-center justify-between">
-            <span>📍 5-2. 밀양 풀장 세부 시간대</span>
-            <span className="text-[10px] text-cyan-400 bg-cyan-950 px-2 py-0.5 rounded border border-cyan-800">Active</span>
-          </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {[
-              { id: 't0', label: '0부 (조조)' },
-              { id: 't1', label: '1부 (오전 A)' },
-              { id: 't2', label: '2부 (오전 B)' },
-              { id: 't3', label: '3부 (오후 A)' },
-              { id: 't4', label: '4부 (오후 B)' },
-              { id: 't5', label: '5부 (저녁)' },
-              { id: 't6', label: '6부 (야간)' },
-            ].map((t) => (
-              <label key={t.id} className="flex items-center space-x-2 bg-slate-800/60 p-2.5 rounded-xl cursor-pointer border border-slate-700 text-xs">
-                <input
-                  type="checkbox"
-                  checked={miryangTimes[t.id]}
-                  onChange={(e) => setMiryangTimes({ ...miryangTimes, [t.id]: e.target.checked })}
-                  className="w-3.5 h-3.5 accent-cyan-500"
-                />
-                <span>{t.label}</span>
-              </label>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* 매칭 제출 버튼 */}
-      <button
-        onClick={handleSubmit}
-        disabled={loading}
-        className="w-full py-4 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-2xl text-base sm:text-lg font-extrabold text-white hover:from-cyan-400 hover:to-blue-500 transition shadow-lg shadow-cyan-950/50 cursor-pointer"
-      >
-        {loading ? '🌊 조건에 딱 맞는 전담 강사님을 매칭 중입니다...' : '🎯 맞춤 강사 매칭 접수하기'}
-      </button>
-
-      {/* 매칭 결과 카드 */}
-      {matchedInstructor && (
-        <div className="mt-8 bg-slate-900 border-2 border-cyan-400 p-6 rounded-2xl text-center shadow-2xl animate-fadeIn">
-          <div className="inline-block bg-cyan-950 text-cyan-300 text-xs px-3 py-1 rounded-full mb-3 border border-cyan-700 font-semibold">
-            🎉 100% 조건 만족 전담 강사 매칭 성공!
-          </div>
-          <h2 className="text-2xl font-bold mb-4 text-white">담당 강사: {matchedInstructor.name} 강사님</h2>
-          
-          {matchedInstructor.profile_image ? (
-            <img src={matchedInstructor.profile_image} alt={matchedInstructor.name} className="w-28 h-28 rounded-full mx-auto mb-4 object-cover border-4 border-cyan-500 shadow-md" />
-          ) : (
-            <div className="w-28 h-28 rounded-full mx-auto mb-4 bg-slate-800 border-4 border-cyan-500 flex items-center justify-center text-3xl">👤</div>
-          )}
-
-          <p className="text-slate-300 mb-6 bg-slate-950/80 p-4 rounded-xl text-sm leading-relaxed border border-slate-800">
-            {matchedInstructor.bio || '친절하고 안전하게 수중 스포츠의 즐거움을 전해드립니다!'}
-          </p>
-
-          {matchedInstructor.kakao_chat_url ? (
-            <a href={matchedInstructor.kakao_chat_url} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center px-6 py-3 bg-yellow-400 text-slate-950 font-extrabold rounded-xl hover:bg-yellow-300 transition w-full sm:w-auto shadow-md">
-              💬 강사님과 카카오톡 오픈채팅 상담하기
-            </a>
-          ) : (
-            <p className="text-amber-400 text-sm">카카오톡 오픈채팅 링크 준비중입니다.</p>
-          )}
-        </div>
-      )}
-
-      {noMatch && (
-        <div className="mt-8 bg-slate-900 border border-slate-800 p-6 rounded-2xl text-center">
-          <p className="text-slate-300 text-sm mb-2">🥲 조건에 정확히 일치하는 강사님이 현재 없습니다.</p>
-          <p className="text-xs text-slate-500">풀장이나 시간대 조건을 조금 넓혀서 다시 시도해 보세요!</p>
-        </div>
-      )}
-    </div>
-  );
-}
+              className={`flex-1 py-2.5 rounded-xl border text-
