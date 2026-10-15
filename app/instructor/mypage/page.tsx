@@ -10,6 +10,8 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 interface Instructor {
   id: string;
   name: string;
+  username: string; // 아이디
+  password?: string; // 비밀번호
   profile_image: string | null;
   phone: string | null;
   bio: string | null;
@@ -56,28 +58,30 @@ interface CustomerLead {
 export default function InstructorMyPage() {
   const [instructor, setInstructor] = useState<Instructor | null>(null);
   const [customers, setCustomers] = useState<CustomerLead[]>([]);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [searchPhone, setSearchPhone] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  // 강사 로그인 조회 (전화번호 기준)
+  // 로그인 폼 상태
+  const [usernameInput, setUsernameInput] = useState('');
+  const [passwordInput, setPasswordInput] = useState('');
+
+  // 아이디/비밀번호 로그인 처리
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!searchPhone) {
-      alert('연락처를 입력해 주세요.');
+    if (!usernameInput || !passwordInput) {
+      alert('아이디와 비밀번호를 모두 입력해 주세요.');
       return;
     }
 
-    const cleanPhone = searchPhone.replace(/-/g, '').trim();
     const { data, error } = await supabase
       .from('instructors')
       .select('*')
-      .ilike('phone', `%${cleanPhone}%`)
+      .eq('username', usernameInput.trim())
+      .eq('password', passwordInput.trim())
       .single();
 
     if (error || !data) {
-      alert('등록되지 않은 강사 연락처입니다. 센터 관리자에게 문의해 주세요.');
+      alert('아이디 또는 비밀번호가 일치하지 않습니다.');
       return;
     }
 
@@ -99,7 +103,7 @@ export default function InstructorMyPage() {
     }
   };
 
-  // 강사 정보 업데이트 저장
+  // 강사 프로필 및 스케줄 정보 저장
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!instructor) return;
@@ -119,6 +123,7 @@ export default function InstructorMyPage() {
     }
   };
 
+  // 로그인 전: 아이디/비밀번호 입력 화면
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-slate-50 text-slate-800 p-4 sm:p-8 flex items-center justify-center font-sans">
@@ -128,17 +133,28 @@ export default function InstructorMyPage() {
               BLUE PEACE INSTRUCTOR PORTAL
             </span>
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 mt-3">🌊 강사 마이페이지 로그인</h1>
-            <p className="text-xs text-slate-500 mt-1">등록하신 본인의 휴대폰 번호를 입력해 주세요.</p>
+            <p className="text-xs text-slate-500 mt-1">부여받으신 아이디와 비밀번호를 입력해 주세요.</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4 text-left">
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">연락처</label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">아이디</label>
               <input
                 type="text"
-                value={searchPhone}
-                onChange={(e) => setSearchPhone(e.target.value)}
-                placeholder="010-0000-0000"
+                value={usernameInput}
+                onChange={(e) => setUsernameInput(e.target.value)}
+                placeholder="아이디를 입력하세요"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:border-cyan-500 focus:outline-none"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">비밀번호</label>
+              <input
+                type="password"
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                placeholder="비밀번호를 입력하세요"
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:border-cyan-500 focus:outline-none"
                 required
               />
@@ -147,9 +163,10 @@ export default function InstructorMyPage() {
               type="submit"
               className="w-full py-3.5 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl transition shadow-md cursor-pointer text-sm"
             >
-              로그인 및 내 정보 확인
+              로그인하기
             </button>
           </form>
+
           <div className="pt-2">
             <a href="/" className="text-xs text-slate-400 hover:text-cyan-600 transition font-medium">
               ← 메인 홈페이지로 돌아가기
@@ -160,11 +177,12 @@ export default function InstructorMyPage() {
     );
   }
 
+  // 로그인 후: 대시보드 및 매칭 고객 리스트 화면
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 p-4 sm:p-8 font-sans">
       <div className="max-w-4xl mx-auto space-y-8">
         
-        {/* 상단 GNB 및 로그아웃 */}
+        {/* 상단 프로필 요약 및 로그아웃 */}
         <div className="flex justify-between items-center bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-xl bg-cyan-100 border border-cyan-200 overflow-hidden flex items-center justify-center font-bold text-cyan-700">
@@ -189,7 +207,7 @@ export default function InstructorMyPage() {
           </button>
         </div>
 
-        {/* 🌟 [신규 추가] 나에게 매칭된 고객(수강생) 문의/신청 리스트 */}
+        {/* 🎯 나에게 매칭된 수강생 문의/신청 리스트 */}
         <div className="bg-white border border-cyan-200 p-6 sm:p-7 rounded-3xl shadow-md space-y-4">
           <div className="flex justify-between items-center border-b border-slate-100 pb-3">
             <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
