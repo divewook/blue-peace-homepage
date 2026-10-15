@@ -94,6 +94,15 @@ export default function InstructorPortal() {
         miryang: !!data.can_miryang,
       });
     }
+    setSelectedDays({
+      mon: !!data.available_mon,
+      tue: !!data.available_tue,
+      wed: !!data.available_wed,
+      thu: !!data.available_thu,
+      fri: !!data.available_fri,
+      sat: !!data.available_sat,
+      sun: !!data.available_sun,
+    });
 
     if (!data.profile_image) {
       setView('profile_setup');
@@ -186,7 +195,6 @@ export default function InstructorPortal() {
     reader.readAsDataURL(file);
   };
 
-  // 프로필 설정 저장 (오류 나지 않는 안전한 표준 컬럼만 업데이트)
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!profileImg) {
@@ -589,11 +597,27 @@ export default function InstructorPortal() {
             <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
               <p className="font-bold text-cyan-800">📅 수업 가능 요일</p>
               <div className="flex gap-1.5 flex-wrap">
-                {['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].map(d => (
-                  <span key={d} className={`px-2.5 py-1 rounded-lg text-[11px] font-bold ${currentInstructor?[`available_${d}`] ? 'bg-cyan-600 text-white' : 'bg-slate-200 text-slate-400'}`}>
-                    {d.toUpperCase()}
-                  </span>
-                ))}
+                {[
+                  { key: 'mon', label: '월' },
+                  { key: 'tue', label: '화' },
+                  { key: 'wed', label: '수' },
+                  { key: 'thu', label: '목' },
+                  { key: 'fri', label: '금' },
+                  { key: 'sat', label: '토' },
+                  { key: 'sun', label: '일' },
+                ].map((d) => {
+                  const isActive = currentInstructor?.[`available_${d.key}`];
+                  return (
+                    <span
+                      key={d.key}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold ${
+                        isActive ? 'bg-cyan-600 text-white' : 'bg-slate-200 text-slate-400'
+                      }`}
+                    >
+                      {d.label}
+                    </span>
+                  );
+                })}
               </div>
             </div>
 
