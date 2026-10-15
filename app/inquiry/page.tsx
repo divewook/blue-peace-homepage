@@ -63,7 +63,6 @@ export default function InquiryPage() {
     t0: false, t1: true, t2: true, t3: false, t4: false, t5: false, t6: false,
   });
 
-  // 풀장 체크 해제 시 해당 시간대 세팅 초기화
   useEffect(() => {
     if (!pools.passnine) {
       setPassnineTimes({ t1: false, t2: false, t3: false, t4: false });
@@ -84,7 +83,6 @@ export default function InquiryPage() {
   const [matchedInstructor, setMatchedInstructor] = useState<Instructor | null>(null);
   const [noMatch, setNoMatch] = useState(false);
 
-  // 과정 변경 시 레벨 기본값 세팅
   const handleCourseChange = (newCourse: string) => {
     setCourse(newCourse);
     if (newCourse === 'freediving') setLevel(0);
@@ -487,4 +485,74 @@ export default function InquiryPage() {
             <button
               key={d.id}
               onClick={() => setDays({ ...days, [d.id]: !days[d.id] })}
-              className={`flex-1 py-2.5 rounded-xl border text-
+              className={`flex-1 py-2.5 rounded-xl border text-center font-bold text-xs sm:text-sm transition ${
+                days[d.id] ? 'bg-cyan-600 border-cyan-400 text-white shadow-md' : 'bg-slate-800/60 border-slate-700 text-slate-400'
+              }`}
+            >
+              {d.label}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* 5-1. 패스나인 시간대 */}
+      {pools.passnine && (
+        <section className="bg-slate-900/80 backdrop-blur p-4 sm:p-5 rounded-2xl mb-5 border border-cyan-500/30 shadow-xl animate-fadeIn">
+          <h2 className="text-sm font-bold mb-3 text-cyan-300 flex items-center justify-between">
+            <span>📍 5-1. 칠곡 패스나인 세부 시간대</span>
+            <span className="text-[10px] text-cyan-400 bg-cyan-950 px-2 py-0.5 rounded border border-cyan-800">Active</span>
+          </h2>
+          <div className="grid grid-cols-2 gap-2.5">
+            {[
+              { id: 't1', label: '1부 (09:00 ~ 11:30)' },
+              { id: 't2', label: '2부 (12:30 ~ 15:00)' },
+              { id: 't3', label: '3부 (16:00 ~ 18:30)' },
+              { id: 't4', label: '4부 (19:30 ~ 22:00)' },
+            ].map((t) => (
+              <label key={t.id} className="flex items-center space-x-2.5 bg-slate-800/60 p-2.5 rounded-xl cursor-pointer border border-slate-700 text-xs sm:text-sm">
+                <input
+                  type="checkbox"
+                  checked={passnineTimes[t.id]}
+                  onChange={(e) => setPassnineTimes({ ...passnineTimes, [t.id]: e.target.checked })}
+                  className="w-4 h-4 accent-cyan-500"
+                />
+                <span>{t.label}</span>
+              </label>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* 5-2. 밀양 아리랑 풀장 시간대 */}
+      {pools.miryang && (
+        <section className="bg-slate-900/80 backdrop-blur p-4 sm:p-5 rounded-2xl mb-6 border border-cyan-500/30 shadow-xl animate-fadeIn">
+          <h2 className="text-sm font-bold mb-3 text-cyan-300 flex items-center justify-between">
+            <span>📍 5-2. 밀양 아리랑 풀장 세부 시간대</span>
+            <span className="text-[10px] text-cyan-400 bg-cyan-950 px-2 py-0.5 rounded border border-cyan-800">Active</span>
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+            <label className={`flex flex-col p-2.5 rounded-xl border text-xs cursor-pointer transition ${
+              isWeekendSelected ? 'bg-slate-800/80 border-slate-700' : 'bg-slate-900/40 border-slate-800 opacity-60'
+            }`}>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  disabled={!isWeekendSelected}
+                  checked={miryangTimes.t0}
+                  onChange={(e) => setMiryangTimes({ ...miryangTimes, t0: e.target.checked })}
+                  className="w-3.5 h-3.5 accent-cyan-500"
+                />
+                <span className="font-bold">조조 오전부 (08:00~10:00)</span>
+              </div>
+              <span className="text-[10px] text-amber-400 mt-1 pl-5">⚠️ 주말(토/일)만 선택 가능</span>
+            </label>
+
+            {[
+              { id: 't1', label: '1부 (10:00 ~ 12:00)' },
+              { id: 't2', label: '2부 (12:00 ~ 14:00)' },
+              { id: 't3', label: '3부 (14:00 ~ 16:00)' },
+              { id: 't4', label: '4부 (16:00 ~ 18:00)' },
+              { id: 't5', label: '5부 (18:00 ~ 20:00)' },
+              { id: 't6', label: '6부 (20:00 ~ 22:00)' },
+            ].map((t) => (
+              <label key={t.id}
