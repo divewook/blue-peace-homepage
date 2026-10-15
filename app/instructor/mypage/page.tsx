@@ -31,6 +31,7 @@ export default function InstructorPortal() {
   const [customers, setCustomers] = useState<any[]>([]);
   const [allInstructors, setAllInstructors] = useState<any[]>([]);
   const [allCustomers, setAllCustomers] = useState<any[]>([]);
+  const [deletingInstructorId, setDeletingInstructorId] = useState<string | null>(null);
   const [statPeriod, setStatPeriod] = useState<'1d' | '1w' | '1m' | '6m' | '1y'>('1m');
 
   // 프로필 설정 상태값
@@ -62,9 +63,21 @@ export default function InstructorPortal() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (loginId.trim() === 'admin' && loginPw.trim() === 'ksu0393!') {
-      setView('admin_dashboard');
-      fetchAdminData();
+    if (loginId.trim() === 'admin') {
+      try {
+        const response = await fetch('/api/admin/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: loginId.trim(), password: loginPw }),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || '관리자 로그인에 실패했습니다.');
+        setLoginPw('');
+        setView('admin_dashboard');
+        await fetchAdminData();
+      } catch (error) {
+        alert(error instanceof Error ? error.message : '관리자 로그인에 실패했습니다.');
+      }
       return;
     }
 
@@ -113,9 +126,14 @@ export default function InstructorPortal() {
   };
 
   const handleLogout = () => {
+    if (view === 'admin_dashboard') {
+      void fetch('/api/admin/session', { method: 'DELETE' });
+    }
     setLoginId('');
     setLoginPw('');
     setCurrentInstructor(null);
+    setAllInstructors([]);
+    setAllCustomers([]);
     setView('login');
   };
 
@@ -146,27 +164,44 @@ export default function InstructorPortal() {
   };
 
   const fetchAdminData = async () => {
-    const { data: insData } = await supabase.from('instructors').select('*').order('created_at', { ascending: false });
-    if (insData) setAllInstructors(insData);
-
-    const { data: cusData } = await supabase.from('customers').select('*').order('created_at', { ascending: false });
-    if (cusData) setAllCustomers(cusData);
+    const response = await fetch('/api/admin/data', { cache: 'no-store' });
+    const result = await response.json();
+    if (!response.ok) {
+      alert(result.error || '관리자 목록을 불러오지 못했습니다.');
+      return;
+    }
+    setAllInstructors(result.instructors || []);
+    setAllCustomers(result.customers || []);
   };
 
   const toggleApproval = async (id: string, currentStatus: boolean) => {
-    const { error } = await supabase.from('instructors').update({ is_approved: !currentStatus }).eq('id', id);
-    if (!error) fetchAdminData();
+    try {
+      const response = await fetch(`/api/admin/instructors/${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_approved: !currentStatus }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || '승인 상태 변경에 실패했습니다.');
+      setAllInstructors(previous => previous.map(ins => ins.id === id ? { ...ins, is_approved: !currentStatus } : ins));
+    } catch (error) {
+      alert(error instanceof Error ? error.message : '승인 상태 변경에 실패했습니다.');
+    }
   };
 
   const handleDeleteInstructor = async (id: string) => {
-    if (confirm('정말 이 강사 계정을 데이터베이스에서 완전히 삭제하시겠습니까?')) {
-      const { error } = await supabase.from('instructors').delete().eq('id', id);
-      if (error) {
-        alert('삭제 실패: ' + error.message);
-      } else {
-        alert('성공적으로 삭제되었습니다.');
-        fetchAdminData();
-      }
+    if (deletingInstructorId || !confirm('정말 이 강사 계정을 데이터베이스에서 완전히 삭제하시겠습니까?')) return;
+    setDeletingInstructorId(id);
+    try {
+      const response = await fetch(`/api/admin/instructors/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      const result = await response.json();
+      if (!response.ok || result.deletedId !== id) throw new Error(result.error || '계정 삭제를 확인하지 못했습니다.');
+      setAllInstructors(previous => previous.filter(ins => ins.id !== id));
+      alert('강사 계정이 데이터베이스에서 삭제되었습니다.');
+    } catch (error) {
+      alert('삭제 실패: ' + (error instanceof Error ? error.message : '알 수 없는 오류'));
+    } finally {
+      setDeletingInstructorId(null);
     }
   };
 
@@ -506,8 +541,8 @@ export default function InstructorPortal() {
                         <button onClick={() => toggleApproval(ins.id, ins.is_approved)} className={`px-3 py-1.5 rounded-lg font-bold text-white cursor-pointer ${ins.is_approved ? 'bg-amber-600' : 'bg-cyan-600'}`}>
                           {ins.is_approved ? '승인 취소' : '강사 승인'}
                         </button>
-                        <button onClick={() => handleDeleteInstructor(ins.id)} className="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-lg font-bold cursor-pointer">
-                          삭제
+                        <button onClick={() => handleDeleteInstructor(ins.id)} disabled={deletingInstructorId !== null} className="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-lg font-bold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                          {deletingInstructorId === ins.id ? '삭제 중...' : '삭제'}
                         </button>
                       </td>
                     </tr>
@@ -672,3 +707,4 @@ export default function InstructorPortal() {
     </div>
   );
 }
+
