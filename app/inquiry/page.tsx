@@ -43,7 +43,6 @@ interface Instructor {
   miryang_t6: boolean;
 }
 
-// 요청하신 정확한 공식 명칭이 반영된 세부 레벨 및 패키지 옵션
 const courseLevelOptions: { [key: string]: string[] } = {
   '프리다이빙': ['체험 과정', '1레벨 (프리다이버)', '2레벨 (오픈워터)', '3레벨 (어드밴스드)', '4레벨 (마스터)', '강사 과정', '1+2레벨 패키지', '3+4레벨 패키지'],
   '머메이드 다이빙': ['체험 과정', '1레벨 (베이직 머메이드)', '2레벨 (머메이드)', '3레벨 (오션 머메이드)', '머메이드 강사 과정', '베이직+머메이드 패키지', '머메이드+오션 패키지'],
@@ -75,7 +74,6 @@ function InquiryFormContent() {
   const [course, setCourse] = useState(() => getInitialCourse(initialCourseParam));
   const [detailLevel, setDetailLevel] = useState(courseLevelOptions['프리다이빙'][0]);
 
-  // 희망 요일 복수 선택
   const [selectedDays, setSelectedDays] = useState<{ [key: string]: boolean }>({
     available_mon: true,
     available_tue: false,
@@ -99,6 +97,7 @@ function InquiryFormContent() {
   const [matchedInstructor, setMatchedInstructor] = useState<Instructor | null>(null);
   const [noMatchFound, setNoMatchFound] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [showResultModal, setShowResultModal] = useState(false); // 팝업 모달 상태
 
   useEffect(() => {
     if (initialCourseParam) {
@@ -138,8 +137,11 @@ function InquiryFormContent() {
     setSubmitting(true);
     setMatchedInstructor(null);
     setNoMatchFound(false);
+    setShowResultModal(false);
 
-    // 2초간 잠수 다이버 로딩 연출
+    // 3초 ~ 4.5초 무작위 시간 연출
+    const randomDelay = Math.floor(Math.random() * 1500) + 3000;
+
     setTimeout(async () => {
       const { data: instructors, error } = await supabase
         .from('instructors')
@@ -149,16 +151,14 @@ function InquiryFormContent() {
       if (error || !instructors || instructors.length === 0) {
         setSubmitting(false);
         setNoMatchFound(true);
+        setShowResultModal(true);
         return;
       }
 
-      // 조건 매칭 필터링
       const qualifiedInstructors = instructors.filter((ins: Instructor) => {
-        // 1. 요일 매칭
         const dayMatch = Object.keys(selectedDays).some(dayKey => selectedDays[dayKey] && ins[dayKey as keyof Instructor]);
         if (!dayMatch) return false;
 
-        // 2. 패스나인 시간대 매칭
         let passnineMatch = false;
         if (canPassnine && ins.can_passnine) {
           if ((passnineSlots.t1 && ins.passnine_t1) ||
@@ -169,7 +169,6 @@ function InquiryFormContent() {
           }
         }
 
-        // 3. 밀양 아리랑 시간대 매칭
         let miryangMatch = false;
         if (canMiryang && ins.can_miryang) {
           if ((miryangSlots.t0 && ins.miryang_t0) ||
@@ -185,7 +184,6 @@ function InquiryFormContent() {
 
         if (!passnineMatch && !miryangMatch) return false;
 
-        // 4. 지도 가능 분야 자격 체크
         if (course === '프리다이빙' && ins.max_freediving_level === 0) return false;
         if (course === '머메이드 다이빙' && ins.max_mermaid_level === 0) return false;
         if (course === '유스 프리다이빙' && ins.max_youth_level === 0) return false;
@@ -204,7 +202,6 @@ function InquiryFormContent() {
         const selected = qualifiedInstructors[randomIndex];
         setMatchedInstructor(selected);
 
-        // 접수 DB 저장
         await supabase.from('customers').insert([
           {
             name,
@@ -216,7 +213,10 @@ function InquiryFormContent() {
           },
         ]);
       }
-    }, 2000);
+
+      // 결과 팝업 창 출력
+      setShowResultModal(true);
+    }, randomDelay);
   };
 
   return (
@@ -416,9 +416,9 @@ function InquiryFormContent() {
         </button>
       </form>
 
-      {/* 잠수 다이버 로딩 애니메이션 모달 */}
+      {/* 잠수 다이버 3~5초 무작위 로딩 애니메이션 모달 */}
       {submitting && (
-        <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex flex-col items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-md flex flex-col items-center justify-center p-4">
           <div className="relative w-28 h-28 mb-4">
             <div className="w-full h-full animate-bounce flex items-center justify-center text-5xl">
               🥽
@@ -429,62 +429,97 @@ function InquiryFormContent() {
           <h3 className="text-base sm:text-lg font-bold text-white text-center animate-pulse">
             🫧 블루피스 전담 잠수 다이버가<br />맞춤형 담당 강사님을 찾는 중입니다...
           </h3>
-          <p className="text-xs text-slate-300 mt-2">입력하신 요일과 세부 과정 레벨 조건을 실시간 분석하고 있습니다.</p>
+          <p className="text-xs text-slate-300 mt-2">입력하신 요일과 세부 과정 조건 및 강사 스케줄을 종합 분석하고 있습니다.</p>
         </div>
       )}
 
-      {/* 매칭 실패 시 */}
-      {noMatchFound && (
-        <div className="mt-6 bg-amber-50 p-4 rounded-2xl border border-amber-200 text-center text-amber-800 text-xs sm:text-sm font-medium">
-          ⚠️ 선택하신 조건에 가능한 강사님이 현재 수업 중이거나 일정 조정이 필요합니다.<br />
-          센터 대표 연락처(010-9897-8990)로 연락 주시면 빠르게 안내 도와드리겠습니다!
-        </div>
-      )}
+      {/* 매칭 결과 팝업 모달 (스크롤 불필요 & 화면 중앙 즉시 출력) */}
+      {showResultModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-cyan-200 p-6 sm:p-8 rounded-3xl text-center space-y-4 shadow-2xl max-w-md w-full relative animate-in fade-in zoom-in duration-300">
+            
+            {/* 닫기 X 버튼 */}
+            <button
+              onClick={() => setShowResultModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-lg font-bold p-1"
+            >
+              ✕
+            </button>
 
-      {/* 매칭 성공 시 강사 정보 및 전화/문자 버튼 */}
-      {matchedInstructor && (
-        <div className="bg-white border border-cyan-200 p-6 rounded-3xl text-center space-y-4 shadow-xl mt-6">
-          <div className="inline-block px-4 py-1.5 bg-cyan-50 rounded-full text-cyan-700 font-extrabold text-xs sm:text-sm border border-cyan-200">
-            🎉 맞춤 담당 강사 매칭 완료!
+            {matchedInstructor ? (
+              <>
+                <div className="inline-block px-4 py-1.5 bg-cyan-50 rounded-full text-cyan-700 font-extrabold text-xs sm:text-sm border border-cyan-200">
+                  🎉 맞춤 담당 강사 매칭 완료!
+                </div>
+
+                <h3 className="text-lg sm:text-xl font-bold text-slate-900">
+                  <span className="text-cyan-600">{matchedInstructor.name}</span> 강사님이 담당으로 매칭되었습니다!
+                </h3>
+
+                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
+                  {matchedInstructor.profile_image && (
+                    <img
+                      src={matchedInstructor.profile_image}
+                      alt={matchedInstructor.name}
+                      className="w-20 h-20 rounded-full mx-auto object-cover border-2 border-cyan-500 shadow-md"
+                    />
+                  )}
+                  <p className="text-xs sm:text-sm text-slate-600 font-medium">
+                    {matchedInstructor.bio || '친절하고 안전하게 교육을 진행해 드립니다.'}
+                  </p>
+
+                  <div className="pt-2 grid grid-cols-2 gap-2">
+                    <a
+                      href={`tel:${matchedInstructor.phone}`}
+                      className="py-3 bg-cyan-600 hover:bg-cyan-500 text-white text-xs sm:text-sm font-bold rounded-xl flex items-center justify-center gap-1.5 transition shadow cursor-pointer"
+                    >
+                      📞 전화 걸기
+                    </a>
+                    <a
+                      href={`sms:${matchedInstructor.phone}`}
+                      className="py-3 bg-white hover:bg-slate-100 text-cyan-700 border border-cyan-300 text-xs sm:text-sm font-bold rounded-xl flex items-center justify-center gap-1.5 transition shadow-sm"
+                    >
+                      💬 문자 보내기
+                    </a>
+                  </div>
+
+                  <p className="text-[11px] text-amber-600 font-semibold pt-1 leading-relaxed">
+                    ※ 강사님이 수업 중이라 전화를 받지 못할 경우, 문자를 남겨주시면 최우선으로 확인 후 연락드립니다!
+                  </p>
+                </div>
+              </>
+            ) : noMatchFound ? (
+              <>
+                <div className="inline-block px-4 py-1.5 bg-amber-50 rounded-full text-amber-700 font-extrabold text-xs sm:text-sm border border-amber-200">
+                  ⚠️ 일정이 맞지 않습니다
+                </div>
+                <h3 className="text-base sm:text-lg font-bold text-slate-900">
+                  선택하신 조건에 가능한 강사님이<br />현재 수업 중이거나 일정 조정이 필요합니다.
+                </h3>
+                <p className="text-xs text-slate-600 leading-relaxed pt-2">
+                  센터 대표 연락처(<span className="font-bold text-cyan-600">010-9897-8990</span>)로 연락 주시면 빠르게 일정 조율을 도와드리겠습니다!
+                </p>
+                <div className="pt-3">
+                  <a
+                    href="tel:010-9897-8990"
+                    className="py-3 px-6 bg-cyan-600 hover:bg-cyan-500 text-white text-xs sm:text-sm font-bold rounded-xl inline-block transition shadow cursor-pointer"
+                  >
+                    📞 대표 센터에 직접 문의하기
+                  </a>
+                </div>
+              </>
+            ) : null}
+
+            <button
+              onClick={() => setShowResultModal(false)}
+              className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition mt-2"
+            >
+              창 닫기
+            </button>
           </div>
-
-          <h3 className="text-lg sm:text-xl font-bold text-slate-900">
-            <span className="text-cyan-600">{matchedInstructor.name}</span> 강사님이 담당으로 매칭되었습니다!
-          </h3>
-
-          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 max-w-md mx-auto space-y-3">
-            {matchedInstructor.profile_image && (
-              <img
-                src={matchedInstructor.profile_image}
-                alt={matchedInstructor.name}
-                className="w-20 h-20 rounded-full mx-auto object-cover border-2 border-cyan-500 shadow-md"
-              />
-            )}
-            <p className="text-xs sm:text-sm text-slate-600 font-medium">
-              {matchedInstructor.bio || '친절하고 안전하게 교육을 진행해 드립니다.'}
-            </p>
-
-            <div className="pt-2 grid grid-cols-2 gap-2">
-              <a
-                href={`tel:${matchedInstructor.phone}`}
-                className="py-3 bg-cyan-600 hover:bg-cyan-500 text-white text-xs sm:text-sm font-bold rounded-xl flex items-center justify-center gap-1.5 transition shadow cursor-pointer"
-              >
-                📞 전화 걸기
-              </a>
-              <a
-                href={`sms:${matchedInstructor.phone}`}
-                className="py-3 bg-white hover:bg-slate-100 text-cyan-700 border border-cyan-300 text-xs sm:text-sm font-bold rounded-xl flex items-center justify-center gap-1.5 transition shadow-sm"
-              >
-                💬 문자 보내기
-              </a>
-            </div>
-
-            <p className="text-[11px] text-amber-600 font-semibold pt-1 leading-relaxed">
-              ※ 강사님이 수업 중이라 전화를 받지 못할 경우, 문자를 남겨주시면 최우선으로 확인 후 연락드립니다!
-            </p>
-          </div>
         </div>
       )}
+
     </div>
   );
 }
