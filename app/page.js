@@ -14,12 +14,23 @@ const heroImages = [
   "/DSC06986.jpg",
 ];
 const galleryImages = [
-  { src: "/DSC02240.jpg", alt: "블루피스 수중 갤러리의 빛과 물결" },
-  { src: "/DSC02297.jpg", alt: "블루피스 수중 갤러리 사진 2" },
-  { src: "/DSC04128-Enhanced-NR.jpg", alt: "블루피스 수중 갤러리 사진 3" },
-  { src: "/DSC05353-Enhanced-NR.jpg", alt: "블루피스 수중 갤러리 사진 4" },
-  { src: "/DSC06986.jpg", alt: "블루피스 수중 갤러리 사진 5" },
-];
+  "DSC00377.jpg", "DSC00606-2.jpg", "DSC01193.jpg", "DSC01428-Enhanced-NR.jpg",
+  "DSC01783-Enhanced-NR.jpg", "DSC01925-Enhanced-NR.jpg", "DSC01936.jpg",
+  "DSC02031.jpg", "DSC02125-Enhanced-NR.jpg", "DSC02294.jpg",
+  "DSC02924-Enhanced-NR.jpg", "DSC03811-Enhanced-NR.jpg", "DSC04002-Enhanced-NR.jpg",
+  "DSC04183-Enhanced-NR.jpg", "DSC04188-Enhanced-NR.jpg", "DSC05155-Enhanced-NR.jpg",
+  "DSC05737-Enhanced-NR.jpg", "DSC06743.jpg", "DSC07168-Enhanced-NR.jpg",
+  "DSC07628.jpg",
+].map((filename, index) => ({ src: `/${filename}`, alt: `블루피스 수중 작품 ${index + 1}` }));
+
+function shuffleGallery(images) {
+  const shuffled = [...images];
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(Math.random() * (index + 1));
+    [shuffled[index], shuffled[randomIndex]] = [shuffled[randomIndex], shuffled[index]];
+  }
+  return shuffled;
+}
 const faqs = [
   { question: "수영을 못해도 가능한가요?", answer: "가능합니다. 수영 실력보다 물에 적응하는 과정부터 천천히 진행합니다." },
   { question: "물 공포가 있어도 괜찮나요?", answer: "괜찮습니다. 강사가 옆에서 단계별로 안내하며 편안하게 적응할 수 있도록 도와드립니다." },
@@ -273,7 +284,11 @@ export default function HomePage() {
   const [submissionText, setSubmissionText] = useState("");
   const [copySucceeded, setCopySucceeded] = useState(false);
   const [openFaq, setOpenFaq] = useState(null);
+  const [shuffledGallery, setShuffledGallery] = useState(galleryImages);
+  const [showAllGallery, setShowAllGallery] = useState(false);
+  const [selectedPhoto, setSelectedPhoto] = useState(null);
   const dialogRef = useRef(null);
+  const lightboxRef = useRef(null);
   const activeCategory = categories.find((category) => category.id === activeTab);
   const selectedInstructor = directoryInstructors.find((instructor) => instructor.id === selectedInstructorId);
   const generalInquiryUrl = `mailto:${contactEmail}?subject=${encodeURIComponent(`블루피스 ${inquiryCourse || "교육"} 전체 문의`)}`;
@@ -285,6 +300,15 @@ export default function HomePage() {
     const timer = window.setInterval(() => setHeroIndex((index) => (index + 1) % heroImages.length), 5000);
     return () => window.clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    setShuffledGallery(shuffleGallery(galleryImages));
+  }, []);
+
+  function openLightbox(photo) {
+    setSelectedPhoto(photo);
+    if (!lightboxRef.current?.open) lightboxRef.current?.showModal();
+  }
 
   const eligibleInstructors = orderedInstructors.filter((instructor) => {
     if (!inquiryCategoryId) return true;
@@ -525,15 +549,38 @@ export default function HomePage() {
             <p className="mt-4 max-w-md break-keep text-sm leading-relaxed text-white/75 sm:mt-6 sm:text-lg">고요한 물속, 부드러운 빛, 자유로운 움직임.</p>
             <p className="mt-1 max-w-md break-keep text-sm leading-relaxed text-white/75 sm:mt-3 sm:text-lg">블루피스가 사랑하는 바다의 장면을 만나보세요.</p>
           </div>
-          <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-3">
-            {galleryImages.map((photo, index) => (
-              <figure key={photo.src} className={`relative overflow-hidden rounded-2xl border border-white/10 bg-[#0b3449] shadow-[0_18px_45px_rgba(0,0,0,.16)] ${index === 0 ? "row-span-2 min-h-[264px] sm:min-h-[420px]" : "h-32 sm:h-52"}`}>
-                <Image src={photo.src} alt={photo.alt} fill sizes={index === 0 ? "(min-width: 1024px) 33vw, 50vw" : "(min-width: 1024px) 33vw, 50vw"} className={index === 0 ? "object-contain" : "object-cover transition-transform duration-700 hover:scale-105"} />
-              </figure>
+          <div className="grid grid-cols-2 auto-rows-[126px] gap-2.5 sm:auto-rows-[180px] sm:gap-4 lg:grid-cols-4 lg:auto-rows-[190px]">
+            {(showAllGallery ? shuffledGallery : shuffledGallery.slice(0, 8)).map((photo, index) => (
+              <button
+                key={photo.src}
+                type="button"
+                onClick={() => openLightbox(photo)}
+                aria-label={`${photo.alt} 확대 보기`}
+                className={`group relative overflow-hidden rounded-2xl border border-white/10 bg-[#0b3449] text-left shadow-[0_18px_45px_rgba(0,0,0,.16)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8cdae3] ${index % 7 === 0 ? "row-span-2" : ""}`}
+              >
+                <Image src={photo.src} alt={photo.alt} fill sizes="(min-width: 1024px) 25vw, 50vw" className="object-cover transition-transform duration-700 group-hover:scale-105" />
+                <span aria-hidden="true" className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/55 to-transparent px-4 pb-3 pt-8 text-xs font-medium text-white/90 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">원본 보기 ↗</span>
+              </button>
             ))}
+          </div>
+          <div className="mt-6 flex justify-center sm:mt-8">
+            <button type="button" onClick={() => setShowAllGallery((current) => !current)} aria-expanded={showAllGallery} className="inline-flex min-h-12 items-center justify-center rounded-full border border-[#87d6dd]/50 bg-white/[.07] px-6 text-sm font-semibold text-white transition hover:border-[#a9e8eb] hover:bg-white/[.14] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8cdae3]">
+              {showAllGallery ? "수중 작품 접기" : "블루피스 수중 작품 더보기 (+12장)"}
+            </button>
           </div>
         </div>
       </section>
+
+      <dialog
+        ref={lightboxRef}
+        aria-label="수중 작품 확대 보기"
+        onClose={() => setSelectedPhoto(null)}
+        onClick={(event) => { if (event.target === event.currentTarget) lightboxRef.current?.close(); }}
+        className="fixed inset-0 m-0 h-dvh max-h-none w-screen max-w-none border-0 bg-black/95 p-4 text-white backdrop:bg-black/90 sm:p-8 [&[open]]:flex [&[open]]:items-center [&[open]]:justify-center"
+      >
+        <button type="button" onClick={() => lightboxRef.current?.close()} aria-label="수중 작품 닫기" className="absolute right-4 top-4 z-10 flex h-12 w-12 items-center justify-center rounded-full border border-white/40 bg-black/55 text-3xl leading-none text-white transition hover:bg-white/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:right-8 sm:top-8">×</button>
+        {selectedPhoto && <img src={selectedPhoto.src} alt={selectedPhoto.alt} className="pointer-events-none block max-h-[calc(100dvh-2rem)] max-w-full object-contain sm:max-h-[calc(100dvh-4rem)]" />}
+      </dialog>
 
       <section id="instructors" className="bg-[#061f32] px-6 py-10 sm:px-10 sm:py-20 lg:px-16 lg:py-24">
         <div className="mx-auto max-w-[1312px]">
