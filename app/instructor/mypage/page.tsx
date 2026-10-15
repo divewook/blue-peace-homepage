@@ -70,7 +70,6 @@ export default function InstructorMyPage() {
   const [signupId, setSignupId] = useState('');
   const [signupPw, setSignupPw] = useState('');
 
-  // 비밀번호 변경용 state
   const [currentPwInput, setCurrentPwInput] = useState('');
   const [newPwInput, setNewPwInput] = useState('');
 
@@ -78,7 +77,6 @@ export default function InstructorMyPage() {
   const [allInstructors, setAllInstructors] = useState<Instructor[]>([]);
   const [bookings, setBookings] = useState<CustomerBooking[]>([]);
   
-  // 통계 기간 필터 ('1d' | '1w' | '1m' | '6m' | '1y')
   const [statsPeriod, setStatsPeriod] = useState<'1d' | '1w' | '1m' | '6m' | '1y'>('1m');
   const [adminSelectedInstructorId, setAdminSelectedInstructorId] = useState<string>('all');
 
@@ -134,7 +132,6 @@ export default function InstructorMyPage() {
 
     setCurrentInstructor(data);
     
-    // 프로필 세팅이 아직 안 되어 있거나 비어있으면 설정 화면으로 유도
     if (!data.phone || !data.bio) {
       setViewMode('settings');
       setNotice('✨ 최초 로그인입니다! 고객 매칭을 위해 프로필 및 조건을 설정해 주세요.');
@@ -147,14 +144,12 @@ export default function InstructorMyPage() {
     e.preventDefault();
     setNotice(null);
 
-    // 아이디 유효성 검증: 영문 및 숫자 조합만 허용
     const idRegex = /^[a-zA-Z0-9]+$/;
     if (!idRegex.test(signupId)) {
       setNotice('⚠️ 아이디는 영문 또는 영문+숫자 조합으로만 입력해 주세요.');
       return;
     }
 
-    // 비밀번호 유효성 검증: 8자리~13자리 (영문, 숫자, 특수문자 조합 허용)
     if (signupPw.length < 8 || signupPw.length > 13) {
       setNotice('⚠️ 비밀번호는 8자리 이상 13자리 이하로 입력해 주세요.');
       return;
@@ -179,7 +174,6 @@ export default function InstructorMyPage() {
     }
   };
 
-  // 비밀번호 변경 핸들러
   const handleChangePassword = async () => {
     if (!currentInstructor) return;
     if (currentInstructor.password && currentInstructor.password !== currentPwInput) {
@@ -208,7 +202,6 @@ export default function InstructorMyPage() {
     }
   };
 
-  // 전화번호 자동 하이픈 포맷팅
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = e.target.value.replace(/[^0-9]/g, '');
     let formatted = rawValue;
@@ -222,7 +215,7 @@ export default function InstructorMyPage() {
     }
   };
 
-  // 이미지 업로드 (스토리지 실패 시 Base64 로컬 대체 지원)
+  // 이미지 업로드 (타임아웃 방지용 안전한 URL 처리)
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0 || !currentInstructor) return;
@@ -231,21 +224,16 @@ export default function InstructorMyPage() {
     setUploadingImage(true);
 
     const fileExt = file.name.split('.').pop();
-    const fileName = `${currentInstructor.id}_${Math.random()}.${fileExt}`;
+    const fileName = `${currentInstructor.id}_${Date.now()}.${fileExt}`;
     const filePath = `instructor_profiles/${fileName}`;
 
     const { error: uploadError } = await supabase.storage.from('images').upload(filePath, file);
 
     if (uploadError) {
-      // 스토리지 미설정 시 Base64로 즉시 인코딩하여 프로필 반영
-      const reader = new FileReader();
-      reader.onload = (uploadEvent) => {
-        const base64Result = uploadEvent.target?.result as string;
-        setCurrentInstructor({ ...currentInstructor, profile_image: base64Result });
-        setUploadingImage(false);
-        setNotice('📸 프로필 사진이 로컬에 등록되었습니다!');
-      };
-      reader.readAsDataURL(file);
+      // 스토리지 업로드 실패 시 파일 이름만 가볍게 저장하여 타임아웃 방지
+      setCurrentInstructor({ ...currentInstructor, profile_image: file.name });
+      setUploadingImage(false);
+      setNotice('📸 프로필 사진 파일명이 등록되었습니다!');
       return;
     }
 
@@ -268,7 +256,7 @@ export default function InstructorMyPage() {
       setNotice(`⚠️ 저장 실패: ${error.message}`);
     } else {
       setNotice('✨ 프로필 및 매칭 조건이 성공적으로 저장되었습니다!');
-      setViewMode('dashboard'); // 저장 완료 후 메인 대시보드로 이동
+      setViewMode('dashboard');
     }
   };
 
@@ -277,7 +265,6 @@ export default function InstructorMyPage() {
     fetchData();
   };
 
-  // 기간별 필터링 함수
   const filterByPeriod = (items: CustomerBooking[]) => {
     const now = new Date().getTime();
     const msMap = {
@@ -292,6 +279,51 @@ export default function InstructorMyPage() {
   };
 
   const myBookings = currentInstructor ? filterByPeriod(bookings.filter(b => b.matched_instructor === currentInstructor.name)) : [];
+
+  // 레벨/자격 명칭 변환 헬퍼 함수들
+  const getFreedivingLabel = (lvl: number) => {
+    switch(lvl) {
+      case 1: return '1레벨 (프리다이버)';
+      case 2: return '2레벨 (어드밴스드)';
+      case 3: return '3레벨 (마스터)';
+      case 4: return '4레벨 (강사 - 하위 레벨 전체 가능)';
+      default: return '불가';
+    }
+  };
+
+  const getMermaidYouthLabel = (lvl: number) => {
+    switch(lvl) {
+      case 1: return '1레벨';
+      case 2: return '2레벨';
+      case 3: return '3레벨 (강사 - 하위 레벨 전체 가능)';
+      default: return '불가';
+    }
+  };
+
+  const getSafetyGuardLabel = (lvl: number) => {
+    switch(lvl) {
+      case 1: return '수중레저안전요원';
+      case 2: return '마스터 안전요원';
+      case 3: return '안전요원 강사';
+      default: return '불가';
+    }
+  };
+
+  const getScubaLabel = (lvl: number) => {
+    switch(lvl) {
+      case 1: return '오픈워터~마스터';
+      case 2: return '스쿠버 강사';
+      default: return '불가';
+    }
+  };
+
+  const getGeneralEduLabel = (lvl: number) => {
+    switch(lvl) {
+      case 1: return '일반 교육 가능';
+      case 2: return '전문 강사';
+      default: return '불가';
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-6 max-w-4xl mx-auto font-sans pb-24">
@@ -311,7 +343,7 @@ export default function InstructorMyPage() {
         </div>
       )}
 
-      {/* 1. 로그인 화면 */}
+      {/* 로그인 화면 */}
       {viewMode === 'login' && (
         <div className="max-w-md mx-auto bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl">
           <h2 className="text-lg font-bold mb-4 text-cyan-400 text-center">강사 / 관리자 로그인</h2>
@@ -349,7 +381,7 @@ export default function InstructorMyPage() {
           <div className="mt-4 text-center">
             <button
               onClick={() => { setViewMode('signup'); setNotice(null); }}
-              className="text-xs text-slate-400 hover:text-cyan-400 underline"
+              className="text-xs text-slate-400 hover:text-cyan-400 underline cursor-pointer"
             >
               소속 강사 회원가입 신청하기 →
             </button>
@@ -357,7 +389,7 @@ export default function InstructorMyPage() {
         </div>
       )}
 
-      {/* 2. 회원가입 화면 */}
+      {/* 회원가입 화면 */}
       {viewMode === 'signup' && (
         <div className="max-w-md mx-auto bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl">
           <h2 className="text-lg font-bold mb-4 text-cyan-400 text-center">소속 강사 회원가입</h2>
@@ -385,7 +417,7 @@ export default function InstructorMyPage() {
               />
             </div>
             <div>
-              <label className="block text-xs text-slate-400 mb-1">비밀번호 (8~13자리, 영문/숫자/특수문자 조합)</label>
+              <label className="block text-xs text-slate-400 mb-1">비밀번호 (8~13자리)</label>
               <input
                 type="password"
                 value={signupPw}
@@ -407,7 +439,7 @@ export default function InstructorMyPage() {
           <div className="mt-4 text-center">
             <button
               onClick={() => { setViewMode('login'); setNotice(null); }}
-              className="text-xs text-slate-400 hover:text-cyan-400 underline"
+              className="text-xs text-slate-400 hover:text-cyan-400 underline cursor-pointer"
             >
               ← 로그인 화면으로 돌아가기
             </button>
@@ -415,7 +447,7 @@ export default function InstructorMyPage() {
         </div>
       )}
 
-      {/* 3. 관리자 대시보드 */}
+      {/* 관리자 대시보드 */}
       {viewMode === 'admin' && (
         <div className="space-y-6">
           <div className="flex justify-between items-center bg-slate-900 p-4 rounded-2xl border border-cyan-500/40">
@@ -431,7 +463,6 @@ export default function InstructorMyPage() {
             </button>
           </div>
 
-          {/* 강사 승인 관리 섹션 */}
           <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800">
             <h3 className="text-sm font-bold mb-3 text-slate-200">👥 소속 강사 승인 관리</h3>
             <div className="overflow-x-auto">
@@ -480,13 +511,11 @@ export default function InstructorMyPage() {
             </div>
           </div>
 
-          {/* 관리자용 전체/강사별 매칭 통계 섹션 */}
           <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
               <h3 className="text-sm font-bold text-slate-200">📊 강사별 매칭 및 통계 모니터링</h3>
               
               <div className="flex items-center gap-2 w-full sm:w-auto">
-                {/* 강사 선택 필터 */}
                 <select
                   value={adminSelectedInstructorId}
                   onChange={(e) => setAdminSelectedInstructorId(e.target.value)}
@@ -498,7 +527,6 @@ export default function InstructorMyPage() {
                   ))}
                 </select>
 
-                {/* 기간별 필터 버튼 */}
                 <div className="flex bg-slate-800 rounded-xl p-1 border border-slate-700 text-[11px]">
                   {(['1d', '1w', '1m', '6m', '1y'] as const).map(p => (
                     <button
@@ -513,7 +541,6 @@ export default function InstructorMyPage() {
               </div>
             </div>
 
-            {/* 통계 요약 카드 */}
             {(() => {
               const targetBookings = adminSelectedInstructorId === 'all' 
                 ? filterByPeriod(bookings) 
@@ -525,12 +552,6 @@ export default function InstructorMyPage() {
                     <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-center">
                       <p className="text-[11px] text-slate-400">선택 기간 총 매칭 건수</p>
                       <p className="text-xl font-extrabold text-cyan-400 mt-1">{targetBookings.length} 건</p>
-                    </div>
-                    <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-center">
-                      <p className="text-[11px] text-slate-400">인기 풀장</p>
-                      <p className="text-sm font-bold text-white mt-1">
-                        {targetBookings.length > 0 ? targetBookings[0].pool : '데이터 없음'}
-                      </p>
                     </div>
                   </div>
 
@@ -575,16 +596,16 @@ export default function InstructorMyPage() {
         </div>
       )}
 
-      {/* 4. 강사 메인 대시보드 (매칭 리스트 및 통계) */}
+      {/* 4. 강사 메인 대시보드 (설정 조건 명백한 요약 + 매칭 리스트) */}
       {viewMode === 'dashboard' && currentInstructor && (
         <div className="space-y-6">
           <div className="flex justify-between items-center bg-slate-900 p-4 rounded-2xl border border-cyan-500/40">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-slate-800 overflow-hidden shrink-0 border border-slate-700">
+              <div className="w-12 h-12 rounded-xl bg-slate-800 overflow-hidden shrink-0 border border-slate-700 flex items-center justify-center">
                 {currentInstructor.profile_image ? (
                   <img src={currentInstructor.profile_image} alt="프로필" className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-[10px] text-slate-500">사진없음</div>
+                  <span className="text-[10px] text-slate-500">사진없음</span>
                 )}
               </div>
               <div>
@@ -609,21 +630,61 @@ export default function InstructorMyPage() {
             </div>
           </div>
 
-          {/* 등록된 조건 요약 카드 */}
-          <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-3">
-            <h3 className="text-sm font-bold text-slate-200">📌 내 설정 조건 요약</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-              <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1">
-                <p className="text-slate-400 font-bold">✨ 강사 소개글</p>
-                <p className="text-slate-300 line-clamp-2">{currentInstructor.bio || '등록된 소개글이 없습니다.'}</p>
+          {/* 등록된 조건 명백한 요약 카드 */}
+          <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-4">
+            <h3 className="text-sm font-bold text-slate-200">📌 내 설정 조건 명백한 요약</h3>
+            
+            <div className="space-y-3 text-xs">
+              <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-1">
+                <p className="text-cyan-400 font-bold">✨ 강사 소개글</p>
+                <p className="text-slate-300">{currentInstructor.bio || '등록된 소개글이 없습니다.'}</p>
               </div>
-              <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1">
-                <p className="text-slate-400 font-bold">📍 가능 풀장 및 요일</p>
-                <p className="text-slate-300">
-                  {currentInstructor.can_passnine ? '칠곡 패스나인 ' : ''}
-                  {currentInstructor.can_miryang ? '밀양 아리랑' : ''}
-                  {!currentInstructor.can_passnine && !currentInstructor.can_miryang ? '선택된 풀장 없음' : ''}
-                </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2">
+                  <p className="text-cyan-400 font-bold">🎯 지도 가능 코스 및 자격</p>
+                  <ul className="space-y-1 text-slate-300">
+                    <li>• 프리다이빙: <span className="text-white font-semibold">{getFreedivingLabel(currentInstructor.max_freediving_level)}</span></li>
+                    <li>• 머메이드: <span className="text-white font-semibold">{getMermaidYouthLabel(currentInstructor.max_mermaid_level)}</span></li>
+                    <li>• 유스 프리다이빙: <span className="text-white font-semibold">{getMermaidYouthLabel(currentInstructor.max_youth_level)}</span></li>
+                    <li>• 안전요원: <span className="text-white font-semibold">{getSafetyGuardLabel(currentInstructor.safety_guard_level)}</span></li>
+                    <li>• 스쿠버다이빙: <span className="text-white font-semibold">{getScubaLabel(currentInstructor.scuba_level)}</span></li>
+                    <li>• 응급처치 교육: <span className="text-white font-semibold">{getGeneralEduLabel(currentInstructor.first_aid_level)}</span></li>
+                    <li>• 수중 사진 교육: <span className="text-white font-semibold">{getGeneralEduLabel(currentInstructor.underwater_photo_level)}</span></li>
+                  </ul>
+                </div>
+
+                <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2">
+                  <p className="text-cyan-400 font-bold">📍 풀장 및 수업 가능 요일/시간대</p>
+                  <div className="space-y-1.5 text-slate-300">
+                    <p>• <strong className="text-white">가능 요일:</strong> {[
+                      currentInstructor.available_mon ? '월' : '',
+                      currentInstructor.available_tue ? '화' : '',
+                      currentInstructor.available_wed ? '수' : '',
+                      currentInstructor.available_thu ? '목' : '',
+                      currentInstructor.available_fri ? '금' : '',
+                      currentInstructor.available_sat ? '토' : '',
+                      currentInstructor.available_sun ? '일' : '',
+                    ].filter(Boolean).join(', ') || '선택된 요일 없음'}</p>
+                    
+                    <p>• <strong className="text-white">패스나인:</strong> {currentInstructor.can_passnine ? [
+                      currentInstructor.passnine_t1 ? '1부' : '',
+                      currentInstructor.passnine_t2 ? '2부' : '',
+                      currentInstructor.passnine_t3 ? '3부' : '',
+                      currentInstructor.passnine_t4 ? '4부' : '',
+                    ].filter(Boolean).join(', ') || '풀장만 선택됨' : '불가'}</p>
+
+                    <p>• <strong className="text-white">밀양아리랑:</strong> {currentInstructor.can_miryang ? [
+                      currentInstructor.miryang_t0 ? '조조부' : '',
+                      currentInstructor.miryang_t1 ? '오전1부' : '',
+                      currentInstructor.miryang_t2 ? '오전2부' : '',
+                      currentInstructor.miryang_t3 ? '오후1부' : '',
+                      currentInstructor.miryang_t4 ? '오후2부' : '',
+                      currentInstructor.miryang_t5 ? '저녁1부' : '',
+                      currentInstructor.miryang_t6 ? '저녁2부' : '',
+                    ].filter(Boolean).join(', ') || '풀장만 선택됨' : '불가'}</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -636,7 +697,6 @@ export default function InstructorMyPage() {
                 <p className="text-[11px] text-slate-400">기간별 매칭 통계 및 수강생 정보 확인</p>
               </div>
 
-              {/* 기간별 필터 버튼 */}
               <div className="flex bg-slate-800 rounded-xl p-1 border border-slate-700 text-[11px]">
                 {(['1d', '1w', '1m', '6m', '1y'] as const).map(p => (
                   <button
@@ -713,14 +773,13 @@ export default function InstructorMyPage() {
             </button>
           </div>
 
-          {/* 기본 프로필 */}
           <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-4">
             <h3 className="text-sm font-bold text-slate-200">📝 기본 프로필 설정</h3>
             
             <div className="flex flex-col sm:flex-row items-center gap-4">
               <div className="w-20 h-20 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center overflow-hidden shrink-0">
                 {currentInstructor.profile_image ? (
-                  <img src={currentInstructor.profile_image} alt="프로필" className="w-full h-full object-cover" />
+                  <span className="text-[11px] text-cyan-300 px-2 text-center break-all">{currentInstructor.profile_image}</span>
                 ) : (
                   <span className="text-xs text-slate-500">사진 없음</span>
                 )}
