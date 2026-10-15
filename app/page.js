@@ -113,6 +113,7 @@ export default function HomePage() {
   const [heroImages, setHeroImages] = useState(defaultHeroImages);
   const [galleryPhotos, setGalleryPhotos] = useState([]);
   const [instructors, setInstructors] = useState([]);
+  const [showAllInstructors, setShowAllInstructors] = useState(false); // 전체 강사진 보기 토글
   const [openFaq, setOpenFaq] = useState(null);
   const [selectedPhoto, setSelectedPhoto] = useState(null);
 
@@ -128,7 +129,7 @@ export default function HomePage() {
         setInstructors(shuffleItems(insData));
       }
 
-      // 2. 관리자 등록 갤러리/슬라이드 사진 조회 (있을 경우 반영, 없으면 기본 배열 랜덤 적용)
+      // 2. 관리자 등록 갤러리/슬라이드 사진 조회 (있을 경우 반영)
       const { data: galleryData } = await supabase.from('admin_galleries').select('image_url, is_hero');
       
       if (galleryData && galleryData.length > 0) {
@@ -152,6 +153,9 @@ export default function HomePage() {
     return () => clearInterval(timer);
   }, [heroImages]);
 
+  // 노출할 강사진 목록 (기본 4명 / 버튼 클릭 시 전체)
+  const visibleInstructors = showAllInstructors ? instructors : instructors.slice(0, 4);
+
   return (
     <main className="min-h-screen bg-slate-50 text-slate-800 font-sans">
       
@@ -162,7 +166,6 @@ export default function HomePage() {
             <span className="text-cyan-600 font-black text-lg sm:text-xl tracking-wider">BLUE PEACE</span>
           </Link>
           
-          {/* 모바일 줄바꿈 방지 및 가로 스크롤 대응 네비게이션 */}
           <nav className="flex items-center gap-3 sm:gap-6 text-xs sm:text-sm font-semibold text-slate-600 overflow-x-auto no-scrollbar whitespace-nowrap py-1">
             <a href="#courses" className="hover:text-cyan-600 transition shrink-0">교육과정</a>
             <a href="#instructors" className="hover:text-cyan-600 transition shrink-0">맞춤강사진</a>
@@ -177,7 +180,7 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* Hero Section (밝고 세련된 디자인 & 순수 슬라이드 사진) */}
+      {/* Hero Section */}
       <section className="relative py-12 sm:py-20 px-4 max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
         <div className="text-center lg:text-left">
           <span className="text-xs font-bold px-3.5 py-1.5 bg-cyan-100 text-cyan-800 border border-cyan-200 rounded-full inline-block mb-3">
@@ -263,7 +266,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 블루피스 맞춤형 강사진 섹션 */}
+      {/* 블루피스 맞춤형 강사진 섹션 (기본 4명 랜덤 / 전체보기 버튼 지원) */}
       <section id="instructors" className="py-16 sm:py-24 bg-white border-y border-slate-200 px-4">
         <div className="max-w-6xl mx-auto text-center">
           <span className="text-xs font-bold text-cyan-600 bg-cyan-50 px-3 py-1 rounded-full border border-cyan-200">
@@ -278,7 +281,7 @@ export default function HomePage() {
           </p>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5 mt-10">
-            {instructors.map((ins) => (
+            {visibleInstructors.map((ins) => (
               <div key={ins.id} className="bg-slate-50 border border-slate-200 rounded-2xl p-5 text-center hover:border-cyan-400 transition-all duration-300 shadow-sm group">
                 <div className="w-20 h-20 mx-auto rounded-2xl bg-slate-200 overflow-hidden border border-slate-300 mb-3 flex items-center justify-center group-hover:scale-105 transition-transform shadow-inner">
                   {ins.profile_image ? (
@@ -295,6 +298,19 @@ export default function HomePage() {
               </div>
             ))}
           </div>
+
+          {/* 전체 강사진 확인하기 버튼 */}
+          {instructors.length > 4 && (
+            <div className="mt-8">
+              <button
+                type="button"
+                onClick={() => setShowAllInstructors(!showAllInstructors)}
+                className="py-3 px-6 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm rounded-xl transition shadow-md inline-flex items-center gap-2 cursor-pointer"
+              >
+                <span>{showAllInstructors ? '강사진 간단히 보기 ▲' : `전체 강사진 확인하기 (${instructors.length}명) ∨`}</span>
+              </button>
+            </div>
+          )}
         </div>
       </section>
 
@@ -321,7 +337,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 📸 블루피스 수중 순간들 (랜덤 8개 노출 & 확대 연동) */}
+      {/* 📸 블루피스 수중 순간들 */}
       <section id="gallery" className="py-16 px-4 max-w-6xl mx-auto">
         <div className="text-center mb-10">
           <span className="text-xs font-bold text-cyan-600 tracking-wider">GALLERY</span>
