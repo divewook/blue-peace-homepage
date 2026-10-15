@@ -7,14 +7,14 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// 코스별 세부 레벨 정의
+// 코스별 레벨 구조 (최고 교육 가능 레벨 판별용 순서 포함)
 const courseLevelMap: { [key: string]: string[] } = {
-  '프리다이빙': ['체험 과정', '1레벨 (프리다이버)', '2레벨 (오픈워터)', '3레벨 (어드밴스드)', '4레벨 (마스터)', '강사 과정', '1+2레벨 패키지', '3+4레벨 패키지'],
-  '머메이드 다이빙': ['체험 과정', '1레벨 (베이직 머메이드)', '2레벨 (머메이드)', '3레벨 (오션 머메이드)', '머메이드 강사 과정', '베이직+머메이드 패키지', '머메이드+오션 패키지'],
-  '유스 프리다이빙': ['체험 과정', '1레벨 (돌핀)', '2레벨 (오르카)', '3레벨 (샤크)', '유스 강사 과정', '돌핀+오르카 패키지', '오르카+샤크 패키지'],
-  '수중레저안전요원': ['수중레저안전요원', '마스터 안전요원', '안전요원 강사 과정'],
-  '스쿠버다이빙': ['체험 과정', '오픈워터', '어드벤처', '어드밴스드', '오픈워터+어드밴스드 패키지'],
-  '스페셜 교육': ['응급처치 및 CPR 교육', '응급처치 CPR 강사 과정', '수중 사진 촬영 교육'],
+  '프리다이빙': ['교육 불가', '체험 과정', '1레벨 (프리다이버)', '2레벨 (오픈워터)', '3레벨 (어드밴스드)', '4레벨 (마스터)', '강사 과정'],
+  '머메이드 다이빙': ['교육 불가', '체험 과정', '1레벨 (베이직 머메이드)', '2레벨 (머메이드)', '3레벨 (오션 머메이드)', '머메이드 강사 과정'],
+  '유스 프리다이빙': ['교육 불가', '체험 과정', '1레벨 (돌핀)', '2레벨 (오르카)', '3레벨 (샤크)', '유스 강사 과정'],
+  '수중레저안전요원': ['교육 불가', '수중레저안전요원', '마스터 안전요원', '안전요원 강사 과정'],
+  '스쿠버다이빙': ['교육 불가', '체험 과정', '오픈워터', '어드벤처', '어드밴스드', '오픈워터+어드밴스드 패키지'],
+  '스페셜 교육': ['교육 불가', '응급처치 및 CPR 교육', '응급처치 CPR 강사 과정', '수중 사진 촬영 교육'],
 };
 
 export default function InstructorPortal() {
@@ -37,10 +37,17 @@ export default function InstructorPortal() {
   const [allCustomers, setAllCustomers] = useState<any[]>([]);
   const [statPeriod, setStatPeriod] = useState<'1d' | '1w' | '1m' | '6m' | '1y'>('1m');
 
-  // 최초 프로필 설정 상태값
+  // 최초 프로필 설정 상태값 (코스별 최고 레벨 단일 선택)
   const [profileImg, setProfileImg] = useState('');
   const [bio, setBio] = useState('');
-  const [selectedLevels, setSelectedLevels] = useState<{ [key: string]: boolean }>({});
+  const [maxLevels, setMaxLevels] = useState<{ [key: string]: string }>({
+    '프리다이빙': '교육 불가',
+    '머메이드 다이빙': '교육 불가',
+    '유스 프리다이빙': '교육 불가',
+    '수중레저안전요원': '교육 불가',
+    '스쿠버다이빙': '교육 불가',
+    '스페셜 교육': '교육 불가',
+  });
   const [selectedPools, setSelectedPools] = useState<{ [key: string]: boolean }>({});
   const [selectedTimes, setSelectedTimes] = useState<{ [key: string]: boolean }>({});
   const [selectedDays, setSelectedDays] = useState<{ [key: string]: boolean }>({});
@@ -150,7 +157,7 @@ export default function InstructorPortal() {
     if (!error) fetchAdminData();
   };
 
-  // 관리자 기능: 강사 삭제 (DB 실제 삭제 및 리스트 갱신)
+  // 관리자 기능: 강사 삭제
   const handleDeleteInstructor = async (id: string) => {
     if (confirm('정말 이 강사 계정을 데이터베이스에서 완전히 삭제하시겠습니까?')) {
       const { error } = await supabase.from('instructors').delete().eq('id', id);
@@ -294,7 +301,7 @@ export default function InstructorPortal() {
     );
   }
 
-  // --- [뷰 3] 최초 프로필 설정 화면 (강사 소개 300자 + 코스/레벨 + 풀장 + 시간대 + 요일) ---
+  // --- [뷰 3] 최초 프로필 설정 화면 (코스별 최고 레벨 단일 선택 + 정확한 풀장 시간대) ---
   if (view === 'profile_setup') {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-sans py-10">
@@ -335,22 +342,22 @@ export default function InstructorPortal() {
               <p className="text-[10px] text-cyan-700 mt-1">※ 이 강사 소개란은 신규 교육생에게 노출됩니다.</p>
             </div>
 
-            {/* 3. 수업 가능 코스 및 세부 레벨 선택 */}
+            {/* 3. 수업 가능 코스 및 최고 가능 레벨 단일 선택 */}
             <div className="space-y-4 border-t border-slate-100 pt-4">
-              <label className="block font-bold text-slate-900 text-sm">🏊‍♂️ 수업 가능 교육 코스 및 세부 레벨 선택</label>
+              <label className="block font-bold text-slate-900 text-sm">🏊‍♂️ 수업 가능 코스 및 최고 교육 가능 레벨 선택</label>
               {Object.entries(courseLevelMap).map(([courseName, levels]) => (
                 <div key={courseName} className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
                   <p className="font-bold text-cyan-800">{courseName}</p>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
                     {levels.map(lvl => {
-                      const key = `${courseName}_${lvl}`;
-                      const isSelected = selectedLevels[key];
+                      const currentVal = maxLevels[courseName] || '교육 불가';
+                      const isSelected = currentVal === lvl;
                       return (
                         <button
                           key={lvl}
                           type="button"
-                          onClick={() => setSelectedLevels({ ...selectedLevels, [key]: !isSelected })}
-                          className={`py-2 px-2 rounded-xl text-[11px] font-bold border transition cursor-pointer ${
+                          onClick={() => setMaxLevels({ ...maxLevels, [courseName]: lvl })}
+                          className={`py-2.5 px-2 rounded-xl text-[11px] font-bold border transition cursor-pointer ${
                             isSelected ? 'bg-cyan-600 text-white border-cyan-500 shadow-xs' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
                           }`}
                         >
@@ -390,11 +397,11 @@ export default function InstructorPortal() {
               </div>
             </div>
 
-            {/* 5. 수업 가능 풀장 및 시간대 선택 */}
+            {/* 5. 수업 가능 풀장 및 정확한 시간대 선택 */}
             <div className="border-t border-slate-100 pt-4 space-y-4">
               <label className="block font-bold text-slate-900 text-sm">🌊 수업 가능 풀장 및 시간대 선택</label>
               
-              {/* 칠곡 패스나인 */}
+              {/* 칠곡 패스나인 (수정된 정확한 시간대) */}
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
                 <label className="flex items-center space-x-2 font-bold text-slate-900 cursor-pointer">
                   <input type="checkbox" checked={selectedPools['passnine'] || false} onChange={(e) => setSelectedPools({ ...selectedPools, passnine: e.target.checked })} className="accent-cyan-600 w-4 h-4" />
@@ -402,7 +409,12 @@ export default function InstructorPortal() {
                 </label>
                 {selectedPools['passnine'] && (
                   <div className="grid grid-cols-2 gap-2 pt-1">
-                    {['1부 (09:00~11:00)', '2부 (13:00~15:00)', '3부 (15:30~17:30)', '4부 (19:00~21:00)'].map(t => (
+                    {[
+                      '1부 (09:00~11:30)',
+                      '2부 (12:30~15:00)',
+                      '3부 (16:00~18:30)',
+                      '4부 (19:30~22:00)'
+                    ].map(t => (
                       <label key={t} className={`flex items-center space-x-2 p-2.5 rounded-xl border cursor-pointer ${selectedTimes[`passnine_${t}`] ? 'bg-cyan-50 border-cyan-500 font-bold text-cyan-900' : 'bg-white border-slate-200'}`}>
                         <input type="checkbox" checked={selectedTimes[`passnine_${t}`] || false} onChange={(e) => setSelectedTimes({ ...selectedTimes, [`passnine_${t}`]: e.target.checked })} className="accent-cyan-600" />
                         <span>{t}</span>
@@ -412,7 +424,7 @@ export default function InstructorPortal() {
                 )}
               </div>
 
-              {/* 밀양 아리랑 */}
+              {/* 밀양 아리랑 (수정된 정확한 시간대) */}
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
                 <label className="flex items-center space-x-2 font-bold text-slate-900 cursor-pointer">
                   <input type="checkbox" checked={selectedPools['miryang'] || false} onChange={(e) => setSelectedPools({ ...selectedPools, miryang: e.target.checked })} className="accent-cyan-600 w-4 h-4" />
@@ -420,7 +432,15 @@ export default function InstructorPortal() {
                 </label>
                 {selectedPools['miryang'] && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                    {['오전부 (06:00~09:00) ※주말', '오전 1부 (09:00~11:00)', '오전 2부 (11:00~13:00)', '오후 1부 (13:00~15:00)', '오후 2부 (15:00~17:00)', '저녁 1부 (17:00~19:00)', '저녁 2부 (19:00~21:00)'].map(t => (
+                    {[
+                      '오전부 (08:00~10:00) ※주말만',
+                      '1부 (10:00~12:00)',
+                      '2부 (12:00~14:00)',
+                      '3부 (14:00~16:00)',
+                      '4부 (16:00~18:00)',
+                      '5부 (18:00~20:00)',
+                      '6부 (20:00~22:00)'
+                    ].map(t => (
                       <label key={t} className={`flex items-center space-x-2 p-2.5 rounded-xl border cursor-pointer ${selectedTimes[`miryang_${t}`] ? 'bg-cyan-50 border-cyan-500 font-bold text-cyan-900' : 'bg-white border-slate-200'}`}>
                         <input type="checkbox" checked={selectedTimes[`miryang_${t}`] || false} onChange={(e) => setSelectedTimes({ ...selectedTimes, [`miryang_${t}`]: e.target.checked })} className="accent-cyan-600" />
                         <span>{t}</span>
@@ -445,7 +465,7 @@ export default function InstructorPortal() {
     );
   }
 
-  // --- [뷰 4] 관리자 페이지 (Admin Dashboard - 통계 포함 복원) ---
+  // --- [뷰 4] 관리자 페이지 (Admin Dashboard) ---
   if (view === 'admin_dashboard') {
     const filteredAllCustomers = allCustomers.filter(c => filterByPeriod(c.created_at));
     const instructorStats = allInstructors.map(ins => {
@@ -503,7 +523,7 @@ export default function InstructorPortal() {
             </div>
           </div>
 
-          {/* 기간별 통계 복원 */}
+          {/* 기간별 통계 */}
           <div className="bg-white border border-slate-200 p-6 rounded-3xl shadow-sm space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-4">
               <h2 className="text-lg font-bold text-slate-900">📊 강사별 매칭 통계</h2>
