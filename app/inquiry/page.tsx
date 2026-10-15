@@ -14,13 +14,7 @@ interface Instructor {
   profile_image: string | null;
   phone: string | null;
   bio: string | null;
-  max_freediving_level: number;
-  max_mermaid_level: number;
-  max_youth_level: number;
-  safety_guard_level: number;
-  scuba_level: number;
-  first_aid_level: number;
-  underwater_photo_level: number;
+  is_approved: boolean;
   can_passnine: boolean;
   can_miryang: boolean;
   available_mon: boolean;
@@ -52,9 +46,7 @@ const courseLevelOptions: { [key: string]: string[] } = {
   '스페셜 교육': ['응급처치 및 CPR 교육', '응급처치 CPR 강사 과정', '수중 사진 촬영 교육'],
 };
 
-// 과정별 정확한 비용 단가표 반영
 const coursePriceTable: { [key: string]: string } = {
-  // 프리다이빙
   '프리다이빙:체험 과정': '5만원 (입장료/장비 별도)',
   '1레벨 (프리다이버)': '15만원 (교육비+발급비 포함)',
   '2레벨 (오픈워터)': '35만원 (교육비+발급비 포함)',
@@ -63,7 +55,6 @@ const coursePriceTable: { [key: string]: string } = {
   '1+2레벨 패키지': '40만원 (교육비+발급비 포함 / 패키지 할인)',
   '3+4레벨 패키지': '130만원 (교육비+발급비 포함 / 패키지 할인)',
   
-  // 머메이드 다이빙
   '머메이드 다이빙:체험 과정': '10만원 (입장료/장비 별도)',
   '베이직 머메이드': '35만원 (교육비+발급비 포함)',
   '머메이드': '45만원 (교육비+발급비 포함)',
@@ -71,7 +62,6 @@ const coursePriceTable: { [key: string]: string } = {
   '베이직+머메이드 패키지': '70만원 (교육비+발급비 포함 / 패키지 할인)',
   '머메이드+오션 패키지': '90만원 (교육비+발급비 포함 / 패키지 할인)',
 
-  // 유스 프리다이빙
   '유스 프리다이빙:체험 과정': '10만원 (입장료/장비 별도)',
   '1레벨 (돌핀)': '35만원 (교육비+발급비 포함)',
   '2레벨 (오르카)': '45만원 (교육비+발급비 포함)',
@@ -79,22 +69,17 @@ const coursePriceTable: { [key: string]: string } = {
   '돌핀+오르카 패키지': '70만원 (교육비+발급비 포함 / 패키지 할인)',
   '오르카+샤크 패키지': '90만원 (교육비+발급비 포함 / 패키지 할인)',
 
-  // 수중레저안전요원
   '수중레저안전요원': '35만원 (교육비+발급비 포함)',
   '마스터 안전요원': '55만원 (교육비+발급비 포함)',
 
-  // 스쿠버다이빙
   '스쿠버다이빙:체험 과정': '10만원 (입장료/장비 별도)',
   '오픈워터': '50만원 (교육비+발급비 포함)',
   '어드벤처': '50만원 (교육비+발급비 포함)',
   '어드밴스드': '60만원 (교육비+발급비 포함)',
   '오픈워터+어드밴스드 패키지': '100만원 (교육비+발급비 포함 / 패키지 할인)',
 
-  // 스페셜 교육
   '응급처치 및 CPR 교육': '15만원 (국제 자격 발급비 포함)',
   '수중 사진 촬영 교육': '15만원 (촬영 테크닉 레슨)',
-
-  // 강사 과정
   '강사 과정': '별도 상담 문의',
   '머메이드 강사 과정': '별도 상담 문의',
   '유스 강사 과정': '별도 상담 문의',
@@ -102,7 +87,6 @@ const coursePriceTable: { [key: string]: string } = {
   '응급처치 CPR 강사 과정': '별도 상담 문의',
 };
 
-// 금액 키 조회 헬퍼 (체험 과정은 코스별로 금액이 다르므로 조합 키 지원)
 const getPriceText = (courseName: string, levelName: string) => {
   if (levelName === '체험 과정') {
     return coursePriceTable[`${courseName}:${levelName}`] || '10만원 (입장료/장비 별도)';
@@ -173,12 +157,12 @@ function InquiryFormContent() {
   };
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawValue = e.target.value.replace(/[^0-9]/g, '');
+    const rawValue = e.target.value.replace(/[^0-9]/g, '').slice(0, 11);
     let formatted = rawValue;
     if (rawValue.length > 3 && rawValue.length <= 7) {
       formatted = `${rawValue.slice(0, 3)}-${rawValue.slice(3)}`;
     } else if (rawValue.length > 7) {
-      formatted = `${rawValue.slice(0, 3)}-${rawValue.slice(3, 7)}-${rawValue.slice(7, 11)}`;
+      formatted = `${rawValue.slice(0, 3)}-${rawValue.slice(3, 7)}-${rawValue.slice(7)}`;
     }
     setPhone(formatted);
   };
@@ -246,13 +230,6 @@ function InquiryFormContent() {
         }
 
         if (!passnineMatch && !miryangMatch) return false;
-
-        if (course === '프리다이빙' && ins.max_freediving_level === 0) return false;
-        if (course === '머메이드 다이빙' && ins.max_mermaid_level === 0) return false;
-        if (course === '유스 프리다이빙' && ins.max_youth_level === 0) return false;
-        if (course === '수중레저안전요원' && ins.safety_guard_level === 0) return false;
-        if (course === '스쿠버다이빙' && ins.scuba_level === 0) return false;
-
         return true;
       });
 
@@ -289,7 +266,6 @@ function InquiryFormContent() {
   return (
     <div className="bg-white border border-slate-200 p-5 sm:p-8 rounded-3xl shadow-xl max-w-xl mx-auto text-slate-800">
       
-      {/* 뒤로가기 버튼 */}
       <div className="mb-4">
         <button
           onClick={() => router.push('/')}
@@ -303,7 +279,6 @@ function InquiryFormContent() {
 
       <form onSubmit={handleOpenConfirmModal} className="space-y-5">
         
-        {/* 성함 및 연락처 */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1">성함</label>
@@ -312,7 +287,7 @@ function InquiryFormContent() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="성함을 입력하세요"
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:border-cyan-500 focus:outline-none"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none"
               required
             />
           </div>
@@ -325,13 +300,12 @@ function InquiryFormContent() {
               onChange={handlePhoneChange}
               placeholder="010-0000-0000"
               maxLength={13}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:border-cyan-500 focus:outline-none"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none"
               required
             />
           </div>
         </div>
 
-        {/* 1차 희망 교육 코스 선택 */}
         <div>
           <label className="block text-xs font-semibold text-slate-600 mb-2">1. 희망 교육 코스 분야</label>
           <div className="grid grid-cols-3 gap-1.5">
@@ -355,7 +329,6 @@ function InquiryFormContent() {
           </div>
         </div>
 
-        {/* 2차 세부 레벨 / 과정 / 패키지 선택 & 금액 실시간 안내 */}
         <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
           <div className="flex justify-between items-center mb-2">
             <label className="block text-xs font-bold text-cyan-700">2. [{course}] 세부 과정 선택</label>
@@ -380,13 +353,11 @@ function InquiryFormContent() {
             ))}
           </div>
           
-          {/* 가독성이 좋아진 안내 문구 */}
           <p className="text-[11px] text-slate-500 mt-3 leading-relaxed border-t border-slate-200 pt-2">
             ※ 체험 과정을 제외한 모든 과정은 교육비+발급비 포함이며, 지역별 풀장 입장료와 장비 렌탈료는 별도입니다.
           </p>
         </div>
 
-        {/* 희망 요일 복수 선택 */}
         <div>
           <label className="block text-xs font-semibold text-slate-600 mb-2">3. 희망 수업 요일 (복수 선택 가능)</label>
           <div className="grid grid-cols-7 gap-1">
@@ -415,7 +386,7 @@ function InquiryFormContent() {
           </div>
         </div>
 
-        {/* 칠곡 패스나인 풀장 세부 시간대 복수 선택 */}
+        {/* 칠곡 패스나인 풀장 세부 시간대 (정확한 시간대 적용) */}
         <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2.5">
           <label className="flex items-center space-x-2 text-xs font-bold text-slate-900 cursor-pointer">
             <input
@@ -429,10 +400,10 @@ function InquiryFormContent() {
           {canPassnine && (
             <div className="grid grid-cols-2 gap-2 pt-1">
               {[
-                { key: 't1', label: '1부 (09:00~11:00)' },
-                { key: 't2', label: '2부 (13:00~15:00)' },
-                { key: 't3', label: '3부 (15:30~17:30)' },
-                { key: 't4', label: '4부 (19:00~21:00)' },
+                { key: 't1', label: '1부 (09:00~11:30)' },
+                { key: 't2', label: '2부 (12:30~15:00)' },
+                { key: 't3', label: '3부 (16:00~18:30)' },
+                { key: 't4', label: '4부 (19:30~22:00)' },
               ].map((t) => (
                 <label key={t.key} className={`flex items-center space-x-2 text-xs p-2.5 rounded-xl border cursor-pointer ${passnineSlots[t.key] ? 'bg-cyan-50 border-cyan-500 text-cyan-900 font-bold' : 'bg-white border-slate-200 text-slate-600'}`}>
                   <input
@@ -448,7 +419,7 @@ function InquiryFormContent() {
           )}
         </div>
 
-        {/* 밀양 아리랑 풀장 세부 시간대 복수 선택 */}
+        {/* 밀양 아리랑 풀장 세부 시간대 (정확한 시간대 적용) */}
         <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2.5">
           <label className="flex items-center space-x-2 text-xs font-bold text-slate-900 cursor-pointer">
             <input
@@ -462,13 +433,13 @@ function InquiryFormContent() {
           {canMiryang && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
               {[
-                { key: 't0', label: '오전부 (06:00~09:00) ※주말 전용' },
-                { key: 't1', label: '오전 1부 (09:00~11:00)' },
-                { key: 't2', label: '오전 2부 (11:00~13:00)' },
-                { key: 't3', label: '오후 1부 (13:00~15:00)' },
-                { key: 't4', label: '오후 2부 (15:00~17:00)' },
-                { key: 't5', label: '저녁 1부 (17:00~19:00)' },
-                { key: 't6', label: '저녁 2부 (19:00~21:00)' },
+                { key: 't0', label: '오전부 (08:00~10:00) ※주말만' },
+                { key: 't1', label: '1부 (10:00~12:00)' },
+                { key: 't2', label: '2부 (12:00~14:00)' },
+                { key: 't3', label: '3부 (14:00~16:00)' },
+                { key: 't4', label: '4부 (16:00~18:00)' },
+                { key: 't5', label: '5부 (18:00~20:00)' },
+                { key: 't6', label: '6부 (20:00~22:00)' },
               ].map((t) => (
                 <label key={t.key} className={`flex items-center space-x-2 text-xs p-2.5 rounded-xl border cursor-pointer ${miryangSlots[t.key] ? 'bg-cyan-50 border-cyan-500 text-cyan-900 font-bold' : 'bg-white border-slate-200 text-slate-600'}`}>
                   <input
@@ -492,7 +463,6 @@ function InquiryFormContent() {
         </button>
       </form>
 
-      {/* 1단계: 옵션 재확인 및 금액 확인 모달 */}
       {showConfirmModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white border border-cyan-200 p-6 sm:p-7 rounded-3xl space-y-4 shadow-2xl max-w-md w-full relative">
@@ -527,24 +497,19 @@ function InquiryFormContent() {
         </div>
       )}
 
-      {/* 잠수 다이버 3~4.5초 무작위 로딩 애니메이션 모달 */}
       {submitting && (
         <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-md flex flex-col items-center justify-center p-4">
           <div className="relative w-28 h-28 mb-4">
             <div className="w-full h-full animate-bounce flex items-center justify-center text-5xl">
               🥽
             </div>
-            <div className="absolute top-0 right-2 w-3 h-3 bg-cyan-400 rounded-full animate-ping opacity-75" />
-            <div className="absolute top-4 right-6 w-2 h-2 bg-blue-300 rounded-full animate-pulse" />
           </div>
           <h3 className="text-base sm:text-lg font-bold text-white text-center animate-pulse">
             🫧 블루피스 전담 잠수 다이버가<br />맞춤형 담당 강사님을 찾는 중입니다...
           </h3>
-          <p className="text-xs text-slate-300 mt-2">선택하신 요일과 세부 과정 레벨 조건을 실시간 분석하고 있습니다.</p>
         </div>
       )}
 
-      {/* 2단계: 최종 매칭 결과 팝업 모달 */}
       {showResultModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white border border-cyan-200 p-6 sm:p-8 rounded-3xl text-center space-y-4 shadow-2xl max-w-md w-full relative animate-in fade-in zoom-in duration-300">
