@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -88,10 +88,12 @@ export default function InstructorPortal() {
     setCurrentInstructor(data);
     setProfileImg(data.profile_image || '');
     setBio(data.bio || '');
-    if (data.max_levels) setMaxLevels(data.max_levels);
-    if (data.selected_pools) setSelectedPools(data.selected_pools);
-    if (data.selected_times) setSelectedTimes(data.selected_times);
-    if (data.selected_days) setSelectedDays(data.selected_days);
+    if (data.can_passnine || data.can_miryang) {
+      setSelectedPools({
+        passnine: !!data.can_passnine,
+        miryang: !!data.can_miryang,
+      });
+    }
 
     if (!data.profile_image) {
       setView('profile_setup');
@@ -184,7 +186,7 @@ export default function InstructorPortal() {
     reader.readAsDataURL(file);
   };
 
-  // 프로필 설정 저장 (수정하기 포함)
+  // 프로필 설정 저장 (오류 나지 않는 안전한 표준 컬럼만 업데이트)
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!profileImg) {
@@ -195,10 +197,15 @@ export default function InstructorPortal() {
     const updateData = {
       profile_image: profileImg,
       bio,
-      max_levels: maxLevels,
-      selected_pools: selectedPools,
-      selected_times: selectedTimes,
-      selected_days: selectedDays,
+      can_passnine: !!selectedPools['passnine'],
+      can_miryang: !!selectedPools['miryang'],
+      available_mon: !!selectedDays['mon'],
+      available_tue: !!selectedDays['tue'],
+      available_wed: !!selectedDays['wed'],
+      available_thu: !!selectedDays['thu'],
+      available_fri: !!selectedDays['fri'],
+      available_sat: !!selectedDays['sat'],
+      available_sun: !!selectedDays['sun'],
     };
 
     const { error } = await supabase
@@ -547,14 +554,13 @@ export default function InstructorPortal() {
     );
   }
 
-  // --- [뷰 5] 강사 페이지 (Instructor Dashboard - 내 설정 및 통계/고객 리스트 확인) ---
+  // --- [뷰 5] 강사 페이지 (Instructor Dashboard) ---
   const myFilteredCustomers = customers.filter(c => filterByPeriod(c.created_at));
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 p-4 sm:p-8 font-sans">
       <div className="max-w-4xl mx-auto space-y-8">
         
-        {/* 상단 프로필 요약 및 수정 버튼 */}
         <div className="flex justify-between items-center bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shadow-xs">
@@ -576,46 +582,31 @@ export default function InstructorPortal() {
           </div>
         </div>
 
-        {/* 내 설정 정보 요약 카드 */}
         <div className="bg-white border border-slate-200 p-6 rounded-3xl shadow-sm space-y-4">
           <h2 className="text-base font-bold text-slate-900 border-b border-slate-100 pb-3">📋 내가 설정한 수업 가능 정보 요약</h2>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
             <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
-              <p className="font-bold text-cyan-800">🏊‍♂️ 교육 코스별 가능 레벨</p>
-              <div className="space-y-1">
-                {Object.entries(maxLevels || {}).map(([course, level]) => (
-                  <p key={course} className="text-slate-700">
-                    <span className="font-semibold text-slate-900">{course}:</span> <span className={level === '교육 불가' ? 'text-slate-400' : 'text-cyan-700 font-bold'}>{level}</span>
-                  </p>
+              <p className="font-bold text-cyan-800">📅 수업 가능 요일</p>
+              <div className="flex gap-1.5 flex-wrap">
+                {['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].map(d => (
+                  <span key={d} className={`px-2.5 py-1 rounded-lg text-[11px] font-bold ${currentInstructor?[`available_${d}`] ? 'bg-cyan-600 text-white' : 'bg-slate-200 text-slate-400'}`}>
+                    {d.toUpperCase()}
+                  </span>
                 ))}
               </div>
             </div>
 
-            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
-              <div>
-                <p className="font-bold text-cyan-800 mb-1">📅 수업 가능 요일</p>
-                <div className="flex gap-1.5 flex-wrap">
-                  {['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].map(d => (
-                    <span key={d} className={`px-2.5 py-1 rounded-lg text-[11px] font-bold ${selectedDays[d] ? 'bg-cyan-600 text-white' : 'bg-slate-200 text-slate-400'}`}>
-                      {d.toUpperCase()}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <p className="font-bold text-cyan-800 mb-1">🌊 수업 가능 풀장 및 시간대</p>
-                <div className="space-y-1 text-slate-700">
-                  <p><span className="font-semibold">패스나인:</span> {selectedPools['passnine'] ? '선택함' : '선택 안 함'}</p>
-                  <p><span className="font-semibold">밀양 아리랑:</span> {selectedPools['miryang'] ? '선택함' : '선택 안 함'}</p>
-                </div>
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
+              <p className="font-bold text-cyan-800">🌊 수업 가능 풀장</p>
+              <div className="space-y-1 text-slate-700">
+                <p><span className="font-semibold">칠곡 패스나인:</span> {currentInstructor?.can_passnine ? '가능' : '불가능'}</p>
+                <p><span className="font-semibold">밀양 아리랑:</span> {currentInstructor?.can_miryang ? '가능' : '불가능'}</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* 나에게 매칭된 고객 통계 및 리스트 */}
         <div className="bg-white border border-slate-200 p-6 rounded-3xl shadow-sm space-y-4">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-3">
             <h2 className="text-base font-bold text-slate-900">📊 나에게 매칭된 고객 통계 및 신청 내역 ({myFilteredCustomers.length}건)</h2>
