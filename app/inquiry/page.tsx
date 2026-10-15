@@ -52,6 +52,39 @@ const courseLevelOptions: { [key: string]: string[] } = {
   '스페셜 교육': ['응급처치 및 CPR 교육', '응급처치 CPR 강사 과정', '수중 사진 촬영 교육'],
 };
 
+// 코스/레벨별 교육비+발급비 안내 단가표 (필요시 금액 수정 가능)
+const coursePriceTable: { [key: string]: string } = {
+  '체험 과정': '10만원 (입장료/장비 별도)',
+  '1레벨 (프리다이버)': '15만원 (교육비+발급비 포함)',
+  '2레벨 (오픈워터)': '40만원 (교육비+발급비 포함 / 무제한 트레이닝)',
+  '3레벨 (어드밴스드)': '55만원 (교육비+발급비 포함 / 무제한 트레이닝)',
+  '4레벨 (마스터)': '85만원 (교육비+발급비 포함 / 무제한 트레이닝)',
+  '1+2레벨 패키지': '50만원 (패키지 할인 적용)',
+  '3+4레벨 패키지': '130만원 (패키지 할인 적용)',
+  '베이직 머메이드': '35만원 (교육비+발급비 포함)',
+  '머메이드': '45만원 (교육비+발급비 포함)',
+  '오션 머메이드': '55만원 (교육비+발급비 포함)',
+  '베이직+머메이드 패키지': '70만원 (패키지 할인)',
+  '머메이드+오션 패키지': '90만원 (패키지 할인)',
+  '1레벨 (돌핀)': '35만원 (유스 전용 과정)',
+  '2레벨 (오르카)': '45만원 (유스 전용 과정)',
+  '3레벨 (샤크)': '55만원 (유스 전용 과정)',
+  '돌핀+오르카 패키지': '70만원 (패키지 할인)',
+  '오르카+샤크 패키지': '90만원 (패키지 할인)',
+  '수중레저안전요원': '35만원 (자격증 발급비 포함)',
+  '마스터 안전요원': '55만원 (자격증 발급비 포함)',
+  '오픈워터 다이버': '50만원 (이론/풀장/해양 포함)',
+  '어드밴스드 다이버': '50만원 (심화 스쿠버)',
+  '오픈워터+어드밴스드 패키지': '90만원 (패키지 할인)',
+  '응급처치 및 CPR 교육': '15만원 (국제 자격 발급비 포함)',
+  '수중 사진 촬영 교육': '15만원 (촬영 테크닉 레슨)',
+  '강사 과정': '별도 상담 문의',
+  '머메이드 강사 과정': '별도 상담 문의',
+  '유스 강사 과정': '별도 상담 문의',
+  '안전요원 강사 과정': '별도 상담 문의',
+  '응급처치 CPR 강사 과정': '별도 상담 문의',
+};
+
 function InquiryFormContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -97,7 +130,10 @@ function InquiryFormContent() {
   const [matchedInstructor, setMatchedInstructor] = useState<Instructor | null>(null);
   const [noMatchFound, setNoMatchFound] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [showResultModal, setShowResultModal] = useState(false); // 팝업 모달 상태
+
+  // 모달 상태 관리 (1단계: 금액/옵션 재확인 모달, 2단계: 최종 매칭 결과 모달)
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showResultModal, setShowResultModal] = useState(false);
 
   useEffect(() => {
     if (initialCourseParam) {
@@ -127,20 +163,25 @@ function InquiryFormContent() {
     setSelectedDays(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // 1차 폼 제출 핸들러 (옵션 및 예상 비용 재확인 모달을 띄움)
+  const handleOpenConfirmModal = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !phone) {
       alert('성함과 연락처를 입력해 주세요.');
       return;
     }
+    setShowConfirmModal(true);
+  };
 
+  // 2차 최종 매칭 프로세스 실행
+  const handleFinalSubmit = async () => {
+    setShowConfirmModal(false);
     setSubmitting(true);
     setMatchedInstructor(null);
     setNoMatchFound(false);
     setShowResultModal(false);
 
-    // 3초 ~ 4.5초 무작위 시간 연출
-    const randomDelay = Math.floor(Math.random() * 1500) + 3000;
+    const randomDelay = Math.floor(Math.random() * 1500) + 3000; // 3.0 ~ 4.5초 랜던 연출
 
     setTimeout(async () => {
       const { data: instructors, error } = await supabase
@@ -214,9 +255,14 @@ function InquiryFormContent() {
         ]);
       }
 
-      // 결과 팝업 창 출력
       setShowResultModal(true);
     }, randomDelay);
+  };
+
+  // 모달 닫기 시 홈페이지로 리셋 이동
+  const handleCloseAndGoHome = () => {
+    setShowResultModal(false);
+    router.push('/');
   };
 
   return (
@@ -234,7 +280,7 @@ function InquiryFormContent() {
 
       <h2 className="text-xl sm:text-2xl font-black text-slate-900 mb-6 text-center">🌊 수강생 맞춤 강사 매칭 신청</h2>
 
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleOpenConfirmModal} className="space-y-5">
         
         {/* 성함 및 연락처 */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -288,9 +334,14 @@ function InquiryFormContent() {
           </div>
         </div>
 
-        {/* 2차 세부 레벨 / 과정 / 패키지 선택 */}
+        {/* 2차 세부 레벨 / 과정 / 패키지 선택 & 금액 실시간 안내 */}
         <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
-          <label className="block text-xs font-bold text-cyan-700 mb-2">2. [{course}] 세부 과정 및 패키지 선택</label>
+          <div className="flex justify-between items-center mb-2">
+            <label className="block text-xs font-bold text-cyan-700">2. [{course}] 세부 과정 선택</label>
+            <span className="text-[11px] font-extrabold text-cyan-800 bg-cyan-100 px-2.5 py-0.5 rounded-full">
+              💰 {coursePriceTable[detailLevel] || '상담 시 안내'}
+            </span>
+          </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
             {courseLevelOptions[course]?.map((lvl) => (
               <button
@@ -393,7 +444,7 @@ function InquiryFormContent() {
                 { key: 't5', label: '저녁 1부 (17:00~19:00)' },
                 { key: 't6', label: '저녁 2부 (19:00~21:00)' },
               ].map((t) => (
-                <label key={t.key} className={`flex items-center space-x-2 text-xs p-2.5 rounded-xl border cursor-pointer ${miryangSlots[t.key] ? 'bg-cyan-50 border-cyan-500 text-cyan-900 font-bold' : 'bg-white border-slate-200 text-slate-600'}`}>
+                <label key={t.key} className={`flex items-center space-x-2 text-xs p-2.5 rounded-lg border cursor-pointer ${miryangSlots[t.key] ? 'bg-cyan-50 border-cyan-500 text-cyan-900 font-bold' : 'bg-white border-slate-200 text-slate-600'}`}>
                   <input
                     type="checkbox"
                     checked={miryangSlots[t.key]}
@@ -409,14 +460,48 @@ function InquiryFormContent() {
 
         <button
           type="submit"
-          disabled={submitting}
           className="w-full py-4 bg-cyan-600 hover:bg-cyan-500 rounded-2xl text-white font-extrabold transition shadow-lg shadow-cyan-600/20 mt-2 cursor-pointer"
         >
-          🎯 맞춤 담당 강사 매칭하기
+          🎯 선택 옵션 및 예상 금액 확인 후 매칭하기
         </button>
       </form>
 
-      {/* 잠수 다이버 3~5초 무작위 로딩 애니메이션 모달 */}
+      {/* 1단계: 옵션 재확인 및 금액 확인 모달 */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-cyan-200 p-6 sm:p-7 rounded-3xl space-y-4 shadow-2xl max-w-md w-full relative">
+            <h3 className="text-lg font-black text-slate-900 text-center border-b border-slate-100 pb-3">
+              📋 매칭 신청 옵션 최종 확인
+            </h3>
+
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2 text-xs sm:text-sm text-slate-700">
+              <p><span className="font-bold text-slate-900">신청자:</span> {name} 님 ({phone})</p>
+              <p><span className="font-bold text-slate-900">선택 과정:</span> {course} - {detailLevel}</p>
+              <p><span className="font-bold text-cyan-700">예상 비용:</span> <span className="font-extrabold text-cyan-800">{coursePriceTable[detailLevel] || '상담 시 안내'}</span></p>
+              <p className="text-[11px] text-slate-500 pt-1">
+                ※ 위 조건에 완벽히 부합하는 담당 강사님을 실시간으로 1:1 무작위 매칭합니다.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 pt-2">
+              <button
+                onClick={() => setShowConfirmModal(false)}
+                className="py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition"
+              >
+                조건 수정하기
+              </button>
+              <button
+                onClick={handleFinalSubmit}
+                className="py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-extrabold rounded-xl text-xs transition shadow-md"
+              >
+                🚀 최종 매칭 진행
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 잠수 다이버 3~4.5초 무작위 로딩 애니메이션 모달 */}
       {submitting && (
         <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-md flex flex-col items-center justify-center p-4">
           <div className="relative w-28 h-28 mb-4">
@@ -429,19 +514,18 @@ function InquiryFormContent() {
           <h3 className="text-base sm:text-lg font-bold text-white text-center animate-pulse">
             🫧 블루피스 전담 잠수 다이버가<br />맞춤형 담당 강사님을 찾는 중입니다...
           </h3>
-          <p className="text-xs text-slate-300 mt-2">입력하신 요일과 세부 과정 조건 및 강사 스케줄을 종합 분석하고 있습니다.</p>
+          <p className="text-xs text-slate-300 mt-2">선택하신 요일과 세부 과정 레벨 조건을 실시간 분석하고 있습니다.</p>
         </div>
       )}
 
-      {/* 매칭 결과 팝업 모달 (스크롤 불필요 & 화면 중앙 즉시 출력) */}
+      {/* 2단계: 최종 매칭 결과 팝업 모달 (주황색 문구 줄바꿈 & 창닫기 시 홈페이지 이동 반영) */}
       {showResultModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white border border-cyan-200 p-6 sm:p-8 rounded-3xl text-center space-y-4 shadow-2xl max-w-md w-full relative animate-in fade-in zoom-in duration-300">
             
-            {/* 닫기 X 버튼 */}
             <button
-              onClick={() => setShowResultModal(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-lg font-bold p-1"
+              onClick={handleCloseAndGoHome}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-lg font-bold p-1 cursor-pointer"
             >
               ✕
             </button>
@@ -477,14 +561,16 @@ function InquiryFormContent() {
                     </a>
                     <a
                       href={`sms:${matchedInstructor.phone}`}
-                      className="py-3 bg-white hover:bg-slate-100 text-cyan-700 border border-cyan-300 text-xs sm:text-sm font-bold rounded-xl flex items-center justify-center gap-1.5 transition shadow-sm"
+                      className="py-3 bg-white hover:bg-slate-100 text-cyan-700 border border-cyan-300 text-xs sm:text-sm font-bold rounded-xl flex items-center justify-center gap-1.5 transition shadow-sm cursor-pointer"
                     >
                       💬 문자 보내기
                     </a>
                   </div>
 
+                  {/* 요청하신 문단 나눔 적용 */}
                   <p className="text-[11px] text-amber-600 font-semibold pt-1 leading-relaxed">
-                    ※ 강사님이 수업 중이라 전화를 받지 못할 경우, 문자를 남겨주시면 최우선으로 확인 후 연락드립니다!
+                    ※ 강사님이 수업 중이라 전화를 받지 못할 경우,<br />
+                    문자를 남겨주시면 최우선으로 확인 후 연락드립니다!
                   </p>
                 </div>
               </>
@@ -510,11 +596,12 @@ function InquiryFormContent() {
               </>
             ) : null}
 
+            {/* 창 닫기 누르면 메인 홈페이지로 자동 이동 */}
             <button
-              onClick={() => setShowResultModal(false)}
-              className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition mt-2"
+              onClick={handleCloseAndGoHome}
+              className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition mt-2 cursor-pointer"
             >
-              창 닫기
+              메인 홈페이지로 돌아가기 ↗
             </button>
           </div>
         </div>
