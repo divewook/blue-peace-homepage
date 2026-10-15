@@ -14,16 +14,18 @@ interface Instructor {
   password?: string;
   is_approved: boolean;
   profile_image: string | null;
-  phone: string | null; // 개인 연락처 추가
+  phone: string | null;
   bio: string | null;
   
-  // 지도 가능 자격 및 레벨 (0: 불가 또는 체험만, 1~4: 가능 레벨)
-  max_freediving_level: number;
-  max_mermaid_level: number;
-  max_youth_level: number;
-  can_safety_guard: boolean;
-  can_scuba: boolean;
-  can_special: boolean;
+  // 지도 가능 레벨 및 과정 (숫자 또는 문자열 상태)
+  max_freediving_level: number; // 0:불가, 1:1레벨, 2:2레벨, 3:3레벨, 4:4레벨(강사)
+  max_mermaid_level: number;    // 0:불가, 1:1레벨, 2:2레벨, 3:3레벨(강사)
+  max_youth_level: number;      // 0:불가, 1:1레벨, 2:2레벨, 3:3레벨(강사)
+  
+  safety_guard_level: number;   // 0:불가, 1:일반, 2:마스터, 3:강사
+  scuba_level: number;          // 0:불가, 1:오픈워터~레스큐/마스터, 2:강사
+  first_aid_level: number;      // 0:불가, 1:일반, 2:강사
+  underwater_photo_level: number; // 0:불가, 1:일반, 2:강사
 
   // 풀장 및 요일
   can_passnine: boolean;
@@ -140,7 +142,21 @@ export default function InstructorMyPage() {
     }
   };
 
-  // 이미지 파일 업로드 핸들러 (모바일 카메라/갤러리 지원)
+  // 전화번호 자동 하이픈 포맷팅 핸들러
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value.replace(/[^0-9]/g, '');
+    let formatted = rawValue;
+    if (rawValue.length > 3 && rawValue.length <= 7) {
+      formatted = `${rawValue.slice(0, 3)}-${rawValue.slice(3)}`;
+    } else if (rawValue.length > 7) {
+      formatted = `${rawValue.slice(0, 3)}-${rawValue.slice(3, 7)}-${rawValue.slice(7, 11)}`;
+    }
+    if (currentInstructor) {
+      setCurrentInstructor({ ...currentInstructor, phone: formatted });
+    }
+  };
+
+  // 이미지 파일 업로드 핸들러
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0 || !currentInstructor) return;
@@ -154,16 +170,13 @@ export default function InstructorMyPage() {
     const { error: uploadError } = await supabase.storage.from('images').upload(filePath, file);
 
     if (uploadError) {
-      // 버킷이 없을 경우 대비 안내 및 로컬 대응
-      setNotice('⚠️ 이미지 업로드 실패 (Supabase Storage "images" 버킷을 확인해주세요)');
+      setNotice('⚠️ 이미지 업로드 실패 (Supabase Storage에 "images" 버킷이 공개 상태로 생성되어 있는지 확인해주세요)');
       setUploadingImage(false);
       return;
     }
 
     const { data: publicUrlData } = supabase.storage.from('images').getPublicUrl(filePath);
-    const publicUrl = publicUrlData.publicUrl;
-
-    setCurrentInstructor({ ...currentInstructor, profile_image: publicUrl });
+    setCurrentInstructor({ ...currentInstructor, profile_image: publicUrlData.publicUrl });
     setUploadingImage(false);
     setNotice('📸 프로필 사진이 업로드되었습니다!');
   };
@@ -192,7 +205,6 @@ export default function InstructorMyPage() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-6 max-w-3xl mx-auto font-sans pb-20">
       
-      {/* 헤더 */}
       <header className="text-center mb-6 pt-4">
         <span className="text-[11px] font-semibold px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
           BLUE PEACE INSTRUCTOR PORTAL
@@ -208,7 +220,7 @@ export default function InstructorMyPage() {
         </div>
       )}
 
-      {/* 1. 로그인 화면 */}
+      {/* 로그인 화면 */}
       {viewMode === 'login' && (
         <div className="max-w-md mx-auto bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl">
           <h2 className="text-lg font-bold mb-4 text-cyan-400 text-center">강사 / 관리자 로그인</h2>
@@ -254,7 +266,7 @@ export default function InstructorMyPage() {
         </div>
       )}
 
-      {/* 2. 회원가입 화면 */}
+      {/* 회원가입 화면 */}
       {viewMode === 'signup' && (
         <div className="max-w-md mx-auto bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl">
           <h2 className="text-lg font-bold mb-4 text-cyan-400 text-center">소속 강사 회원가입</h2>
@@ -311,7 +323,7 @@ export default function InstructorMyPage() {
         </div>
       )}
 
-      {/* 3. 관리자 대시보드 */}
+      {/* 관리자 대시보드 */}
       {viewMode === 'admin' && (
         <div className="space-y-5">
           <div className="flex justify-between items-center bg-slate-900 p-4 rounded-2xl border border-cyan-500/40">
@@ -377,13 +389,13 @@ export default function InstructorMyPage() {
         </div>
       )}
 
-      {/* 4. 소속 강사 대시보드 (마이페이지 & 조건 설정) */}
+      {/* 강사 마이페이지 대시보드 */}
       {viewMode === 'dashboard' && currentInstructor && (
         <div className="space-y-5">
           <div className="flex justify-between items-center bg-slate-900 p-4 rounded-2xl border border-cyan-500/40">
             <div>
               <h2 className="text-base font-bold text-cyan-400">👋 환영합니다, {currentInstructor.name} 강사님!</h2>
-              <p className="text-[11px] text-slate-400">모바일 환경에 최적화된 매칭 조건 설정</p>
+              <p className="text-[11px] text-slate-400">고객 매칭용 프로필 및 조건 설정</p>
             </div>
             <button
               onClick={() => { setCurrentInstructor(null); setViewMode('login'); }}
@@ -393,7 +405,7 @@ export default function InstructorMyPage() {
             </button>
           </div>
 
-          {/* 1. 기본 프로필 및 파일 업로드 */}
+          {/* 1. 기본 프로필 설정 */}
           <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-4">
             <h3 className="text-sm font-bold text-slate-200">📝 기본 프로필 설정</h3>
             
@@ -418,12 +430,13 @@ export default function InstructorMyPage() {
             </div>
 
             <div>
-              <label className="block text-xs text-slate-400 mb-1">개인 연락처 (전화번호)</label>
+              <label className="block text-xs text-slate-400 mb-1">개인 연락처 (숫자만 입력 시 자동 하이픈)</label>
               <input
                 type="text"
                 value={currentInstructor.phone || ''}
-                onChange={(e) => setCurrentInstructor({ ...currentInstructor, phone: e.target.value })}
+                onChange={handlePhoneChange}
                 placeholder="010-0000-0000"
+                maxLength={13}
                 className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-cyan-500"
               />
             </div>
@@ -446,26 +459,26 @@ export default function InstructorMyPage() {
             </div>
           </div>
 
-          {/* 2. 지도 가능 레벨 및 과정 설정 (클릭형 버튼 UI) */}
+          {/* 2. 지도 가능 레벨 및 자격 설정 */}
           <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-4">
             <h3 className="text-sm font-bold text-slate-200">🎯 지도 가능 레벨 및 자격 설정</h3>
             
-            {/* 프리다이빙 레벨 선택 */}
+            {/* 프리다이빙 */}
             <div>
               <label className="block text-xs text-slate-400 mb-2">프리다이빙 최고 지도 레벨</label>
               <div className="grid grid-cols-5 gap-1.5">
                 {[
                   { level: 0, label: '불가' },
-                  { level: 1, label: '1레벨' },
-                  { level: 2, label: '2레벨' },
-                  { level: 3, label: '3레벨' },
-                  { level: 4, label: '4레벨/강사' },
+                  { level: 1, label: '1레벨 (프리다이버)' },
+                  { level: 2, label: '2레벨 (어드밴스드)' },
+                  { level: 3, label: '3레벨 (마스터)' },
+                  { level: 4, label: '4레벨 (강사)' },
                 ].map((item) => (
                   <button
                     key={item.level}
                     type="button"
                     onClick={() => setCurrentInstructor({ ...currentInstructor, max_freediving_level: item.level })}
-                    className={`py-2 rounded-xl text-xs font-bold border transition cursor-pointer ${
+                    className={`py-2 px-1 rounded-xl text-[11px] sm:text-xs font-bold border transition cursor-pointer ${
                       currentInstructor.max_freediving_level === item.level
                         ? 'bg-cyan-600 border-cyan-400 text-white shadow'
                         : 'bg-slate-800 border-slate-700 text-slate-400'
@@ -477,7 +490,7 @@ export default function InstructorMyPage() {
               </div>
             </div>
 
-            {/* 머메이드 레벨 선택 */}
+            {/* 머메이드 */}
             <div>
               <label className="block text-xs text-slate-400 mb-2">머메이드 최고 지도 레벨</label>
               <div className="grid grid-cols-4 gap-1.5">
@@ -485,13 +498,13 @@ export default function InstructorMyPage() {
                   { level: 0, label: '불가' },
                   { level: 1, label: '1레벨' },
                   { level: 2, label: '2레벨' },
-                  { level: 3, label: '3레벨' },
+                  { level: 3, label: '3레벨 (강사)' },
                 ].map((item) => (
                   <button
                     key={item.level}
                     type="button"
                     onClick={() => setCurrentInstructor({ ...currentInstructor, max_mermaid_level: item.level })}
-                    className={`py-2 rounded-xl text-xs font-bold border transition cursor-pointer ${
+                    className={`py-2 px-1 rounded-xl text-[11px] sm:text-xs font-bold border transition cursor-pointer ${
                       currentInstructor.max_mermaid_level === item.level
                         ? 'bg-cyan-600 border-cyan-400 text-white shadow'
                         : 'bg-slate-800 border-slate-700 text-slate-400'
@@ -503,7 +516,7 @@ export default function InstructorMyPage() {
               </div>
             </div>
 
-            {/* 유스 프리다이빙 레벨 선택 */}
+            {/* 유스 프리다이빙 */}
             <div>
               <label className="block text-xs text-slate-400 mb-2">유스 프리다이빙 최고 레벨</label>
               <div className="grid grid-cols-4 gap-1.5">
@@ -511,13 +524,13 @@ export default function InstructorMyPage() {
                   { level: 0, label: '불가' },
                   { level: 1, label: '1레벨' },
                   { level: 2, label: '2레벨' },
-                  { level: 3, label: '3레벨' },
+                  { level: 3, label: '3레벨 (강사)' },
                 ].map((item) => (
                   <button
                     key={item.level}
                     type="button"
                     onClick={() => setCurrentInstructor({ ...currentInstructor, max_youth_level: item.level })}
-                    className={`py-2 rounded-xl text-xs font-bold border transition cursor-pointer ${
+                    className={`py-2 px-1 rounded-xl text-[11px] sm:text-xs font-bold border transition cursor-pointer ${
                       currentInstructor.max_youth_level === item.level
                         ? 'bg-cyan-600 border-cyan-400 text-white shadow'
                         : 'bg-slate-800 border-slate-700 text-slate-400'
@@ -529,43 +542,112 @@ export default function InstructorMyPage() {
               </div>
             </div>
 
-            {/* 기타 자격 여부 */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2">
-              <label className={`flex items-center space-x-2 text-xs p-3 rounded-xl border cursor-pointer transition ${currentInstructor.can_safety_guard ? 'bg-cyan-950/40 border-cyan-500 text-cyan-200' : 'bg-slate-800/60 border-slate-700 text-slate-400'}`}>
-                <input
-                  type="checkbox"
-                  checked={currentInstructor.can_safety_guard}
-                  onChange={(e) => setCurrentInstructor({ ...currentInstructor, can_safety_guard: e.target.checked })}
-                  className="accent-cyan-500 w-4 h-4"
-                />
-                <span>수중레저안전요원 지도 가능</span>
-              </label>
-              <label className={`flex items-center space-x-2 text-xs p-3 rounded-xl border cursor-pointer transition ${currentInstructor.can_scuba ? 'bg-cyan-950/40 border-cyan-500 text-cyan-200' : 'bg-slate-800/60 border-slate-700 text-slate-400'}`}>
-                <input
-                  type="checkbox"
-                  checked={currentInstructor.can_scuba}
-                  onChange={(e) => setCurrentInstructor({ ...currentInstructor, can_scuba: e.target.checked })}
-                  className="accent-cyan-500 w-4 h-4"
-                />
-                <span>스쿠버다이빙 지도 가능</span>
-              </label>
-              <label className={`flex items-center space-x-2 text-xs p-3 rounded-xl border cursor-pointer transition ${currentInstructor.can_special ? 'bg-cyan-950/40 border-cyan-500 text-cyan-200' : 'bg-slate-800/60 border-slate-700 text-slate-400'}`}>
-                <input
-                  type="checkbox"
-                  checked={currentInstructor.can_special}
-                  onChange={(e) => setCurrentInstructor({ ...currentInstructor, can_special: e.target.checked })}
-                  className="accent-cyan-500 w-4 h-4"
-                />
-                <span>스페셜 교육 지도 가능</span>
-              </label>
+            {/* 수중레저안전요원 */}
+            <div>
+              <label className="block text-xs text-slate-400 mb-2">수중레저안전요원 자격</label>
+              <div className="grid grid-cols-4 gap-1.5">
+                {[
+                  { level: 0, label: '불가' },
+                  { level: 1, label: '수중레저안전요원' },
+                  { level: 2, label: '마스터 안전요원' },
+                  { level: 3, label: '안전요원 강사' },
+                ].map((item) => (
+                  <button
+                    key={item.level}
+                    type="button"
+                    onClick={() => setCurrentInstructor({ ...currentInstructor, safety_guard_level: item.level })}
+                    className={`py-2 px-1 rounded-xl text-[11px] sm:text-xs font-bold border transition cursor-pointer ${
+                      (currentInstructor.safety_guard_level ?? 0) === item.level
+                        ? 'bg-cyan-600 border-cyan-400 text-white shadow'
+                        : 'bg-slate-800 border-slate-700 text-slate-400'
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 스쿠버다이빙 */}
+            <div>
+              <label className="block text-xs text-slate-400 mb-2">스쿠버다이빙 자격</label>
+              <div className="grid grid-cols-3 gap-1.5">
+                {[
+                  { level: 0, label: '불가' },
+                  { level: 1, label: '오픈워터~마스터' },
+                  { level: 2, label: '스쿠버 강사' },
+                ].map((item) => (
+                  <button
+                    key={item.level}
+                    type="button"
+                    onClick={() => setCurrentInstructor({ ...currentInstructor, scuba_level: item.level })}
+                    className={`py-2 px-1 rounded-xl text-[11px] sm:text-xs font-bold border transition cursor-pointer ${
+                      (currentInstructor.scuba_level ?? 0) === item.level
+                        ? 'bg-cyan-600 border-cyan-400 text-white shadow'
+                        : 'bg-slate-800 border-slate-700 text-slate-400'
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 응급처치 교육 */}
+            <div>
+              <label className="block text-xs text-slate-400 mb-2">응급처치 교육 (EFR 등)</label>
+              <div className="grid grid-cols-3 gap-1.5">
+                {[
+                  { level: 0, label: '불가' },
+                  { level: 1, label: '일반 교육 가능' },
+                  { level: 2, label: '응급처치 강사' },
+                ].map((item) => (
+                  <button
+                    key={item.level}
+                    type="button"
+                    onClick={() => setCurrentInstructor({ ...currentInstructor, first_aid_level: item.level })}
+                    className={`py-2 px-1 rounded-xl text-[11px] sm:text-xs font-bold border transition cursor-pointer ${
+                      (currentInstructor.first_aid_level ?? 0) === item.level
+                        ? 'bg-cyan-600 border-cyan-400 text-white shadow'
+                        : 'bg-slate-800 border-slate-700 text-slate-400'
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 수중 사진 교육 */}
+            <div>
+              <label className="block text-xs text-slate-400 mb-2">수중 사진 교육</label>
+              <div className="grid grid-cols-3 gap-1.5">
+                {[
+                  { level: 0, label: '불가' },
+                  { level: 1, label: '일반 교육 가능' },
+                  { level: 2, label: '수중사진 강사' },
+                ].map((item) => (
+                  <button
+                    key={item.level}
+                    type="button"
+                    onClick={() => setCurrentInstructor({ ...currentInstructor, underwater_photo_level: item.level })}
+                    className={`py-2 px-1 rounded-xl text-[11px] sm:text-xs font-bold border transition cursor-pointer ${
+                      (currentInstructor.underwater_photo_level ?? 0) === item.level
+                        ? 'bg-cyan-600 border-cyan-400 text-white shadow'
+                        : 'bg-slate-800 border-slate-700 text-slate-400'
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
-          {/* 3. 가능 풀장 및 요일 / 시간대 연동 설정 */}
+          {/* 3. 풀장, 요일 및 교육생 매칭 연동 세부 시간대 설정 */}
           <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-4">
             <h3 className="text-sm font-bold text-slate-200">📍 풀장, 요일 및 세부 시간대 설정</h3>
             
-            {/* 요일 선택 */}
             <div>
               <p className="text-xs text-slate-400 mb-2">수업 가능 요일</p>
               <div className="grid grid-cols-7 gap-1">
@@ -597,7 +679,7 @@ export default function InstructorMyPage() {
               </div>
             </div>
 
-            {/* 패스나인 풀장 및 시간대 */}
+            {/* 칠곡 패스나인 풀장 및 시간대 */}
             <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2.5">
               <label className="flex items-center space-x-2 text-xs font-bold text-white cursor-pointer">
                 <input
@@ -609,19 +691,19 @@ export default function InstructorMyPage() {
                 <span>칠곡 패스나인 풀장 수업 가능</span>
               </label>
               {currentInstructor.can_passnine && (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                <div className="grid grid-cols-2 gap-2 pt-1">
                   {[
-                    { key: 'passnine_t1', label: 'T1 (09:00~11:00)' },
-                    { key: 'passnine_t2', label: 'T2 (13:00~15:00)' },
-                    { key: 'passnine_t3', label: 'T3 (15:30~17:30)' },
-                    { key: 'passnine_t4', label: 'T4 (19:00~21:00)' },
+                    { key: 'passnine_t1', label: '1부 (09:00~11:00)' },
+                    { key: 'passnine_t2', label: '2부 (13:00~15:00)' },
+                    { key: 'passnine_t3', label: '3부 (15:30~17:30)' },
+                    { key: 'passnine_t4', label: '4부 (19:00~21:00)' },
                   ].map((t) => (
-                    <label key={t.key} className={`flex items-center space-x-2 text-[11px] p-2 rounded-lg border cursor-pointer ${currentInstructor[t.key as keyof Instructor] ? 'bg-cyan-950/60 border-cyan-500 text-cyan-200' : 'bg-slate-900 border-slate-800 text-slate-400'}`}>
+                    <label key={t.key} className={`flex items-center space-x-2 text-xs p-2.5 rounded-lg border cursor-pointer ${currentInstructor[t.key as keyof Instructor] ? 'bg-cyan-950/60 border-cyan-500 text-cyan-200' : 'bg-slate-900 border-slate-800 text-slate-400'}`}>
                       <input
                         type="checkbox"
                         checked={Boolean(currentInstructor[t.key as keyof Instructor])}
                         onChange={(e) => setCurrentInstructor({ ...currentInstructor, [t.key]: e.target.checked })}
-                        className="accent-cyan-500 w-3.5 h-3.5"
+                        className="accent-cyan-500 w-4 h-4"
                       />
                       <span>{t.label}</span>
                     </label>
@@ -642,22 +724,22 @@ export default function InstructorMyPage() {
                 <span>밀양 아리랑 풀장 수업 가능</span>
               </label>
               {currentInstructor.can_miryang && (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
                   {[
-                    { key: 'miryang_t0', label: 'T0 (06:00~09:00)' },
-                    { key: 'miryang_t1', label: 'T1 (09:00~11:00)' },
-                    { key: 'miryang_t2', label: 'T2 (11:00~13:00)' },
-                    { key: 'miryang_t3', label: 'T3 (13:00~15:00)' },
-                    { key: 'miryang_t4', label: 'T4 (15:00~17:00)' },
-                    { key: 'miryang_t5', label: 'T5 (17:00~19:00)' },
-                    { key: 'miryang_t6', label: 'T6 (19:00~21:00)' },
+                    { key: 'miryang_t0', label: '조조부 (06:00~09:00)' },
+                    { key: 'miryang_t1', label: '오전 1부 (09:00~11:00)' },
+                    { key: 'miryang_t2', label: '오전 2부 (11:00~13:00)' },
+                    { key: 'miryang_t3', label: '오후 1부 (13:00~15:00)' },
+                    { key: 'miryang_t4', label: '오후 2부 (15:00~17:00)' },
+                    { key: 'miryang_t5', label: '저녁 1부 (17:00~19:00)' },
+                    { key: 'miryang_t6', label: '저녁 2부 (19:00~21:00)' },
                   ].map((t) => (
-                    <label key={t.key} className={`flex items-center space-x-2 text-[11px] p-2 rounded-lg border cursor-pointer ${currentInstructor[t.key as keyof Instructor] ? 'bg-cyan-950/60 border-cyan-500 text-cyan-200' : 'bg-slate-900 border-slate-800 text-slate-400'}`}>
+                    <label key={t.key} className={`flex items-center space-x-2 text-xs p-2.5 rounded-lg border cursor-pointer ${currentInstructor[t.key as keyof Instructor] ? 'bg-cyan-950/60 border-cyan-500 text-cyan-200' : 'bg-slate-900 border-slate-800 text-slate-400'}`}>
                       <input
                         type="checkbox"
                         checked={Boolean(currentInstructor[t.key as keyof Instructor])}
                         onChange={(e) => setCurrentInstructor({ ...currentInstructor, [t.key]: e.target.checked })}
-                        className="accent-cyan-500 w-3.5 h-3.5"
+                        className="accent-cyan-500 w-4 h-4"
                       />
                       <span>{t.label}</span>
                     </label>
