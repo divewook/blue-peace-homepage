@@ -74,6 +74,14 @@ export default function InstructorPortal() {
     }
   };
 
+  // 로그아웃 처리 (입력값 및 상태 초기화)
+  const handleLogout = () => {
+    setLoginId('');
+    setLoginPw('');
+    setCurrentInstructor(null);
+    setView('login');
+  };
+
   // 강사 회원가입 처리
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,16 +131,16 @@ export default function InstructorPortal() {
     if (!error) fetchAdminData();
   };
 
-  // 관리자 기능: 강사 삭제 (프론트 상태 즉시 반영 보완)
+  // 관리자 기능: 강사 삭제 (확실한 반영 및 즉시 갱신)
   const handleDeleteInstructor = async (id: string) => {
     if (confirm('정말 이 강사 계정을 삭제하시겠습니까?')) {
       const { error } = await supabase.from('instructors').delete().eq('id', id);
       if (error) {
-        alert('삭제 실패: Supabase 테이블의 RLS(보안 정책) 설정을 확인해 주세요. (' + error.message + ')');
+        alert('삭제 실패: ' + error.message);
       } else {
-        // 즉시 화면 리스트에서 제거하여 반영
+        // 즉시 프론트 상태값에서 해당 강사 제거
         setAllInstructors(prev => prev.filter(ins => ins.id !== id));
-        alert('강사 계정이 성공적으로 삭제되었습니다.');
+        alert('성공적으로 삭제되었습니다.');
       }
     }
   };
@@ -334,7 +342,7 @@ export default function InstructorPortal() {
               <span className="text-xs font-bold px-3 py-1 bg-cyan-100 text-cyan-800 rounded-full">ADMIN PAGE</span>
               <h1 className="text-2xl font-black text-slate-900 mt-2">🛡️ 블루피스 관리자 대시보드</h1>
             </div>
-            <button onClick={() => setView('login')} className="px-4 py-2 bg-slate-100 text-slate-700 text-xs font-bold rounded-xl cursor-pointer">
+            <button onClick={handleLogout} className="px-4 py-2 bg-slate-100 text-slate-700 text-xs font-bold rounded-xl cursor-pointer">
               로그아웃
             </button>
           </div>
@@ -452,7 +460,7 @@ export default function InstructorPortal() {
               <h1 className="text-lg font-black text-slate-900 mt-1"><span className="text-cyan-600">{currentInstructor?.name}</span> 강사님 마이페이지</h1>
             </div>
           </div>
-          <button onClick={() => setView('login')} className="px-4 py-2 bg-slate-100 text-slate-700 text-xs font-bold rounded-xl cursor-pointer">
+          <button onClick={handleLogout} className="px-4 py-2 bg-slate-100 text-slate-700 text-xs font-bold rounded-xl cursor-pointer">
             로그아웃
           </button>
         </div>
