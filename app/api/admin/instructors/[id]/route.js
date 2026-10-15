@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { hasAdminSession } from "../../../../../lib/admin-session";
 import { createAdminSupabase } from "../../../../../lib/admin-supabase";
+import { sendKakaoAlimtalk } from "../../../../../lib/kakao-alimtalk";
 
 export const runtime = "nodejs";
 
@@ -28,13 +29,27 @@ export async function PATCH(request, { params }) {
   const { is_approved } = await request.json().catch(() => ({}));
   if (!id || typeof is_approved !== "boolean") return NextResponse.json({ error: "잘못된 승인 요청입니다." }, { status: 400 });
   try {
-    const { data, error } = await createAdminSupabase()
+    const supabase = createAdminSupabase();
+    const { data: previous, error: previousError } = await supabase.from("instructors")
+      .select("id,is_approved").eq("id", id).maybeSingle();
+    if (previousError) throw previousError;
+    if (!previous) return NextResponse.json({ error: "계정을 찾지 못했습니다." }, { status: 404 });
+    const { data, error } = await supabase
       .from("instructors")
       .update({ is_approved })
       .eq("id", id)
-      .select("id,is_approved");
+      .select("id,name,phone,is_approved");
     if (error) return NextResponse.json({ error: error.message }, { status: 409 });
     if (!data?.length) return NextResponse.json({ error: "계정을 찾지 못했습니다." }, { status: 404 });
+    if (!previous.is_approved && is_approved) {
+      const instructor = data[0];
+      after(() => sendKakaoAlimtalk({
+        eventType: "instructor_approved",
+        recipientRole: "instructor",
+        phone: instructor.phone,
+        variables: { instructorName: instructor.name },
+      }));
+    }
     return NextResponse.json({ instructor: data[0] });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 503 });

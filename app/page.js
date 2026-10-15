@@ -121,10 +121,8 @@ export default function HomePage() {
   useEffect(() => {
     const fetchData = async () => {
       // 1. 강사 정보
-      const { data: insData } = await supabase
-        .from('instructors')
-        .select('id, name, profile_image, bio, is_approved')
-        .eq('is_approved', true);
+      const instructorResponse = await fetch('/api/public/instructors', { cache: 'no-store' });
+      const { instructors: insData = [] } = instructorResponse.ok ? await instructorResponse.json() : {};
       if (insData && insData.length > 0) {
         setInstructors(shuffleItems(insData));
       }

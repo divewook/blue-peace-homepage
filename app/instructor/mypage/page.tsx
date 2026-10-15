@@ -1,13 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
 import CustomerMatchCard from '../../../components/customer-match-card';
 import MarketingSummary from '../../../components/marketing-summary';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 const poolTimeOptions = {
   passnine: [
@@ -181,12 +176,14 @@ export default function InstructorPortal() {
       return;
     }
 
-    const { error } = await supabase.from('instructors').insert([
-      { name: signupName, username: signupId, password: signupPw, phone: signupPhone, is_approved: false }
-    ]);
-
-    if (error) {
-      alert('회원가입 실패: ' + error.message);
+    const response = await fetch('/api/instructor/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: signupName, username: signupId, password: signupPw, phone: signupPhone }),
+    }).catch(() => null);
+    const result = await response?.json().catch(() => ({}));
+    if (!response?.ok) {
+      alert('회원가입 실패: ' + (result?.error || '잠시 후 다시 시도해 주세요.'));
     } else {
       alert('✅ 회원가입 신청 완료! 관리자 승인 후 로그인 가능합니다.');
       setView('login');
@@ -320,16 +317,17 @@ export default function InstructorPortal() {
       available_sun: !!selectedDays['sun'],
     };
 
-    const { error } = await supabase
-      .from('instructors')
-      .update(updateData)
-      .eq('id', currentInstructor.id);
-
-    if (error) {
-      alert('저장 오류: ' + error.message);
+    const response = await fetch('/api/instructor/profile', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updateData),
+    }).catch(() => null);
+    const result = await response?.json().catch(() => ({}));
+    if (!response?.ok) {
+      alert('저장 오류: ' + (result?.error || '잠시 후 다시 시도해 주세요.'));
     } else {
       alert('✅ 프로필 및 수업 설정이 성공적으로 저장되었습니다!');
-      setCurrentInstructor({ ...currentInstructor, ...updateData });
+      setCurrentInstructor(result.instructor || { ...currentInstructor, ...updateData });
       setView('instructor_dashboard');
       fetchMyCustomers();
     }

@@ -2,12 +2,8 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { createClient } from '@supabase/supabase-js';
 import { getMarketingAttribution } from '../../components/marketing-attribution';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 const dayLabels: Record<string, string> = {
   available_mon: '월', available_tue: '화', available_wed: '수', available_thu: '목',
@@ -214,12 +210,10 @@ function InquiryFormContent() {
 
     setTimeout(async () => {
       try {
-      const { data: instructors, error } = await supabase
-        .from('instructors')
-        .select('*')
-        .eq('is_approved', true);
-
-      if (error) throw new Error('강사 정보를 불러오지 못했습니다. 다시 시도해 주세요.');
+      const instructorResponse = await fetch('/api/public/instructors', { cache: 'no-store' });
+      const instructorResult = await instructorResponse.json().catch(() => ({}));
+      if (!instructorResponse.ok) throw new Error(instructorResult.error || '강사 정보를 불러오지 못했습니다. 다시 시도해 주세요.');
+      const instructors = instructorResult.instructors as Instructor[];
       if (!instructors || instructors.length === 0) {
         setSubmitting(false);
         setNoMatchFound(true);
@@ -295,7 +289,7 @@ function InquiryFormContent() {
         });
         const result = await response.json();
         if (!response.ok || !result.id) throw new Error(result.error || '신청 내용을 저장하지 못했습니다.');
-        setMatchedInstructor(selected);
+        setMatchedInstructor({ ...selected, phone: result.instructor?.phone || null });
       }
       } catch (saveError) {
         setSubmissionError(saveError instanceof Error ? saveError.message : '신청 내용을 저장하지 못했습니다. 다시 시도해 주세요.');

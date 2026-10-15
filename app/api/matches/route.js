@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { createAdminSupabase } from "../../../lib/admin-supabase";
+import { sendKakaoAlimtalk } from "../../../lib/kakao-alimtalk";
 
 export const runtime = "nodejs";
 
@@ -32,7 +33,7 @@ export async function POST(request) {
   try {
     const supabase = createAdminSupabase();
     const { data: instructor, error: instructorError } = await supabase.from("instructors")
-      .select("id,name,is_approved").eq("id", instructor_id).maybeSingle();
+      .select("id,name,phone,is_approved").eq("id", instructor_id).maybeSingle();
     if (instructorError) throw instructorError;
     if (!instructor?.is_approved) return NextResponse.json({ error: "선택한 강사를 찾을 수 없습니다. 다시 매칭해 주세요." }, { status: 409 });
     const attribution = body.attribution && typeof body.attribution === "object" ? body.attribution : {};
@@ -52,7 +53,20 @@ export async function POST(request) {
       device_type: cleanText(attribution.device_type, 30) || null,
     }).select("id").single();
     if (error) throw error;
-    return NextResponse.json({ id: data.id }, { status: 201 });
+    after(async () => {
+      const variables = {
+        customerName: name.trim(),
+        instructorName: instructor.name,
+        course: course.trim(),
+        pool: pool.trim(),
+        schedule: time_slot.trim(),
+      };
+      await Promise.allSettled([
+        sendKakaoAlimtalk({ eventType: "match_requested", recipientRole: "instructor", phone: instructor.phone, variables }),
+        sendKakaoAlimtalk({ eventType: "match_requested", recipientRole: "admin", phone: process.env.KAKAO_ADMIN_PHONE, variables }),
+      ]);
+    });
+    return NextResponse.json({ id: data.id, instructor: { phone: instructor.phone } }, { status: 201 });
   } catch {
     return NextResponse.json({ error: "신청 내용을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요." }, { status: 503 });
   }
