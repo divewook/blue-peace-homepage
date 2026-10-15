@@ -96,6 +96,15 @@ export default function InstructorMyPage() {
     fetchData();
   }, []);
 
+  // 로그아웃 및 입력값 완전 초기화 함수
+  const handleLogout = () => {
+    setCurrentInstructor(null);
+    setLoginId('');
+    setLoginPw('');
+    setNotice(null);
+    setViewMode('login');
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setNotice(null);
@@ -132,9 +141,10 @@ export default function InstructorMyPage() {
 
     setCurrentInstructor(data);
     
+    // 프로필 미입력 강사는 무조건 설정 화면으로 강제 이동
     if (!data.phone || !data.bio) {
       setViewMode('settings');
-      setNotice('✨ 최초 로그인입니다! 고객 매칭을 위해 프로필 및 조건을 설정해 주세요.');
+      setNotice('✨ 최초 로그인입니다! 고객 매칭을 위해 프로필 및 조건을 먼저 설정해 주세요.');
     } else {
       setViewMode('dashboard');
     }
@@ -215,36 +225,66 @@ export default function InstructorMyPage() {
     }
   };
 
-  // 이미지 업로드 (타임아웃 방지용 안전한 URL 처리)
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // 이미지 용량(5MB 제한) 및 해상도(2000px 제한) 검증 및 업로드 핸들러
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0 || !currentInstructor) return;
 
     const file = files[0];
-    setUploadingImage(true);
+    const MAX_SIZE_MB = 5;
+    const MAX_BYTES = MAX_SIZE_MB * 1024 * 1024;
 
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${currentInstructor.id}_${Date.now()}.${fileExt}`;
-    const filePath = `instructor_profiles/${fileName}`;
-
-    const { error: uploadError } = await supabase.storage.from('images').upload(filePath, file);
-
-    if (uploadError) {
-      // 스토리지 업로드 실패 시 파일 이름만 가볍게 저장하여 타임아웃 방지
-      setCurrentInstructor({ ...currentInstructor, profile_image: file.name });
-      setUploadingImage(false);
-      setNotice('📸 프로필 사진 파일명이 등록되었습니다!');
+    // 1. 용량 검증
+    if (file.size > MAX_BYTES) {
+      setNotice(`⚠️ 이미지 업로드 실패: 파일 용량이 너무 큽니다 (${(file.size / (1024 * 1024)).MB?.toFixed?.(1) || Math.round(file.size / (1024*1024))}MB). 5MB 이하의 이미지를 첨부해 주세요.`);
+      e.target.value = '';
       return;
     }
 
-    const { data: publicUrlData } = supabase.storage.from('images').getPublicUrl(filePath);
-    setCurrentInstructor({ ...currentInstructor, profile_image: publicUrlData.publicUrl });
-    setUploadingImage(false);
-    setNotice('📸 프로필 사진이 업로드되었습니다!');
+    setUploadingImage(true);
+
+    // 2. 해상도(크기) 검증
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.src = objectUrl;
+
+    img.onload = async () => {
+      URL.revokeObjectURL(objectUrl);
+      const MAX_DIMENSION = 2000;
+
+      if (img.width > MAX_DIMENSION || img.height > MAX_DIMENSION) {
+        setUploadingImage(false);
+        setNotice(`⚠️ 이미지 업로드 실패: 해상도(픽셀 크기)가 너무 큽니다 (${img.width}x${img.height}px). 가로/세로 2000px 이하의 이미지를 사용해 주세요.`);
+        e.target.value = '';
+        return;
+      }
+
+      // 검증 통과 시 안전하게 Base64 데이터 또는 스토리지 업로드 처리
+      const reader = new FileReader();
+      reader.onload = (uploadEvent) => {
+        const base64Result = uploadEvent.target?.result as string;
+        setCurrentInstructor({ ...currentInstructor, profile_image: base64Result });
+        setUploadingImage(false);
+        setNotice('📸 프로필 사진이 정상적으로 첨부되었습니다! 아래 저장하기를 눌러주세요.');
+      };
+      reader.readAsDataURL(file);
+    };
+
+    img.onerror = () => {
+      setUploadingImage(false);
+      setNotice('⚠️ 이미지 파일 형식을 읽어오지 못했습니다. 다른 이미지로 시도해 주세요.');
+    };
   };
 
   const handleUpdateProfile = async () => {
     if (!currentInstructor) return;
+    
+    // 필수 프로필 입력 검증
+    if (!currentInstructor.phone || !currentInstructor.bio) {
+      setNotice('⚠️ 개인 연락처와 강사 소개글은 필수 입력 항목입니다.');
+      return;
+    }
+
     setLoading(true);
     const { error } = await supabase
       .from('instructors')
@@ -280,7 +320,6 @@ export default function InstructorMyPage() {
 
   const myBookings = currentInstructor ? filterByPeriod(bookings.filter(b => b.matched_instructor === currentInstructor.name)) : [];
 
-  // 레벨/자격 명칭 변환 헬퍼 함수들
   const getFreedivingLabel = (lvl: number) => {
     switch(lvl) {
       case 1: return '1레벨 (프리다이버)';
@@ -325,6 +364,16 @@ export default function InstructorMyPage() {
     }
   };
 
+  // 대시보드 진입 시 프로필 미입력자 차단 핸들러
+  const handleGoDashboard = () => {
+    if (!currentInstructor?.phone || !currentInstructor?.bio) {
+      setNotice('⚠️ 최초 강사 가입 후 프로필 및 연락처를 반드시 입력해야 대시보드로 이동할 수 있습니다.');
+      setViewMode('settings');
+      return;
+    }
+    setViewMode('dashboard');
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-6 max-w-4xl mx-auto font-sans pb-24">
       
@@ -333,7 +382,7 @@ export default function InstructorMyPage() {
           BLUE PEACE INSTRUCTOR PORTAL
         </span>
         <h1 className="text-xl sm:text-2xl font-extrabold mt-3 text-white">
-          🔐 강사 마이페이지 & 관리자 대시보드
+          🔐 강사 마이페이지 & 대시보드
         </h1>
       </header>
 
@@ -343,10 +392,10 @@ export default function InstructorMyPage() {
         </div>
       )}
 
-      {/* 로그인 화면 */}
+      {/* 1. 로그인 화면 */}
       {viewMode === 'login' && (
         <div className="max-w-md mx-auto bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl">
-          <h2 className="text-lg font-bold mb-4 text-cyan-400 text-center">강사 / 관리자 로그인</h2>
+          <h2 className="text-lg font-bold mb-4 text-cyan-400 text-center">강사 로그인</h2>
           <form onSubmit={handleLogin} className="space-y-3.5">
             <div>
               <label className="block text-xs text-slate-400 mb-1">아이디</label>
@@ -389,7 +438,7 @@ export default function InstructorMyPage() {
         </div>
       )}
 
-      {/* 회원가입 화면 */}
+      {/* 2. 회원가입 화면 */}
       {viewMode === 'signup' && (
         <div className="max-w-md mx-auto bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl">
           <h2 className="text-lg font-bold mb-4 text-cyan-400 text-center">소속 강사 회원가입</h2>
@@ -447,7 +496,7 @@ export default function InstructorMyPage() {
         </div>
       )}
 
-      {/* 관리자 대시보드 */}
+      {/* 3. 관리자 대시보드 */}
       {viewMode === 'admin' && (
         <div className="space-y-6">
           <div className="flex justify-between items-center bg-slate-900 p-4 rounded-2xl border border-cyan-500/40">
@@ -456,7 +505,7 @@ export default function InstructorMyPage() {
               <p className="text-[11px] text-slate-400">강사 승인 및 강사별 매칭 통계 모니터링</p>
             </div>
             <button
-              onClick={() => setViewMode('login')}
+              onClick={handleLogout}
               className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-bold rounded-xl border border-slate-700 cursor-pointer"
             >
               로그아웃
@@ -596,7 +645,7 @@ export default function InstructorMyPage() {
         </div>
       )}
 
-      {/* 4. 강사 메인 대시보드 (설정 조건 명백한 요약 + 매칭 리스트) */}
+      {/* 4. 강사 메인 대시보드 */}
       {viewMode === 'dashboard' && currentInstructor && (
         <div className="space-y-6">
           <div className="flex justify-between items-center bg-slate-900 p-4 rounded-2xl border border-cyan-500/40">
@@ -622,7 +671,7 @@ export default function InstructorMyPage() {
                 프로필/조건 수정
               </button>
               <button
-                onClick={() => { setCurrentInstructor(null); setViewMode('login'); }}
+                onClick={handleLogout}
                 className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-bold rounded-xl border border-slate-700 cursor-pointer"
               >
                 로그아웃
@@ -630,7 +679,6 @@ export default function InstructorMyPage() {
             </div>
           </div>
 
-          {/* 등록된 조건 명백한 요약 카드 */}
           <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-4">
             <h3 className="text-sm font-bold text-slate-200">📌 내 설정 조건 명백한 요약</h3>
             
@@ -689,7 +737,6 @@ export default function InstructorMyPage() {
             </div>
           </div>
 
-          {/* 매칭된 고객 리스트 & 기간별 통계 */}
           <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
               <div>
@@ -766,7 +813,7 @@ export default function InstructorMyPage() {
               <p className="text-[11px] text-slate-400">모바일 환경에 최적화된 설정 페이지</p>
             </div>
             <button
-              onClick={() => setViewMode('dashboard')}
+              onClick={handleGoDashboard}
               className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-bold rounded-xl border border-slate-700 cursor-pointer"
             >
               ← 대시보드로 돌아가기
@@ -779,13 +826,13 @@ export default function InstructorMyPage() {
             <div className="flex flex-col sm:flex-row items-center gap-4">
               <div className="w-20 h-20 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center overflow-hidden shrink-0">
                 {currentInstructor.profile_image ? (
-                  <span className="text-[11px] text-cyan-300 px-2 text-center break-all">{currentInstructor.profile_image}</span>
+                  <img src={currentInstructor.profile_image} alt="프로필" className="w-full h-full object-cover" />
                 ) : (
                   <span className="text-xs text-slate-500">사진 없음</span>
                 )}
               </div>
               <div className="w-full space-y-2">
-                <label className="block text-xs text-slate-400">프로필 사진 업로드 (모바일 갤러리/카메라 지원)</label>
+                <label className="block text-xs text-slate-400">프로필 사진 업로드 (최대 5MB, 해상도 2000px 이하)</label>
                 <input
                   type="file"
                   accept="image/*"
@@ -826,7 +873,6 @@ export default function InstructorMyPage() {
             </div>
           </div>
 
-          {/* 비밀번호 변경 섹션 */}
           <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-4">
             <h3 className="text-sm font-bold text-slate-200">🔒 비밀번호 재설정</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -862,11 +908,9 @@ export default function InstructorMyPage() {
             </button>
           </div>
 
-          {/* 지도 가능 레벨 및 자격 설정 */}
           <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-4">
             <h3 className="text-sm font-bold text-slate-200">🎯 지도 가능 레벨 및 자격 설정</h3>
             
-            {/* 프리다이빙 */}
             <div>
               <label className="block text-xs text-slate-400 mb-2">프리다이빙 최고 지도 레벨</label>
               <div className="grid grid-cols-5 gap-1.5">
@@ -893,7 +937,6 @@ export default function InstructorMyPage() {
               </div>
             </div>
 
-            {/* 머메이드 */}
             <div>
               <label className="block text-xs text-slate-400 mb-2">머메이드 최고 지도 레벨</label>
               <div className="grid grid-cols-4 gap-1.5">
@@ -919,7 +962,6 @@ export default function InstructorMyPage() {
               </div>
             </div>
 
-            {/* 유스 프리다이빙 */}
             <div>
               <label className="block text-xs text-slate-400 mb-2">유스 프리다이빙 최고 레벨</label>
               <div className="grid grid-cols-4 gap-1.5">
@@ -945,7 +987,6 @@ export default function InstructorMyPage() {
               </div>
             </div>
 
-            {/* 수중레저안전요원 */}
             <div>
               <label className="block text-xs text-slate-400 mb-2">수중레저안전요원 자격</label>
               <div className="grid grid-cols-4 gap-1.5">
@@ -971,7 +1012,6 @@ export default function InstructorMyPage() {
               </div>
             </div>
 
-            {/* 스쿠버다이빙 */}
             <div>
               <label className="block text-xs text-slate-400 mb-2">스쿠버다이빙 자격</label>
               <div className="grid grid-cols-3 gap-1.5">
@@ -996,7 +1036,6 @@ export default function InstructorMyPage() {
               </div>
             </div>
 
-            {/* 응급처치 교육 */}
             <div>
               <label className="block text-xs text-slate-400 mb-2">응급처치 교육 (EFR 등)</label>
               <div className="grid grid-cols-3 gap-1.5">
@@ -1021,7 +1060,6 @@ export default function InstructorMyPage() {
               </div>
             </div>
 
-            {/* 수중 사진 교육 */}
             <div>
               <label className="block text-xs text-slate-400 mb-2">수중 사진 교육</label>
               <div className="grid grid-cols-3 gap-1.5">
@@ -1047,7 +1085,6 @@ export default function InstructorMyPage() {
             </div>
           </div>
 
-          {/* 풀장 및 시간대 설정 */}
           <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-4">
             <h3 className="text-sm font-bold text-slate-200">📍 풀장, 요일 및 세부 시간대 설정</h3>
             
@@ -1082,7 +1119,6 @@ export default function InstructorMyPage() {
               </div>
             </div>
 
-            {/* 칠곡 패스나인 풀장 및 시간대 */}
             <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2.5">
               <label className="flex items-center space-x-2 text-xs font-bold text-white cursor-pointer">
                 <input
@@ -1115,7 +1151,6 @@ export default function InstructorMyPage() {
               )}
             </div>
 
-            {/* 밀양 아리랑 풀장 및 시간대 */}
             <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2.5">
               <label className="flex items-center space-x-2 text-xs font-bold text-white cursor-pointer">
                 <input
