@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 
 const contactEmail = "divewook@naver.com";
+const contactPhone = "010-9897-8990";
+const phoneNotice = "💡 강습 중에는 통화 연결이 어려울 수 있습니다. 연결이 안 될 경우 문자를 남겨주시면 수업 직후 빠르게 확인하여 연락드리겠습니다.";
 const instagramUrl = "https://www.instagram.com/bluepeace_diving/";
 const business = { name: "블루피스", owner: "김상욱", registration: "460-44-01113" };
 const naverReviewUrl = "https://map.naver.com/p/entry/place/1768533167?placePath=%2Freview";
@@ -379,7 +381,7 @@ export default function HomePage() {
         <nav aria-label="주 메뉴" className="mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-3 px-5 py-4 sm:px-10 lg:px-16">
           <a href="#top" className="flex items-center gap-2.5 text-xl font-bold tracking-[-0.06em] sm:text-2xl">
             <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#14333e]"><Image src="/화이트 로고.png" alt="" width={28} height={28} className="h-7 w-7 shrink-0 object-contain" /></span>
-            Blue Peace<span className="text-[#69a8a0]">.</span>
+            <span className="flex flex-col leading-none">Blue Peace<span className="mt-1 hidden text-[9px] font-medium tracking-[.08em] text-[#60777a] sm:block">대구·경북 최대 다이빙 전문 센터</span></span><span className="text-[#69a8a0]">.</span>
           </a>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] font-medium sm:gap-x-6 sm:text-sm lg:gap-x-8">
             <a href="#courses" className="transition hover:text-[#4c8d88]">교육과정</a>
@@ -395,7 +397,7 @@ export default function HomePage() {
         <div className="mx-auto grid max-w-[1440px] items-stretch gap-8 lg:min-h-[650px] lg:grid-cols-[.92fr_1.08fr] lg:gap-0">
           <div className="relative z-10 flex flex-col justify-center py-5 lg:py-16 lg:pr-10">
             <p className="mb-8 flex items-center gap-4 text-[11px] font-semibold uppercase tracking-[0.27em] text-[#4c8d88]"><span className="h-px w-9 bg-[#4c8d88]" /> Blue Peace / Ocean Academy</p>
-            <p className="mb-4 text-[11px] font-semibold tracking-[0.25em] text-[#688080] sm:text-sm">FREE DIVING EXPERIENCE</p>
+            <p className="mb-4 break-keep text-[11px] font-semibold tracking-[0.13em] text-[#688080] sm:text-sm">대구·경북 최대 다이빙 전문 센터 · BLUE PEACE</p>
             <h1 className="max-w-[680px] break-keep text-[clamp(2.8rem,5.8vw,6.3rem)] font-semibold leading-[1.12] tracking-[-0.075em]">
               바다 속에서 만나는<br />가장 완벽한 <span className="font-serif italic text-[#4c8d88]">자유</span>
             </h1>
@@ -582,6 +584,20 @@ export default function HomePage() {
             </div>
             <p className="max-w-lg break-keep text-xs leading-[1.9] text-[#60777a] sm:text-base"><SentenceText>BLUE PEACE 대표강사 김상욱을 소개합니다. 전체 강사진과 각 강사의 문의 가능 코스는 강사 선택 창에서 확인해 주세요.</SentenceText></p>
           </div>
+          <div className="mb-7 grid gap-7 border-y border-[#cbd9d1] py-7 sm:mb-12 sm:gap-10 sm:py-12 lg:grid-cols-[.95fr_1.05fr] lg:items-end">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[.28em] text-[#4c8d88]">Our philosophy / Blue Peace</p>
+              <h3 className="mt-5 break-keep text-[clamp(1.7rem,3.4vw,3.5rem)] font-semibold leading-[1.35] tracking-[-.06em]">
+                선수를 키우는 것이 아닙니다.<br />
+                <span className="text-[#4c8d88]">물속에서 편안하고 자유롭게</span><br className="hidden sm:block" /> 노는 즐거움을 선물합니다.
+              </h3>
+            </div>
+            <div className="max-w-xl border-l-2 border-[#8fbdb3] pl-5 text-sm leading-[1.95] text-[#52686b] sm:pl-8 sm:text-base">
+              <p className="break-keep">블루피스는 단순히 자격증을 따는 교육기관에 머물지 않습니다.</p>
+              <p className="mt-3 break-keep">모든 수업에서 잊지 못할 수중 사진과 고화질 영상 기록을 정성껏 전해드리며,</p>
+              <p className="mt-3 break-keep">해루질 투어, 국내외 바다 투어, 캠핑 등 같은 취미를 공유하는 소중한 사람들과의 인프라와 경험을 만들어갑니다.</p>
+            </div>
+          </div>
           <div className="ml-auto max-w-5xl">
             {[directoryInstructors[0]].map((instructor) => (
               <article key={instructor.id} className="flex h-full min-w-0 flex-col overflow-hidden rounded-[1.5rem] border border-[#dfe6df] bg-white shadow-[0_22px_65px_rgba(20,51,62,.08)] md:flex-row">
@@ -648,10 +664,34 @@ export default function HomePage() {
         </div>
       </section>
 
+      <section id="location" aria-labelledby="location-title" className="border-y border-[#dce5dc] bg-[#edf1eb] px-5 py-12 text-[#142c36] sm:px-10 sm:py-18 lg:px-16 lg:py-22">
+        <div className="mx-auto grid max-w-[1312px] gap-8 lg:grid-cols-[.7fr_1.3fr] lg:gap-16">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[.3em] text-[#4c8d88]">Visit Blue Peace / 05</p>
+            <h2 id="location-title" className="mt-3 break-keep text-3xl font-semibold leading-tight tracking-[-.06em] sm:text-5xl">블루피스 센터<br />오시는 길</h2>
+            <p className="mt-5 max-w-md break-keep text-sm leading-[1.9] text-[#60777a]">처음 방문하신다면 출발 전 교육 일정과 정확한 위치를 문의해 주세요.</p>
+            <a href={`tel:${contactPhone}`} className="mt-6 inline-flex min-h-11 items-center gap-4 rounded-full bg-[#14333e] px-5 text-sm font-semibold text-white transition hover:bg-[#326a70]">센터 위치 전화 문의 <ArrowIcon diagonal /></a>
+          </div>
+          <div className="border-t border-[#b4cbc0]">
+            {[
+              { number: "01", label: "이론 교육장", detail: "블루피스 전용 센터 (경북 칠곡군 북삼읍 인근)" },
+              { number: "02", label: "주차 안내", detail: "Center 1층 출입문 맞은편 담벼락 편안하게 주차 가능" },
+              { number: "03", label: "대중교통 안내", detail: "북삼역 하차 후 택시 이용 시 약 3~5분 소요 (기본요금 거리)" },
+            ].map((item) => (
+              <div key={item.number} className="grid gap-1 border-b border-[#cedbd1] py-5 sm:grid-cols-[52px_160px_1fr] sm:items-start sm:gap-4 sm:py-7">
+                <span className="text-xs font-bold text-[#4c8d88]">{item.number}</span>
+                <h3 className="text-sm font-semibold sm:text-base">{item.label}</h3>
+                <p className="break-keep text-sm leading-[1.85] text-[#60777a]">{item.detail}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section id="reviews" className="bg-[#f5f3ec] px-5 py-12 text-[#142c36] sm:px-10 sm:py-20 lg:px-16 lg:py-28">
         <div className="mx-auto max-w-[1312px]">
           <div className="max-w-2xl">
-            <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#4c8d88]">Naver Place reviews / 05</p>
+            <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#4c8d88]">Naver Place reviews / 06</p>
             <h2 className="mt-2 break-keep text-3xl font-semibold tracking-[-0.06em] sm:mt-5 sm:text-5xl">바다를 경험한 사람들의 이야기</h2>
             <p className="mt-3 break-keep text-xs leading-[1.9] text-[#60777a] sm:mt-5 sm:text-base"><SentenceText>블루피스 네이버 플레이스에 공개된 방문자 후기의 핵심 내용을 짧게 요약했습니다. 원문은 네이버 플레이스에서 확인할 수 있습니다.</SentenceText></p>
           </div>
@@ -672,13 +712,19 @@ export default function HomePage() {
       <section id="contact" className="relative overflow-hidden bg-[#051b2d] px-6 py-10 text-white sm:px-10 sm:py-20 lg:px-16 lg:py-24">
         <div className="absolute -right-20 -top-48 h-[450px] w-[450px] rounded-full border border-white/10" />
         <div className="absolute -right-10 -top-36 h-[450px] w-[450px] rounded-full border border-white/10" />
-        <div className="relative mx-auto flex max-w-[1312px] flex-col gap-6 lg:flex-row lg:items-end lg:justify-between lg:gap-10">
+        <div className="relative mx-auto flex max-w-[1312px] flex-col gap-7 lg:flex-row lg:items-end lg:justify-between lg:gap-10">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#7bd7e5]">Your journey starts here</p>
             <h2 className="mt-2 text-3xl font-semibold leading-tight tracking-[-0.06em] sm:mt-5 sm:text-6xl">당신의 바다는<br />여기서 시작됩니다.</h2>
             <p className="mt-3 text-sm leading-relaxed text-white/65 sm:mt-6 sm:text-base">블루피스의 교육 코스와 일정을 편하게 문의해 주세요.</p>
           </div>
-          <button type="button" onClick={() => openInquiry()} className="inline-flex min-h-14 items-center justify-between gap-10 self-start rounded-full bg-[#b7ebf0] px-7 text-sm font-bold text-[#08384f] shadow-[0_10px_0_#58aab8,0_22px_35px_rgba(0,0,0,.22)] transition hover:-translate-y-1 lg:self-auto">교육 문의하기 <ArrowIcon diagonal /></button>
+          <div className="flex w-full max-w-lg flex-col gap-3 lg:w-auto">
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <button type="button" onClick={() => openInquiry()} className="inline-flex min-h-13 items-center justify-between gap-6 rounded-full bg-[#b7ebf0] px-6 text-sm font-bold text-[#08384f] transition hover:bg-white">교육 문의하기 <ArrowIcon diagonal /></button>
+              <a href={`tel:${contactPhone}`} className="inline-flex min-h-13 items-center justify-between gap-6 rounded-full border border-white/45 px-6 text-sm font-semibold text-white transition hover:bg-white/10">전화 상담 · {contactPhone} <ArrowIcon diagonal /></a>
+            </div>
+            <p className="max-w-lg break-keep rounded-xl border border-white/15 bg-white/[.07] px-4 py-3 text-xs leading-[1.8] text-white/80"><SentenceText>{phoneNotice}</SentenceText> <a href={`sms:${contactPhone}`} className="mt-2 inline-block font-bold text-[#b7ebf0] underline underline-offset-4">문자 남기기 ↗</a></p>
+          </div>
         </div>
       </section>
 
@@ -695,6 +741,11 @@ export default function HomePage() {
             <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-[#3b8178]">Blue Peace · Personal inquiry</p>
             <h2 id="inquiry-title" className="mt-1 break-keep text-2xl font-semibold tracking-[-0.05em] sm:mt-2 sm:text-3xl">{reservationStep === "select" ? "강사 선택" : reservationStep === "form" ? "상담 예약 양식" : "상담 양식 확인"}</h2>
             <p id="inquiry-description" className="mt-1 break-keep text-xs leading-relaxed text-[#5b7481] sm:mt-2 sm:text-sm">{reservationStep === "select" ? "원하시는 블루피스 전문 강사를 선택해 주세요." : reservationStep === "form" ? "필요한 내용을 적으면 상담 문구가 자동으로 정리됩니다." : "오픈채팅으로 메시지를 보내면 상담 신청이 전달됩니다."}</p>
+            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] leading-[1.6] sm:text-xs">
+              <a href={`tel:${contactPhone}`} className="shrink-0 font-bold text-[#1f6965] underline underline-offset-4">전화 상담 {contactPhone}</a>
+              <a href={`sms:${contactPhone}`} className="shrink-0 font-bold text-[#1f6965] underline underline-offset-4">문자 남기기 ↗</a>
+            </div>
+            <p className="mt-1 max-w-2xl break-keep text-[11px] leading-[1.6] text-[#60777a] sm:text-xs"><SentenceText>{phoneNotice}</SentenceText></p>
           </div>
           <button type="button" onClick={() => dialogRef.current?.close()} aria-label="강사 선택 창 닫기" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#d1e0e5] bg-white text-xl text-[#31566a] transition hover:bg-[#e7f2f5]">×</button>
         </div>
@@ -813,6 +864,7 @@ export default function HomePage() {
           <div>
             <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-[#8ad6df]">Connect</p>
             <div className="flex flex-col items-start gap-2 text-sm">
+              <a href={`tel:${contactPhone}`} className="font-semibold text-white underline decoration-white/25 underline-offset-4 transition hover:text-[#b7ebf0]">전화 상담 · {contactPhone}</a>
               <a href={`mailto:${contactEmail}`} className="underline decoration-white/25 underline-offset-4 transition hover:text-white">{contactEmail}</a>
               <a href={instagramUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 underline decoration-white/25 underline-offset-4 transition hover:text-white">Instagram · @bluepeace_diving <ArrowIcon diagonal /></a>
             </div>
