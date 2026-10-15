@@ -740,7 +740,7 @@ export default function InstructorPortal() {
                   <span key={day.key} className={`flex items-center justify-center min-h-10 rounded-xl text-sm font-bold ${currentInstructor?.[`available_${day.key}`] ? 'bg-cyan-600 text-white' : 'bg-slate-100 text-slate-400'}`}>{day.label}</span>
                 ))}
               </div>
-              <p className="mt-4 text-sm text-slate-600">{activeDays.length ? `${activeDays.map(day => day.label).join(' · ')}요일 수업 가능` : '설정된 요일이 없습니다.'}</p>
+              <p className="mt-4 text-sm text-slate-600">{activeDays.length ? `수업 가능: ${activeDays.map(day => day.label).join(' · ')}` : '설정된 요일이 없습니다.'}</p>
             </div>
             <div className="rounded-3xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm">
               <h3 className="text-base font-bold mb-4">풀장 · 시간대</h3>
@@ -764,10 +764,10 @@ export default function InstructorPortal() {
           </div>
         </section>
 
-        <div className="bg-white border border-slate-200 p-6 rounded-3xl shadow-sm space-y-4">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-3">
-            <h2 className="text-base font-bold text-slate-900">📊 나에게 매칭된 고객 통계 및 신청 내역 ({myFilteredCustomers.length}건)</h2>
-            <div className="flex gap-1 bg-slate-100 p-1 rounded-xl text-xs font-bold">
+        <div className="bg-white border border-slate-200 p-5 sm:p-6 rounded-3xl shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-4">
+            <h2 className="text-lg font-bold text-slate-900 leading-snug break-keep">매칭된 수강생 · 신청 내역 <span className="text-cyan-700">({myFilteredCustomers.length}건)</span></h2>
+            <div className="flex flex-wrap gap-1 bg-slate-100 p-1 rounded-xl text-sm font-semibold">
               {[{ key: '1d', label: '1일' }, { key: '1w', label: '1주일' }, { key: '1m', label: '1개월' }, { key: '6m', label: '6개월' }, { key: '1y', label: '1년' }].map(p => (
                 <button
                   key={p.key}
@@ -782,7 +782,7 @@ export default function InstructorPortal() {
 
           <div className="space-y-3 pt-2">
             {myFilteredCustomers.length === 0 ? (
-              <p className="text-xs text-slate-400 py-6 text-center">선택하신 기간 내 매칭된 수강생 내역이 없습니다.</p>
+              <p className="text-xs text-slate-400 py-6 text-center">선택하신 기간에 매칭된 수강생이 없습니다.</p>
             ) : (
               myFilteredCustomers.map(cus => (
                 <div key={cus.id} className="bg-slate-50 p-4 rounded-2xl border border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs">
