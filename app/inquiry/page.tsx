@@ -46,7 +46,10 @@ export default function InquiryPage() {
   const [course, setCourse] = useState<string>('freediving');
   const [level, setLevel] = useState<number | string>(0);
   
-  // 최초 접속 시 모든 풀장 및 시간대, 요일 기본값은 false (미체크 상태)
+  // 고객 개인 정보 state
+  const [clientName, setClientName] = useState<string>('');
+  const [clientPhone, setClientPhone] = useState<string>('');
+
   const [pools, setPools] = useState<{ passnine: boolean; miryang: boolean; duryu: boolean }>({
     passnine: false, miryang: false, duryu: false,
   });
@@ -62,23 +65,30 @@ export default function InquiryPage() {
     t0: false, t1: false, t2: false, t3: false, t4: false, t5: false, t6: false,
   });
 
-  // 풀장 체크 시에만 초기화 또는 기본값 부여
   useEffect(() => {
-    if (!pools.passnine) {
-      setPassnineTimes({ t1: false, t2: false, t3: false, t4: false });
-    }
+    if (!pools.passnine) setPassnineTimes({ t1: false, t2: false, t3: false, t4: false });
   }, [pools.passnine]);
 
   useEffect(() => {
-    if (!pools.miryang) {
-      setMiryangTimes({ t0: false, t1: false, t2: false, t3: false, t4: false, t5: false, t6: false });
-    }
+    if (!pools.miryang) setMiryangTimes({ t0: false, t1: false, t2: false, t3: false, t4: false, t5: false, t6: false });
   }, [pools.miryang]);
 
   const [loading, setLoading] = useState(false);
   const [matchedInstructor, setMatchedInstructor] = useState<Instructor | null>(null);
   const [noMatch, setNoMatch] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // 연락처 자동 하이픈 포맷팅 함수
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/[^0-9]/g, '');
+    let formatted = raw;
+    if (raw.length > 3 && raw.length <= 7) {
+      formatted = `${raw.slice(0, 3)}-${raw.slice(3)}`;
+    } else if (raw.length > 7) {
+      formatted = `${raw.slice(0, 3)}-${raw.slice(3, 7)}-${raw.slice(7, 11)}`;
+    }
+    setClientPhone(formatted);
+  };
 
   const handleCourseChange = (c: string) => {
     setCourse(c);
@@ -91,6 +101,16 @@ export default function InquiryPage() {
     setErrorMessage(null);
     setMatchedInstructor(null);
     setNoMatch(false);
+
+    // 0. 고객 정보 검증
+    if (!clientName.trim()) {
+      setErrorMessage('⚠️ 신청하시는 교육생 성함을 입력해 주세요.');
+      return;
+    }
+    if (!clientPhone.trim() || clientPhone.length < 12) {
+      setErrorMessage('⚠️ 연락 가능한 올바른 연락처를 입력해 주세요.');
+      return;
+    }
 
     // 1. 풀장 선택 검증
     if (!pools.passnine && !pools.miryang && !pools.duryu) {
@@ -162,7 +182,8 @@ export default function InquiryPage() {
       });
 
       if (filtered.length > 0) {
-        setMatchedInstructor(filtered[Math.floor(Math.random() * filtered.length)]);
+        const chosen = filtered[Math.floor(Math.random() * filtered.length)];
+        setMatchedInstructor(chosen);
       } else {
         setNoMatch(true);
       }
@@ -184,13 +205,42 @@ export default function InquiryPage() {
         <p className="text-sm text-slate-400 mt-1">원하시는 조건을 직접 체크하시면 100% 부합하는 전문 강사님이 매칭됩니다.</p>
       </header>
 
-      {/* 에러 안내 메시지 배너 */}
       {errorMessage && (
-        <div className="mb-4 bg-red-950/80 border border-red-500 text-red-200 px-4 py-3 rounded-xl text-sm font-semibold flex items-center justify-between animate-shake">
+        <div className="mb-4 bg-red-950/80 border border-red-500 text-red-200 px-4 py-3 rounded-xl text-sm font-semibold flex items-center justify-between">
           <span>{errorMessage}</span>
           <button onClick={() => setErrorMessage(null)} className="text-xs opacity-75 hover:opacity-100">✕ 닫기</button>
         </div>
       )}
+
+      {/* 교육생 기본 정보 입력 섹션 */}
+      <section className="bg-slate-900/80 p-4 rounded-2xl mb-4 border border-cyan-500/40 shadow-xl">
+        <h2 className="text-base font-bold mb-3 text-cyan-400 flex items-center gap-2">
+          <span className="w-6 h-6 rounded-lg bg-cyan-500/20 flex items-center justify-center text-xs text-cyan-300">👤</span>교육생 기본 정보 입력 (필수)
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">성함</label>
+            <input
+              type="text"
+              placeholder="예: 홍길동"
+              value={clientName}
+              onChange={(e) => setClientName(e.target.value)}
+              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">연락처</label>
+            <input
+              type="text"
+              placeholder="010-0000-0000"
+              value={clientPhone}
+              maxLength={13}
+              onChange={handlePhoneChange}
+              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500"
+            />
+          </div>
+        </div>
+      </section>
 
       {/* 1. 교육 과정 */}
       <section className="bg-slate-900/80 p-4 rounded-2xl mb-4 border border-slate-800 shadow-xl">
@@ -429,7 +479,8 @@ export default function InquiryPage() {
       {matchedInstructor && (
         <div className="mt-6 bg-slate-900 border-2 border-cyan-400 p-6 rounded-2xl text-center shadow-2xl">
           <div className="inline-block bg-cyan-950 text-cyan-300 text-xs px-3 py-1 rounded-full mb-3 border border-cyan-700 font-semibold">🎉 100% 매칭 성공!</div>
-          <h2 className="text-2xl font-bold mb-4 text-white">담당 강사: {matchedInstructor.name} 강사님</h2>
+          <h2 className="text-2xl font-bold mb-4 text-white">신청자: {clientName} ({clientPhone})</h2>
+          <h3 className="text-xl font-bold mb-3 text-cyan-300">담당 전담 강사: {matchedInstructor.name} 강사님</h3>
           {matchedInstructor.profile_image && <img src={matchedInstructor.profile_image} alt={matchedInstructor.name} className="w-28 h-28 rounded-full mx-auto mb-4 object-cover border-4 border-cyan-500" />}
           <p className="text-slate-300 mb-6 bg-slate-950 p-4 rounded-xl text-sm leading-relaxed border border-slate-800">{matchedInstructor.bio || '친절하고 안전하게 수중 스포츠의 즐거움을 전해드립니다!'}</p>
           {matchedInstructor.kakao_chat_url ? (
