@@ -245,7 +245,7 @@ function ArrowIcon({ diagonal = false }) {
 }
 
 function SentenceText({ children }) {
-  return String(children).split(/(?<=\.)\s+(?=[가-힣])/u).map((sentence, index) => (
+  return String(children).split(/(?<=\.)\s+(?=\S)/u).map((sentence, index) => (
     <span key={index} className="block">{sentence}</span>
   ));
 }
@@ -263,9 +263,9 @@ function formatPhone(value) {
 
 function OverviewCard({ category, index, onSelect, mobile = false }) {
   return (
-    <button type="button" onClick={() => onSelect(category.id)} className={`group flex shrink-0 snap-start items-center justify-between gap-2 rounded-2xl border border-white/15 bg-white/[.07] text-left shadow-[inset_0_1px_0_rgba(255,255,255,.1)] backdrop-blur-lg transition hover:border-[#91dee3]/60 hover:bg-white/[.12] ${mobile ? "min-h-24 w-[44vw] max-w-[190px] p-3" : "min-h-32 p-6"}`}>
-      <span className="min-w-0"><span className="block text-[9px] font-bold tracking-[.14em] text-[#85cfd8] sm:text-[10px]">0{index + 1} / {category.association}</span><span className={`mt-1.5 block break-keep font-semibold tracking-tight ${mobile ? "text-sm leading-snug" : "text-xl"}`}>{category.name}</span><span className="mt-1 block text-[10px] text-white/55 sm:text-xs">{category.courses.length}개 과정</span></span>
-      <span className="shrink-0 text-[#8cdde3] transition-transform group-hover:translate-x-1"><ArrowIcon /></span>
+    <button type="button" onClick={() => onSelect(category.id)} className={`group flex shrink-0 snap-start items-end justify-between gap-3 overflow-hidden border border-[#d9dfdc] bg-white text-left text-[#142c36] shadow-[0_12px_35px_rgba(21,49,55,.05)] transition hover:-translate-y-1 hover:border-[#6eaaa4] hover:shadow-[0_20px_45px_rgba(21,49,55,.1)] ${mobile ? "min-h-28 w-[44vw] max-w-[190px] rounded-2xl p-3.5" : "min-h-44 rounded-[1.5rem] p-6"} ${!mobile && index % 3 === 1 ? "lg:translate-y-6" : ""}`}>
+      <span className="min-w-0"><span className="block text-[9px] font-bold tracking-[.14em] text-[#4c8d88] sm:text-[10px]">0{index + 1} / {category.association}</span><span className={`mt-3 block break-keep font-semibold tracking-tight ${mobile ? "text-sm leading-snug" : "text-xl"}`}>{category.name}</span><span className="mt-2 block text-[10px] text-[#6a7d7e] sm:text-xs">{category.courses.length}개 과정</span></span>
+      <span className="shrink-0 text-[#4c8d88] transition-transform group-hover:translate-x-1"><ArrowIcon /></span>
     </button>
   );
 }
@@ -373,82 +373,75 @@ export default function HomePage() {
   }
 
   return (
-    <main className="overflow-hidden bg-[#061f32] text-white">
+    <main className="overflow-hidden bg-[#f5f3ec] text-[#142c36]">
       <style jsx global>{`html { scroll-behavior: smooth; } @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } } @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } } .no-scrollbar { scrollbar-width: none; } .no-scrollbar::-webkit-scrollbar { display: none; }`}</style>
-      <header className="absolute inset-x-0 top-0 z-30 border-b border-white/15 text-white">
-        <nav aria-label="주 메뉴" className="mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-5 px-6 py-5 sm:px-10 lg:px-16">
-          <a href="#top" className="flex items-center gap-3 text-xl font-bold tracking-[-0.06em] sm:text-2xl">
-            <Image src="/화이트 로고.png" alt="" width={36} height={36} className="h-9 w-9 shrink-0 object-contain" />
-            Blue Peace<span className="text-[#76d8e8]">.</span>
+      <header className="relative z-30 border-b border-[#dfe3de] bg-[#f5f3ec] text-[#142c36]">
+        <nav aria-label="주 메뉴" className="mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-3 px-5 py-4 sm:px-10 lg:px-16">
+          <a href="#top" className="flex items-center gap-2.5 text-xl font-bold tracking-[-0.06em] sm:text-2xl">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#14333e]"><Image src="/화이트 로고.png" alt="" width={28} height={28} className="h-7 w-7 shrink-0 object-contain" /></span>
+            Blue Peace<span className="text-[#69a8a0]">.</span>
           </a>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] font-medium sm:gap-x-6 sm:text-sm lg:gap-x-8">
-            <a href="#courses" className="transition hover:text-[#8ce5ed]">교육과정</a>
-            <a href="#instructors" className="transition hover:text-[#8ce5ed]">강사진</a>
-            <a href="#reviews" className="transition hover:text-[#8ce5ed]">후기</a>
-            <a href="#faq" className="transition hover:text-[#8ce5ed]">FAQ</a>
-            <a href="#contact" className="rounded-full border border-white/40 px-3 py-1.5 transition hover:bg-white hover:text-[#073d57] sm:px-5 sm:py-2.5">교육문의 ↗</a>
+            <a href="#courses" className="transition hover:text-[#4c8d88]">교육과정</a>
+            <a href="#instructors" className="transition hover:text-[#4c8d88]">강사진</a>
+            <a href="#reviews" className="transition hover:text-[#4c8d88]">후기</a>
+            <a href="#faq" className="transition hover:text-[#4c8d88]">FAQ</a>
+            <a href="#contact" className="rounded-full bg-[#14333e] px-3 py-2 text-white transition hover:bg-[#326a70] sm:px-5 sm:py-2.5">교육문의 ↗</a>
           </div>
         </nav>
       </header>
 
-      <section id="top" className="relative isolate flex min-h-[640px] items-center bg-[#031827] text-white sm:min-h-[760px]">
-        {heroImages.map((src, index) => (
-          <div key={src} className={`absolute inset-0 -z-20 transition-opacity duration-[1800ms] ease-in-out motion-reduce:transition-none ${heroIndex === index ? "opacity-100" : "opacity-0"}`} aria-hidden="true">
-            <Image src={src} alt="" fill priority={index === 0} sizes="100vw" quality={85} className="object-cover object-center" />
+      <section id="top" className="bg-[#f5f3ec] px-5 pb-8 pt-7 sm:px-10 sm:pb-14 sm:pt-12 lg:px-16">
+        <div className="mx-auto grid max-w-[1440px] items-stretch gap-8 lg:min-h-[650px] lg:grid-cols-[.92fr_1.08fr] lg:gap-0">
+          <div className="relative z-10 flex flex-col justify-center py-5 lg:py-16 lg:pr-10">
+            <p className="mb-8 flex items-center gap-4 text-[11px] font-semibold uppercase tracking-[0.27em] text-[#4c8d88]"><span className="h-px w-9 bg-[#4c8d88]" /> Blue Peace / Ocean Academy</p>
+            <p className="mb-4 text-[11px] font-semibold tracking-[0.25em] text-[#688080] sm:text-sm">FREE DIVING EXPERIENCE</p>
+            <h1 className="max-w-[680px] break-keep text-[clamp(2.8rem,5.8vw,6.3rem)] font-semibold leading-[1.12] tracking-[-0.075em]">
+              바다 속에서 만나는<br />가장 완벽한 <span className="font-serif italic text-[#4c8d88]">자유</span>
+            </h1>
+            <p className="mt-7 max-w-lg break-keep text-sm leading-[1.95] text-[#52666a] sm:text-base"><SentenceText>숨을 고르는 순간, 세상은 조용해집니다. 블루피스와 함께 처음의 설렘부터 깊은 몰입까지, 당신만의 바다를 만나보세요.</SentenceText></p>
+            <div className="mt-9 flex flex-wrap gap-3">
+              <button type="button" onClick={() => openInquiry()} className="inline-flex min-h-13 items-center gap-8 rounded-full bg-[#14333e] px-6 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(20,51,62,.14)] transition hover:-translate-y-0.5 hover:bg-[#326a70] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#4c8d88]">교육 문의하기 <ArrowIcon diagonal /></button>
+              <a href="#courses" className="inline-flex min-h-13 items-center gap-6 rounded-full border border-[#b7c7c3] px-6 text-sm font-semibold text-[#14333e] transition hover:border-[#4c8d88] hover:bg-white">코스 둘러보기 <ArrowIcon /></a>
+            </div>
+            <p className="mt-12 hidden text-[10px] font-medium uppercase tracking-[.28em] text-[#8b9d9a] lg:block">01 — A quieter kind of freedom</p>
           </div>
-        ))}
-        <div className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(1,15,27,.90)_0%,rgba(2,27,45,.68)_48%,rgba(3,42,62,.25)_100%)]" />
-        <div className="absolute inset-0 -z-10 bg-gradient-to-t from-[#031b2f]/75 via-transparent to-[#031b2f]/20" />
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_80%_18%,rgba(134,231,235,.22),transparent_42%),radial-gradient(ellipse_at_22%_100%,rgba(0,121,155,.25),transparent_48%)]" />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-44 bg-gradient-to-t from-[#042c43] to-transparent" />
-        <div className="mx-auto w-full max-w-[1440px] px-6 pb-20 pt-40 sm:px-10 sm:pb-28 lg:px-16 lg:pt-52">
-          <div className="mb-8 flex items-center gap-4 text-[11px] font-semibold uppercase tracking-[0.35em] text-[#b4e8ed] sm:text-xs">
-            <span className="h-px w-10 bg-[#8adbe6]" /> Into the blue
+          <div className="relative isolate min-h-[360px] overflow-hidden rounded-[1.25rem] bg-[#0b3445] shadow-[0_30px_70px_rgba(18,49,61,.13)] sm:min-h-[520px] lg:min-h-[650px] lg:rounded-[1.5rem]">
+            {heroImages.map((src, index) => <div key={src} className={`absolute inset-0 -z-10 transition-opacity duration-[1800ms] ease-in-out motion-reduce:transition-none ${heroIndex === index ? "opacity-100" : "opacity-0"}`} aria-hidden="true"><Image src={src} alt="" fill priority={index === 0} sizes="(min-width: 1024px) 55vw, 100vw" quality={85} className="object-cover" /></div>)}
+            <div className="absolute inset-0 bg-gradient-to-t from-[#062735]/60 via-transparent to-transparent" />
+            <div className="absolute bottom-5 left-5 right-5 flex items-end justify-between border-t border-white/50 pt-4 text-white sm:bottom-8 sm:left-8 sm:right-8">
+              <span className="text-[10px] font-semibold uppercase tracking-[.25em]">Breathe / Dive / Belong</span>
+              <span className="font-serif text-lg italic">0{heroIndex + 1} / 04</span>
+            </div>
           </div>
-          <p className="mb-4 text-base font-light tracking-[0.26em] text-white/80 sm:text-lg">BLUE PEACE · FREE DIVING EXPERIENCE</p>
-          <h1 className="max-w-5xl break-keep text-[clamp(2.5rem,7.2vw,7rem)] font-semibold leading-[1.09] tracking-[-0.075em] sm:text-[clamp(3.25rem,7.2vw,7rem)]">
-            바다 속에서 만나는<br />가장 완벽한 <span className="text-[#a6e7eb]">자유</span>
-          </h1>
-          <p className="mt-6 max-w-xl break-keep text-sm leading-relaxed text-white/80 sm:mt-8 sm:text-lg"><SentenceText>숨을 고르는 순간, 세상은 조용해집니다. 블루피스와 함께 처음의 설렘부터 깊은 몰입까지, 당신만의 바다를 만나보세요.</SentenceText></p>
-          <div className="mt-8 flex flex-wrap gap-3 sm:mt-10 sm:gap-4">
-            <button type="button" onClick={() => openInquiry()} className="inline-flex min-h-14 items-center gap-8 rounded-full bg-[#b7ebf0] px-7 text-sm font-bold text-[#08384f] shadow-[0_10px_0_#58aab8,0_22px_35px_rgba(0,0,0,.28)] transition duration-200 hover:-translate-y-1 hover:shadow-[0_14px_0_#58aab8,0_26px_40px_rgba(0,0,0,.3)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">
-              교육 문의하기 <ArrowIcon diagonal />
-            </button>
-            <a href="#courses" className="inline-flex min-h-14 items-center gap-8 rounded-full border border-white/60 bg-white/10 px-7 text-sm font-semibold text-white shadow-[0_12px_28px_rgba(0,0,0,.18)] backdrop-blur-md transition hover:-translate-y-1 hover:bg-white/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">
-              코스 둘러보기 <ArrowIcon />
-            </a>
-          </div>
-        </div>
-        <div className="absolute bottom-7 left-6 right-6 mx-auto flex max-w-[1312px] items-center justify-between border-t border-white/25 pt-5 text-[10px] font-semibold uppercase tracking-[0.28em] text-white/65 sm:left-10 sm:right-10 lg:left-16 lg:right-16">
-          <span>Ocean is calling</span><span>Scroll to explore ↓</span>
         </div>
       </section>
 
-      <section aria-label="블루피스 주요 수치" className="relative z-10 bg-[#031e30] px-6 py-7 text-white sm:px-10 sm:py-9 lg:px-16">
-        <div className="mx-auto max-w-[1312px]">
-          <p className="mb-5 text-[11px] font-bold uppercase tracking-[0.25em] text-[#91dbe4]">Blue Peace in numbers</p>
-          <div className="grid grid-cols-2 gap-y-4 sm:grid-cols-4 sm:gap-y-7">
+      <section aria-label="블루피스 주요 수치" className="border-y border-[#e3e7e1] bg-white px-5 py-8 sm:px-10 sm:py-10 lg:px-16">
+        <div className="mx-auto max-w-[1312px] lg:grid lg:grid-cols-[220px_1fr] lg:items-center">
+          <p className="mb-5 text-[11px] font-bold uppercase tracking-[0.25em] text-[#4c8d88] lg:mb-0">Blue Peace<br />in numbers</p>
+          <div className="grid grid-cols-2 gap-y-6 sm:grid-cols-4">
             {trustStats.map((stat, index) => (
-              <div key={stat.label} className={`px-3 sm:px-6 ${index > 0 ? "border-l border-white/15" : ""}`}>
-                <p className={`break-keep font-semibold tracking-[-0.06em] text-[#b7ebf0] sm:text-4xl ${index === 3 ? "text-[1.35rem]" : "text-2xl"}`}>{stat.value}</p>
-                <p className="mt-2 text-xs font-medium text-white/65 sm:text-sm">{stat.label}</p>
+              <div key={stat.label} className={`border-l border-[#d9e3df] px-4 sm:px-6`}>
+                <p className={`break-keep font-semibold tracking-[-0.06em] text-[#14333e] sm:text-4xl ${index === 3 ? "text-[1.35rem]" : "text-2xl"}`}>{stat.value}</p>
+                <p className="mt-2 text-xs font-medium text-[#60777a] sm:text-sm">{stat.label}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <section id="courses" className="bg-[#061f32] px-5 py-10 text-white sm:px-10 sm:py-20 lg:px-16 lg:py-24">
+      <section id="courses" className="bg-[#f5f3ec] px-5 py-12 text-[#142c36] sm:px-10 sm:py-20 lg:px-16 lg:py-28">
         <div className="mx-auto max-w-[1312px]">
           <div className="mb-6 flex flex-col gap-3 sm:mb-9 sm:flex-row sm:items-end sm:justify-between sm:gap-5">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#7ad7df]">Blue Peace programs</p>
+              <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#4c8d88]">Blue Peace programs</p>
               <h2 className="mt-2 text-3xl font-semibold tracking-[-0.06em] sm:mt-4 sm:text-5xl">교육 과정 안내</h2>
             </div>
-            <p className="max-w-md break-keep text-sm leading-relaxed text-white/65">블루피스의 6가지 교육 분야를 살펴보고, 나에게 맞는 코스를 선택해 보세요.</p>
+            <p className="max-w-md break-keep text-sm leading-[1.9] text-[#60777a]">블루피스의 6가지 교육 분야를 살펴보고, 나에게 맞는 코스를 선택해 보세요.</p>
           </div>
 
-          <div role="tablist" aria-label="교육 분야 선택" className="grid grid-cols-3 gap-2 rounded-2xl border border-white/15 bg-white/[.06] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,.12)] backdrop-blur-xl sm:grid-cols-4 lg:grid-cols-7">
+          <div role="tablist" aria-label="교육 분야 선택" className="grid grid-cols-3 gap-1 border-y border-[#cfdbd6] py-3 sm:grid-cols-4 lg:grid-cols-7">
             {courseTabs.map((category, index) => (
               <button
                 key={category.id}
@@ -460,7 +453,7 @@ export default function HomePage() {
                 tabIndex={activeTab === category.id ? 0 : -1}
                 onClick={() => setActiveTab(category.id)}
                 onKeyDown={(event) => handleTabKeyDown(event, index)}
-                className={`min-h-12 min-w-0 break-keep rounded-xl px-2 py-2.5 text-center text-[11px] font-semibold leading-snug transition-colors duration-300 sm:px-3 sm:text-xs xl:text-sm ${activeTab === category.id ? "bg-[#b4e8e8] text-[#042739] shadow-[0_6px_20px_rgba(87,217,225,.2)]" : "text-white/70 hover:bg-white/10 hover:text-white"}`}
+                className={`min-h-12 min-w-0 break-keep rounded-full px-2 py-2.5 text-center text-[11px] font-semibold leading-snug transition-colors duration-300 sm:px-3 sm:text-xs xl:text-sm ${activeTab === category.id ? "bg-[#14333e] text-white" : "text-[#526b70] hover:bg-white hover:text-[#14333e]"}`}
               >
                 {courseTabNames[category.id] || category.name}
               </button>
@@ -480,18 +473,18 @@ export default function HomePage() {
                     </div>
                   ))}
                 </div>
-                <div className="hidden gap-4 sm:grid sm:grid-cols-2 lg:grid-cols-3">
+                <div className="hidden gap-4 pb-6 sm:grid sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
                   {categories.map((category, index) => <OverviewCard key={category.id} category={category} index={index} onSelect={setActiveTab} />)}
                 </div>
               </>
             ) : <>
-            <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-white/15 bg-white/[.07] px-5 py-5 shadow-[inset_0_1px_0_rgba(255,255,255,.1)] backdrop-blur-xl sm:mb-6 sm:flex-row sm:items-center sm:justify-between sm:px-7">
+            <div className="mb-4 flex flex-col gap-3 border-b border-[#d4dfda] px-1 pb-5 sm:mb-6 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#8ce0e7]">Selected program</p>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#4c8d88]">Selected program</p>
                 <h3 className="mt-1 text-xl font-semibold tracking-[-0.04em] sm:text-3xl">{activeCategory.name}</h3>
-                <p className="mt-1 max-w-2xl break-keep text-xs leading-relaxed text-white/70 sm:text-sm"><SentenceText>{activeCategory.intro}</SentenceText></p>
+                <p className="mt-2 max-w-2xl break-keep text-xs leading-[1.8] text-[#60777a] sm:text-sm"><SentenceText>{activeCategory.intro}</SentenceText></p>
               </div>
-              <span className="inline-flex self-start rounded-full border border-white/25 bg-white/10 px-3 py-1.5 text-[11px] font-bold text-white sm:self-center">발급 협회 · {activeCategory.association}</span>
+              <span className="inline-flex self-start rounded-full border border-[#bad2cc] bg-white px-3 py-1.5 text-[11px] font-bold text-[#416f6e] sm:self-center">발급 협회 · {activeCategory.association}</span>
             </div>
 
             <div className="no-scrollbar -mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-3 md:mx-0 md:grid md:grid-cols-2 md:overflow-visible md:px-0 xl:grid-cols-3">
@@ -504,59 +497,57 @@ export default function HomePage() {
                   { key: "price", label: "총 비용", symbol: "₩" },
                 ];
                 return (
-                  <article key={`${activeCategory.id}-${course.title}`} className={`flex h-full w-[84vw] max-w-[360px] shrink-0 snap-center flex-col rounded-2xl border p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.13),0_14px_36px_rgba(0,0,0,.13)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 sm:p-6 md:w-auto md:max-w-none ${course.instructor ? "border-[#d8b777]/65 bg-[linear-gradient(145deg,rgba(119,94,50,.22),rgba(255,255,255,.06))]" : "border-white/15 bg-white/[.07]"}`}>
+                  <article key={`${activeCategory.id}-${course.title}`} className={`flex h-full w-[84vw] max-w-[360px] shrink-0 snap-center flex-col rounded-[1.4rem] border p-4 text-[#142c36] shadow-[0_14px_42px_rgba(19,51,62,.06)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_55px_rgba(19,51,62,.11)] sm:p-6 md:w-auto md:max-w-none ${course.instructor ? "border-[#c6ae83] bg-[#f7f0e3]" : "border-[#d9e3df] bg-white"}`}>
                     <div className="flex h-6 items-start justify-between gap-4">
-                      <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold tracking-wide ${course.instructor ? "bg-[#e6bd73] text-[#15384a]" : "bg-[#b4e8e8]/15 text-[#aee4e8]"}`}>발급 협회 · {activeCategory.association}</span>
-                      <span className="text-xs font-semibold text-white/35">{String(index + 1).padStart(2, "0")}</span>
+                      <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold tracking-wide ${course.instructor ? "bg-[#d7bd8c] text-[#3e392e]" : "bg-[#e9f2ee] text-[#3e7775]"}`}>발급 협회 · {activeCategory.association}</span>
+                      <span className="text-xs font-semibold text-[#9aaba9]">{String(index + 1).padStart(2, "0")}</span>
                     </div>
                     <div className="flex h-10 items-center sm:h-12" aria-label={course.instructor ? "강사 과정 별도 문의" : course.unlimited ? "자격증 취득할 때까지 무제한 진행" : undefined}>
-                      {course.instructor && <span className="inline-flex max-w-full rounded-full border border-[#e6bd73]/60 px-3 py-1.5 text-[11px] font-extrabold leading-5 text-[#f3d396]">★ 강사 과정 · 별도 문의</span>}
-                      {course.unlimited && <span className="inline-flex max-w-full rounded-full bg-[#b4e8e8]/15 px-3 py-1.5 text-[11px] font-extrabold leading-5 text-[#aee4e8]">∞ 자격증 취득할 때까지 무제한 진행</span>}
+                      {course.instructor && <span className="inline-flex max-w-full rounded-full border border-[#c6ae83] px-3 py-1.5 text-[11px] font-extrabold leading-5 text-[#8a682e]">★ 강사 과정 · 별도 문의</span>}
+                      {course.unlimited && <span className="inline-flex max-w-full rounded-full bg-[#e4f0eb] px-3 py-1.5 text-[11px] font-extrabold leading-5 text-[#30716b]">∞ 자격증 취득할 때까지 무제한 진행</span>}
                     </div>
                     <div className="min-h-14 break-keep sm:min-h-20">
                       <h4 className="text-xl font-semibold leading-tight tracking-[-0.04em] sm:text-2xl">{course.title}</h4>
-                      {course.subtitle && <p className="mt-0.5 text-xs font-medium text-[#9ed8de] sm:text-sm">{course.subtitle}</p>}
+                      {course.subtitle && <p className="mt-0.5 text-xs font-medium text-[#4d8884] sm:text-sm">{course.subtitle}</p>}
                     </div>
-                    <p className="min-h-12 break-keep text-xs leading-relaxed text-white/70 sm:min-h-16 sm:text-sm"><SentenceText>{course.description}</SentenceText></p>
+                    <p className="min-h-12 break-keep text-xs leading-[1.8] text-[#60777a] sm:min-h-16 sm:text-sm"><SentenceText>{course.description}</SentenceText></p>
 
                     <dl className="mb-4 mt-3 grid grid-cols-2 gap-2 sm:mb-5 sm:mt-4">
                       {curriculumFields.map((field) => (
-                        <div key={field.key} className={`flex h-[68px] min-w-0 flex-col justify-center rounded-xl border px-2.5 py-2 sm:h-[76px] sm:px-3 ${field.key === "price" ? "border-[#9ed8de]/35 bg-[#9ed8de]/15" : "border-white/10 bg-white/[.055]"}`}>
-                          <dt className="flex items-center gap-1 whitespace-nowrap text-[10px] font-bold leading-4 text-white/55 sm:text-[11px]">
-                            <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[8px] ${course.instructor ? "bg-[#e6bd73] text-[#12384c]" : "bg-white/10 text-[#9ed8de]"}`}>{field.symbol}</span>
+                        <div key={field.key} className={`flex h-[68px] min-w-0 flex-col justify-center rounded-xl border px-2.5 py-2 sm:h-[76px] sm:px-3 ${field.key === "price" ? "border-[#c3dad3] bg-[#e9f2ee]" : "border-[#e6ebe6] bg-[#f8f9f6]"}`}>
+                          <dt className="flex items-center gap-1 whitespace-nowrap text-[10px] font-bold leading-4 text-[#698080] sm:text-[11px]">
+                            <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[8px] ${course.instructor ? "bg-[#d7bd8c] text-[#3e392e]" : "bg-[#deeeea] text-[#36736d]"}`}>{field.symbol}</span>
                             {field.label}
                           </dt>
-                          <dd title={activeCategory.id === "adult" && index === 0 && (field.key === "pool" || field.key === "ocean") ? "풀장 실습 2회 또는 해양 실습 2회 중 하나를 선택합니다." : undefined} className={`mt-1 whitespace-nowrap text-[12px] font-semibold leading-5 sm:text-[14px] ${field.key === "price" ? "text-[#b6eeee]" : "text-white"}`}>{curriculum[field.key]}</dd>
+                          <dd title={activeCategory.id === "adult" && index === 0 && (field.key === "pool" || field.key === "ocean") ? "풀장 실습 2회 또는 해양 실습 2회 중 하나를 선택합니다." : undefined} className={`mt-1 whitespace-nowrap text-[12px] font-semibold leading-5 sm:text-[14px] ${field.key === "price" ? "text-[#276b65]" : "text-[#18343e]"}`}>{curriculum[field.key]}</dd>
                         </div>
                       ))}
                     </dl>
-                    <button type="button" onClick={() => openInquiry(`${activeCategory.name} · ${course.title}`, null, activeCategory.id, course.title)} className={`mt-auto inline-flex min-h-11 items-center justify-between gap-4 rounded-xl px-4 text-xs font-bold transition hover:-translate-y-0.5 sm:text-sm ${course.instructor ? "bg-[#e6bd73] text-[#12384c]" : "bg-[#aee4e8] text-[#062b3d]"}`}>교육 문의하기 <ArrowIcon diagonal /></button>
+                    <button type="button" onClick={() => openInquiry(`${activeCategory.name} · ${course.title}`, null, activeCategory.id, course.title)} className={`mt-auto inline-flex min-h-11 items-center justify-between gap-4 rounded-xl px-4 text-xs font-bold transition hover:-translate-y-0.5 sm:text-sm ${course.instructor ? "bg-[#d7bd8c] text-[#283329]" : "bg-[#14333e] text-white"}`}>교육 문의하기 <ArrowIcon diagonal /></button>
                   </article>
                 );
               })}
             </div>
-            <p className="mt-5 break-keep text-xs leading-relaxed text-white/50"><SentenceText>표시된 총 비용은 교육비와 발급비를 합한 금액입니다. 일정과 응시 조건은 블루피스에 문의해 주세요. 수중레저안전요원 자격과 야간 해루질 활동 가능 범위는 지역 규정, 허가 및 현장 조건을 별도로 확인해 주세요.</SentenceText></p>
+            <p className="mt-5 break-keep text-xs leading-[1.8] text-[#697f80]"><SentenceText>표시된 총 비용은 교육비와 발급비를 합한 금액입니다. 일정과 응시 조건은 블루피스에 문의해 주세요. 수중레저안전요원 자격과 야간 해루질 활동 가능 범위는 지역 규정, 허가 및 현장 조건을 별도로 확인해 주세요.</SentenceText></p>
             </>}
           </div>
         </div>
       </section>
 
-      <section id="gallery" className="bg-[#09273b] px-6 py-10 text-white sm:px-10 sm:py-20 lg:px-16 lg:py-24">
+      <section id="gallery" className="bg-white px-5 py-12 text-[#142c36] sm:px-10 sm:py-20 lg:px-16 lg:py-28">
         <div className="mx-auto max-w-[1312px]">
-          <div className="mb-6 max-w-2xl sm:mb-10">
-            <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#7bd7e5]">The blue moment</p>
-            <h2 className="mt-2 text-3xl font-semibold leading-tight tracking-[-0.06em] sm:mt-5 sm:text-5xl">말보다 오래 남는<br />바다의 순간</h2>
-            <p className="mt-4 max-w-md break-keep text-sm leading-relaxed text-white/75 sm:mt-6 sm:text-lg">고요한 물속, 부드러운 빛, 자유로운 움직임.</p>
-            <p className="mt-1 max-w-md break-keep text-sm leading-relaxed text-white/75 sm:mt-3 sm:text-lg">블루피스가 사랑하는 바다의 장면을 만나보세요.</p>
+          <div className="mb-7 grid gap-4 border-t border-[#cbdad5] pt-5 sm:mb-10 lg:grid-cols-[1fr_.7fr] lg:items-end">
+            <div><p className="text-xs font-bold uppercase tracking-[0.3em] text-[#4c8d88]">The blue moment / 02</p><h2 className="mt-3 text-3xl font-semibold leading-tight tracking-[-0.06em] sm:text-5xl">말보다 오래 남는<br />바다의 순간</h2></div>
+            <div><p className="max-w-md break-keep text-sm leading-[1.9] text-[#60777a] sm:text-base">고요한 물속, 부드러운 빛, 자유로운 움직임.</p><p className="mt-1 max-w-md break-keep text-sm leading-[1.9] text-[#60777a] sm:text-base">블루피스가 사랑하는 바다의 장면을 만나보세요.</p></div>
           </div>
-          <div className="grid grid-cols-2 auto-rows-[126px] gap-2.5 sm:auto-rows-[180px] sm:gap-4 lg:grid-cols-4 lg:auto-rows-[190px]">
+          <div className="grid auto-rows-[126px] grid-cols-2 gap-2.5 sm:auto-rows-[180px] sm:gap-4 lg:auto-rows-[190px] lg:grid-cols-4">
             {(showAllGallery ? shuffledGallery : shuffledGallery.slice(0, 8)).map((photo, index) => (
               <button
                 key={photo.src}
                 type="button"
                 onClick={() => openLightbox(photo)}
                 aria-label={`${photo.alt} 확대 보기`}
-                className={`group relative overflow-hidden rounded-2xl border border-white/10 bg-[#0b3449] text-left shadow-[0_18px_45px_rgba(0,0,0,.16)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8cdae3] ${index % 7 === 0 ? "row-span-2" : ""}`}
+                className={`group relative overflow-hidden rounded-xl bg-[#d9e5e1] text-left shadow-[0_14px_30px_rgba(20,51,62,.08)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4c8d88] ${index % 7 === 0 ? "row-span-2" : ""}`}
               >
                 <Image src={photo.src} alt={photo.alt} fill sizes="(min-width: 1024px) 25vw, 50vw" className="object-cover transition-transform duration-700 group-hover:scale-105" />
                 <span aria-hidden="true" className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/55 to-transparent px-4 pb-3 pt-8 text-xs font-medium text-white/90 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">원본 보기 ↗</span>
@@ -564,7 +555,7 @@ export default function HomePage() {
             ))}
           </div>
           <div className="mt-6 flex justify-center sm:mt-8">
-            <button type="button" onClick={() => setShowAllGallery((current) => !current)} aria-expanded={showAllGallery} className="inline-flex min-h-12 items-center justify-center rounded-full border border-[#87d6dd]/50 bg-white/[.07] px-6 text-sm font-semibold text-white transition hover:border-[#a9e8eb] hover:bg-white/[.14] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8cdae3]">
+            <button type="button" onClick={() => setShowAllGallery((current) => !current)} aria-expanded={showAllGallery} className="inline-flex min-h-12 items-center justify-center rounded-full border border-[#b8cbc5] px-6 text-sm font-semibold text-[#14333e] transition hover:border-[#4c8d88] hover:bg-[#f0f5f1] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4c8d88]">
               {showAllGallery ? "수중 작품 접기" : "블루피스 수중 작품 더보기 (+12장)"}
             </button>
           </div>
@@ -582,18 +573,18 @@ export default function HomePage() {
         {selectedPhoto && <img src={selectedPhoto.src} alt={selectedPhoto.alt} className="pointer-events-none block max-h-[calc(100dvh-2rem)] max-w-full object-contain sm:max-h-[calc(100dvh-4rem)]" />}
       </dialog>
 
-      <section id="instructors" className="bg-[#061f32] px-6 py-10 sm:px-10 sm:py-20 lg:px-16 lg:py-24">
+      <section id="instructors" className="bg-[#f5f3ec] px-5 py-12 text-[#142c36] sm:px-10 sm:py-20 lg:px-16 lg:py-28">
         <div className="mx-auto max-w-[1312px]">
           <div className="mb-5 flex flex-col gap-2 sm:mb-10 lg:flex-row lg:items-end lg:justify-between lg:gap-5">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#7ad7df]">Meet our instructors</p>
+              <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#4c8d88]">Meet our instructors / 03</p>
               <h2 className="mt-2 break-keep text-3xl font-semibold leading-tight tracking-[-0.06em] sm:mt-5 sm:text-5xl">나의 바다를 함께할 강사진</h2>
             </div>
-            <p className="max-w-lg break-keep text-xs leading-relaxed text-white/60 sm:text-base"><SentenceText>BLUE PEACE 대표강사 김상욱을 소개합니다. 전체 강사진과 각 강사의 문의 가능 코스는 강사 선택 창에서 확인해 주세요.</SentenceText></p>
+            <p className="max-w-lg break-keep text-xs leading-[1.9] text-[#60777a] sm:text-base"><SentenceText>BLUE PEACE 대표강사 김상욱을 소개합니다. 전체 강사진과 각 강사의 문의 가능 코스는 강사 선택 창에서 확인해 주세요.</SentenceText></p>
           </div>
-          <div className="mx-auto max-w-4xl">
+          <div className="ml-auto max-w-5xl">
             {[directoryInstructors[0]].map((instructor) => (
-              <article key={instructor.id} className="flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border border-white/15 bg-white/[.06] shadow-[inset_0_1px_0_rgba(255,255,255,.13),0_20px_50px_rgba(0,0,0,.2)] backdrop-blur-xl transition hover:border-white/25 md:flex-row">
+              <article key={instructor.id} className="flex h-full min-w-0 flex-col overflow-hidden rounded-[1.5rem] border border-[#dfe6df] bg-white shadow-[0_22px_65px_rgba(20,51,62,.08)] md:flex-row">
                 <div className="relative mx-auto mt-4 flex h-44 w-44 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[linear-gradient(145deg,#0d6780,#062f4b)] text-white sm:mt-6 sm:h-64 sm:w-64 md:m-0 md:h-[360px] md:w-[360px] md:self-start md:rounded-none">
                   {instructor.photoUrl ? (
                     <Image src={instructor.photoUrl} alt={`${instructor.name} 강사 프로필`} fill sizes="(min-width: 768px) 360px, 90vw" className="object-cover object-[center_35%]" />
@@ -607,17 +598,17 @@ export default function HomePage() {
                   {!instructor.photoUrl && <span className="absolute bottom-5 left-6 rounded-full border border-white/40 bg-[#062f4b]/55 px-3 py-1.5 text-[11px] font-semibold text-white backdrop-blur-sm">사진 등록 예정</span>}
                 </div>
                 <div className="flex flex-1 flex-col p-5 sm:p-8">
-                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#8adddf]">{instructor.role}</p>
+                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#4c8d88]">{instructor.role}</p>
                   <h3 className="mt-1 text-2xl font-semibold tracking-[-0.05em] sm:mt-2 sm:text-3xl">{instructor.name}</h3>
-                  <div className="mt-3 border-t border-white/15 pt-3 text-sm leading-relaxed sm:mt-6 sm:pt-5">
-                    <p className="text-xs font-bold text-[#8adddf]">소속 및 자격</p>
-                    <p className="mt-1 break-keep text-white/65">{instructor.experience} · {instructor.certifications}</p>
+                  <div className="mt-3 border-t border-[#dfe6df] pt-3 text-sm leading-relaxed sm:mt-6 sm:pt-5">
+                    <p className="text-xs font-bold text-[#4c8d88]">소속 및 자격</p>
+                    <p className="mt-1 break-keep text-[#60777a]">{instructor.experience} · {instructor.certifications}</p>
                   </div>
                   <div className="mt-3 flex flex-wrap gap-1.5 sm:mt-6 sm:gap-2">
-                    {instructor.specialties.map((specialty) => <span key={specialty} className="rounded-full border border-white/15 bg-white/[.08] px-2.5 py-1 text-[11px] font-semibold text-[#bce8e8] sm:px-3 sm:py-1.5 sm:text-xs">{specialty}</span>)}
+                    {instructor.specialties.map((specialty) => <span key={specialty} className="rounded-full border border-[#cbdcd6] bg-[#f2f7f3] px-2.5 py-1 text-[11px] font-semibold text-[#416f6e] sm:px-3 sm:py-1.5 sm:text-xs">{specialty}</span>)}
                   </div>
                   <div className="mt-auto pt-4 sm:pt-8">
-                    <button type="button" onClick={() => openInquiry()} className="inline-flex min-h-11 w-full items-center justify-between gap-3 rounded-xl bg-[#aee4e8] px-4 text-xs font-bold text-[#062b3d] transition hover:bg-white sm:min-h-12 sm:px-5 sm:text-sm">
+                    <button type="button" onClick={() => openInquiry()} className="inline-flex min-h-11 w-full items-center justify-between gap-3 rounded-xl bg-[#14333e] px-4 text-xs font-bold text-white transition hover:bg-[#326a70] sm:min-h-12 sm:px-5 sm:text-sm">
                       전체 강사진 및 문의 가능 코스 보기 <ArrowIcon diagonal />
                     </button>
                   </div>
@@ -628,27 +619,27 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section id="faq" className="bg-[#061f32] px-6 py-12 text-white sm:px-10 sm:py-20 lg:px-16 lg:py-24">
-        <div className="mx-auto max-w-[1312px]">
-          <div className="mb-7 max-w-2xl sm:mb-10">
-            <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#7ad7df]">Before you dive</p>
+      <section id="faq" className="bg-white px-5 py-12 text-[#142c36] sm:px-10 sm:py-20 lg:px-16 lg:py-28">
+        <div className="mx-auto grid max-w-[1312px] gap-8 lg:grid-cols-[.7fr_1.3fr] lg:gap-16">
+          <div className="lg:sticky lg:top-10 lg:self-start">
+            <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#4c8d88]">Before you dive / 04</p>
             <h2 className="mt-2 break-keep text-3xl font-semibold leading-tight tracking-[-0.06em] sm:mt-5 sm:text-5xl">처음 시작하는 분들이<br />가장 많이 묻는 질문</h2>
-            <p className="mt-4 break-keep text-sm leading-relaxed text-white/60">처음이라 궁금한 점들을 모았습니다. 더 자세한 내용은 상담에서 편하게 물어보세요.</p>
+            <p className="mt-4 break-keep text-sm leading-[1.9] text-[#60777a]"><SentenceText>처음이라 궁금한 점들을 모았습니다. 더 자세한 내용은 상담에서 편하게 물어보세요.</SentenceText></p>
           </div>
-          <div className="grid items-start gap-3 md:grid-cols-2 md:gap-4">
+          <div className="divide-y divide-[#dce6e0] border-t border-[#9dbbb2]">
             {faqs.map((faq, index) => {
               const isOpen = openFaq === index;
               return (
-                <div key={faq.question} className={`overflow-hidden rounded-2xl border backdrop-blur-lg transition-colors duration-300 ${isOpen ? "border-[#80cbd3]/50 bg-white/[.1]" : "border-white/15 bg-white/[.055]"}`}>
+                <div key={faq.question} className="overflow-hidden">
                   <h3>
-                    <button type="button" aria-expanded={isOpen} aria-controls={`faq-answer-${index}`} onClick={() => setOpenFaq(isOpen ? null : index)} className="flex w-full items-center gap-3 px-4 py-4 text-left sm:px-5 sm:py-5">
-                      <span className="shrink-0 text-xs font-bold text-[#83d4dc]">Q.{String(index + 1).padStart(2, "0")}</span>
+                    <button type="button" aria-expanded={isOpen} aria-controls={`faq-answer-${index}`} onClick={() => setOpenFaq(isOpen ? null : index)} className="flex w-full items-center gap-3 px-1 py-4 text-left sm:py-5">
+                      <span className="shrink-0 text-xs font-bold text-[#4c8d88]">Q.{String(index + 1).padStart(2, "0")}</span>
                       <span className="flex-1 break-keep text-sm font-semibold leading-relaxed sm:text-base">{faq.question}</span>
-                      <span aria-hidden="true" className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/20 text-lg leading-none text-[#9fe2e5] transition-transform duration-300 ${isOpen ? "rotate-45" : ""}`}>+</span>
+                      <span aria-hidden="true" className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#c8d8d1] text-lg leading-none text-[#3b7771] transition-transform duration-300 ${isOpen ? "rotate-45" : ""}`}>+</span>
                     </button>
                   </h3>
                   <div id={`faq-answer-${index}`} aria-hidden={!isOpen} className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none ${isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
-                    <div className="overflow-hidden"><p className="break-keep border-t border-white/10 px-4 pb-5 pt-4 text-sm leading-relaxed text-white/70 sm:px-5"><SentenceText>{faq.answer}</SentenceText></p></div>
+                    <div className="overflow-hidden"><p className="break-keep px-1 pb-5 text-sm leading-[1.9] text-[#60777a]"><SentenceText>{faq.answer}</SentenceText></p></div>
                   </div>
                 </div>
               );
@@ -657,24 +648,24 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section id="reviews" className="bg-[#09283d] px-6 py-10 sm:px-10 sm:py-20 lg:px-16 lg:py-24">
+      <section id="reviews" className="bg-[#f5f3ec] px-5 py-12 text-[#142c36] sm:px-10 sm:py-20 lg:px-16 lg:py-28">
         <div className="mx-auto max-w-[1312px]">
           <div className="max-w-2xl">
-            <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#7ad7df]">Naver Place reviews</p>
+            <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#4c8d88]">Naver Place reviews / 05</p>
             <h2 className="mt-2 break-keep text-3xl font-semibold tracking-[-0.06em] sm:mt-5 sm:text-5xl">바다를 경험한 사람들의 이야기</h2>
-            <p className="mt-3 break-keep text-xs leading-relaxed text-white/60 sm:mt-5 sm:text-base"><SentenceText>블루피스 네이버 플레이스에 공개된 방문자 후기의 핵심 내용을 짧게 요약했습니다. 원문은 네이버 플레이스에서 확인할 수 있습니다.</SentenceText></p>
+            <p className="mt-3 break-keep text-xs leading-[1.9] text-[#60777a] sm:mt-5 sm:text-base"><SentenceText>블루피스 네이버 플레이스에 공개된 방문자 후기의 핵심 내용을 짧게 요약했습니다. 원문은 네이버 플레이스에서 확인할 수 있습니다.</SentenceText></p>
           </div>
           <div className="no-scrollbar -mx-6 mt-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-6 pb-3 sm:mx-0 sm:mt-10 sm:grid sm:grid-cols-2 sm:gap-5 sm:overflow-visible sm:px-0 xl:grid-cols-4">
             {placeReviews.map((review) => (
-              <article key={review.title} className="flex w-[82vw] max-w-[310px] shrink-0 snap-center flex-col rounded-2xl border border-white/15 bg-white/[.07] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.12),0_14px_36px_rgba(0,0,0,.14)] backdrop-blur-xl sm:h-full sm:w-auto sm:max-w-none sm:p-7">
-                <div className="flex items-center justify-between gap-3"><span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[#03c75a] text-lg font-black text-white" aria-hidden="true">N</span><span className="text-[10px] font-bold text-white/50">방문자 리뷰 요약</span></div>
+              <article key={review.title} className="flex w-[82vw] max-w-[310px] shrink-0 snap-center flex-col rounded-[1.4rem] border border-[#dfe6df] bg-white p-5 shadow-[0_15px_40px_rgba(20,51,62,.05)] sm:h-full sm:w-auto sm:max-w-none sm:p-7">
+                <div className="flex items-center justify-between gap-3"><span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[#03c75a] text-lg font-black text-white" aria-hidden="true">N</span><span className="text-[10px] font-bold text-[#829493]">방문자 리뷰 요약</span></div>
                 <h3 className="mt-4 text-lg font-semibold sm:mt-7 sm:text-xl">{review.title}</h3>
-                <p className="mt-2 flex-1 break-keep text-xs leading-relaxed text-white/70 sm:mt-4 sm:text-sm"><SentenceText>{review.quote}</SentenceText></p>
-                <div className="mt-5 border-t border-white/15 pt-3 sm:mt-8 sm:pt-5"><p className="text-sm font-bold text-white">{review.author}</p><p className="mt-1 text-xs font-medium text-[#8adddf]">{review.course}</p></div>
+                <p className="mt-2 flex-1 break-keep text-xs leading-[1.9] text-[#60777a] sm:mt-4 sm:text-sm"><SentenceText>{review.quote}</SentenceText></p>
+                <div className="mt-5 border-t border-[#e3e9e3] pt-3 sm:mt-8 sm:pt-5"><p className="text-sm font-bold text-[#142c36]">{review.author}</p><p className="mt-1 text-xs font-medium text-[#4c8d88]">{review.course}</p></div>
               </article>
             ))}
           </div>
-          <a href={naverReviewUrl} target="_blank" rel="noopener noreferrer" className="mt-4 inline-flex min-h-11 items-center gap-4 rounded-xl border border-white/25 bg-white/[.08] px-4 text-xs font-bold text-white backdrop-blur-lg transition hover:bg-white/15 sm:mt-9 sm:min-h-12 sm:px-6 sm:text-sm">네이버 플레이스 실시간 리뷰 전체보기 <ArrowIcon diagonal /></a>
+          <a href={naverReviewUrl} target="_blank" rel="noopener noreferrer" className="mt-4 inline-flex min-h-11 items-center gap-4 rounded-full border border-[#b8cbc5] bg-white px-4 text-xs font-bold text-[#14333e] transition hover:border-[#4c8d88] hover:bg-[#f0f5f1] sm:mt-9 sm:min-h-12 sm:px-6 sm:text-sm">네이버 플레이스 실시간 리뷰 전체보기 <ArrowIcon diagonal /></a>
         </div>
       </section>
 
@@ -697,11 +688,11 @@ export default function HomePage() {
         aria-describedby="inquiry-description"
         onClose={() => { setSelectedInstructorId(null); setReservationStep("select"); }}
         onClick={(event) => { if (event.target === event.currentTarget) dialogRef.current?.close(); }}
-        className="fixed inset-0 m-auto h-[90dvh] max-h-[800px] w-[94vw] max-w-5xl overflow-hidden rounded-2xl border border-[#c9dfe5] bg-[#f4f8fa] p-0 text-[#102e40] shadow-[0_35px_100px_rgba(2,24,42,.4)] backdrop:bg-[#021b2c]/75 [&[open]]:flex [&[open]]:flex-col"
+        className="fixed inset-0 m-auto h-[90dvh] max-h-[800px] w-[94vw] max-w-5xl overflow-hidden rounded-[1.5rem] border border-[#d5e2dc] bg-[#f7f6f1] p-0 text-[#142c36] shadow-[0_35px_100px_rgba(2,24,42,.32)] backdrop:bg-[#061e28]/75 [&[open]]:flex [&[open]]:flex-col"
       >
-        <div className="z-10 flex shrink-0 items-start justify-between gap-4 border-b border-[#d9e7ec] bg-[#f4f8fa]/95 px-5 py-4 backdrop-blur-md sm:px-8 sm:py-6">
+        <div className="z-10 flex shrink-0 items-start justify-between gap-4 border-b border-[#d5e2dc] bg-[#f7f6f1]/95 px-5 py-4 backdrop-blur-md sm:px-8 sm:py-6">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-[#087f9b]">Blue Peace · Personal inquiry</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-[#3b8178]">Blue Peace · Personal inquiry</p>
             <h2 id="inquiry-title" className="mt-1 break-keep text-2xl font-semibold tracking-[-0.05em] sm:mt-2 sm:text-3xl">{reservationStep === "select" ? "강사 선택" : reservationStep === "form" ? "상담 예약 양식" : "상담 양식 확인"}</h2>
             <p id="inquiry-description" className="mt-1 break-keep text-xs leading-relaxed text-[#5b7481] sm:mt-2 sm:text-sm">{reservationStep === "select" ? "원하시는 블루피스 전문 강사를 선택해 주세요." : reservationStep === "form" ? "필요한 내용을 적으면 상담 문구가 자동으로 정리됩니다." : "오픈채팅으로 메시지를 보내면 상담 신청이 전달됩니다."}</p>
           </div>
@@ -709,11 +700,11 @@ export default function HomePage() {
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 sm:px-8 sm:py-7">
-          {inquiryCourse && <p className="mb-4 inline-flex max-w-full break-keep rounded-full bg-[#e0f1f4] px-4 py-2 text-xs font-bold text-[#0b6781]">문의 과정 · {inquiryCourse}</p>}
+          {inquiryCourse && <p className="mb-4 inline-flex max-w-full break-keep rounded-full bg-[#e7f2ed] px-4 py-2 text-xs font-bold text-[#0b6781]">문의 과정 · {inquiryCourse}</p>}
           {reservationStep === "select" && <>
-          <div className="mb-5 border-b border-[#d9e7ec] pb-5">
+          <div className="mb-5 border-b border-[#d5e2dc] pb-5">
             <p className="mb-3 text-xs font-bold text-[#426575]">전문 분야별 필터</p>
-            <select aria-label="강사 전문 분야 선택" value={instructorFilter} onChange={(event) => { setInstructorFilter(event.target.value); setSelectedInstructorId(null); }} className="h-12 w-full rounded-xl border border-[#cfe1e6] bg-white px-4 text-sm font-semibold text-[#15394b] outline-none focus:border-[#0b718a] focus:ring-2 focus:ring-[#b2e2e9] md:hidden">
+            <select aria-label="강사 전문 분야 선택" value={instructorFilter} onChange={(event) => { setInstructorFilter(event.target.value); setSelectedInstructorId(null); }} className="h-12 w-full rounded-xl border border-[#d5e2dc] bg-white px-4 text-sm font-semibold text-[#15394b] outline-none focus:border-[#3b8178] focus:ring-2 focus:ring-[#b2e2e9] md:hidden">
               {[{ id: "all", name: "전체" }, ...categories].map((category) => {
                 const count = category.id === "all" ? eligibleInstructors.length : eligibleInstructors.filter((instructor) => Boolean(instructor.courses[category.id])).length;
                 return <option key={category.id} value={category.id} disabled={count === 0}>{category.name} ({count}명)</option>;
@@ -722,12 +713,12 @@ export default function HomePage() {
             <div className="hidden gap-2 overflow-x-auto pb-2 md:flex" aria-label="강사 전문 분야 필터">
               {[{ id: "all", name: "전체" }, ...categories].map((category) => {
                 const count = category.id === "all" ? eligibleInstructors.length : eligibleInstructors.filter((instructor) => Boolean(instructor.courses[category.id])).length;
-                return <button key={category.id} type="button" aria-pressed={instructorFilter === category.id} disabled={count === 0} onClick={() => { setInstructorFilter(category.id); setSelectedInstructorId(null); }} className={`shrink-0 whitespace-nowrap rounded-full border px-4 py-2 text-xs font-bold transition ${instructorFilter === category.id ? "border-[#0b5b77] bg-[#0b5b77] text-white" : "border-[#cfe1e6] bg-white text-[#527181] hover:border-[#76b8c7]"} disabled:cursor-not-allowed disabled:opacity-40`}>{category.name} <span className="ml-1 opacity-70">({count}명)</span></button>;
+                return <button key={category.id} type="button" aria-pressed={instructorFilter === category.id} disabled={count === 0} onClick={() => { setInstructorFilter(category.id); setSelectedInstructorId(null); }} className={`shrink-0 whitespace-nowrap rounded-full border px-4 py-2 text-xs font-bold transition ${instructorFilter === category.id ? "border-[#14333e] bg-[#14333e] text-white" : "border-[#d5e2dc] bg-white text-[#527181] hover:border-[#76b8c7]"} disabled:cursor-not-allowed disabled:opacity-40`}>{category.name} <span className="ml-1 opacity-70">({count}명)</span></button>;
               })}
             </div>
-            <p className="no-scrollbar mt-3 overflow-x-auto whitespace-nowrap rounded-lg bg-[#e0f1f4] px-3 py-2 text-xs font-semibold text-[#0b607a]" aria-live="polite">💡 선택하신 [{inquiryCourse || (instructorFilter === "all" ? "전체 교육" : categories.find((category) => category.id === instructorFilter)?.name)}] 과정을 진행할 수 있는 전문 강사 총 {visibleInstructors.length}명</p>
+            <p className="no-scrollbar mt-3 overflow-x-auto whitespace-nowrap rounded-lg bg-[#e7f2ed] px-3 py-2 text-xs font-semibold text-[#3b7771]" aria-live="polite">💡 선택하신 [{inquiryCourse || (instructorFilter === "all" ? "전체 교육" : categories.find((category) => category.id === instructorFilter)?.name)}] 과정을 진행할 수 있는 전문 강사 총 {visibleInstructors.length}명</p>
           </div>
-          <div className="max-h-[400px] overflow-y-auto overscroll-contain rounded-2xl border border-[#d9e7ec] bg-[#edf4f6] p-3 sm:p-4">
+          <div className="max-h-[400px] overflow-y-auto overscroll-contain rounded-2xl border border-[#d5e2dc] bg-[#f2f5f0] p-3 sm:p-4">
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {visibleInstructors.map((instructor) => (
               <button
@@ -735,19 +726,19 @@ export default function HomePage() {
                 type="button"
                 aria-pressed={selectedInstructorId === instructor.id}
                 onClick={() => setSelectedInstructorId(instructor.id)}
-                className={`min-w-0 rounded-2xl border p-4 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#087f9b] ${selectedInstructorId === instructor.id ? "border-[#0b718a] bg-[#e6f4f6] shadow-[0_8px_25px_rgba(11,113,138,.14)]" : "border-[#d9e7ec] bg-white hover:border-[#8dc6d3]"}`}
+                className={`min-w-0 rounded-2xl border p-4 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3b8178] ${selectedInstructorId === instructor.id ? "border-[#3b8178] bg-[#e6f4f6] shadow-[0_8px_25px_rgba(11,113,138,.14)]" : "border-[#d5e2dc] bg-white hover:border-[#8dc6d3]"}`}
               >
                 <span className="flex items-center gap-3">
-                  <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#0b5b77] text-sm font-semibold text-white">
+                  <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#14333e] text-sm font-semibold text-white">
                     {instructor.photoUrl ? <img src={instructor.photoUrl} alt="" className="h-full w-full object-cover object-[center_35%]" /> : instructor.initials}
                   </span>
-                  <span className="min-w-0"><span className="block text-[11px] font-bold text-[#087f9b]">{instructor.role}</span><span className="block text-lg font-semibold">{instructor.name}</span></span>
-                  <span aria-hidden="true" className={`ml-auto flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-xs ${selectedInstructorId === instructor.id ? "border-[#0b718a] bg-[#0b718a] text-white" : "border-[#a8c2ca] text-transparent"}`}>✓</span>
+                  <span className="min-w-0"><span className="block text-[11px] font-bold text-[#3b8178]">{instructor.role}</span><span className="block text-lg font-semibold">{instructor.name}</span></span>
+                  <span aria-hidden="true" className={`ml-auto flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-xs ${selectedInstructorId === instructor.id ? "border-[#3b8178] bg-[#3b8178] text-white" : "border-[#a8c2ca] text-transparent"}`}>✓</span>
                 </span>
                 <span className="mt-3 block break-keep text-[11px] leading-5 text-[#66808a]">{instructor.experience} · {instructor.certifications}</span>
                 <span className="mt-4 flex flex-wrap gap-1.5">
                   {inquiryCourseTitle && <span className="rounded-full bg-[#d9f3ee] px-2.5 py-1 text-[10px] font-bold text-[#086e73]">{inquiryCourseTitle} 가능</span>}
-                  {Object.keys(instructor.courses).map((id) => <span key={id} className="rounded-full bg-[#e4f2f5] px-2.5 py-1 text-[10px] font-bold text-[#0b607a]">{categories.find((category) => category.id === id)?.name}</span>)}
+                  {Object.keys(instructor.courses).map((id) => <span key={id} className="rounded-full bg-[#e6f0eb] px-2.5 py-1 text-[10px] font-bold text-[#3b7771]">{categories.find((category) => category.id === id)?.name}</span>)}
                   {Object.entries(instructor.courses).filter(([, titles]) => titles.some((title) => title.includes("강사 과정"))).map(([id]) => <span key={`instructor-${id}`} className="rounded-full bg-[#f9edcf] px-2.5 py-1 text-[10px] font-bold text-[#8b6222]">{categories.find((category) => category.id === id)?.name} 강사 과정</span>)}
                 </span>
               </button>
@@ -761,30 +752,30 @@ export default function HomePage() {
             <form id="consultation-form" onSubmit={submitReservation} className="mx-auto max-w-2xl space-y-4">
               <div className="rounded-xl border border-[#bddde4] bg-[#e8f4f6] p-4 text-sm text-[#28586b]">담당 강사 <strong className="ml-2 text-[#093e58]">{selectedInstructor.role} {selectedInstructor.name}</strong></div>
               <div className="grid gap-4 sm:grid-cols-2">
-                <label className="block text-sm font-semibold text-[#31586a]">성함 <span className="text-[#b75353]">*</span><input name="name" type="text" autoComplete="name" required maxLength={40} value={reservation.name} onChange={(event) => updateReservation("name", event.target.value)} placeholder="성함을 입력해 주세요" className="mt-2 h-12 w-full rounded-xl border border-[#cfe1e6] bg-white px-4 font-normal outline-none focus:border-[#0b718a] focus:ring-2 focus:ring-[#b2e2e9]" /></label>
-                <label className="block text-sm font-semibold text-[#31586a]">연락처 <span className="text-[#b75353]">*</span><input name="phone" type="tel" inputMode="numeric" autoComplete="tel" required pattern="[0-9]{3}-[0-9]{4}-[0-9]{4}" maxLength={13} value={reservation.phone} onChange={(event) => updateReservation("phone", event.target.value)} placeholder="010-0000-0000" title="휴대전화 번호 11자리를 입력해 주세요" className="mt-2 h-12 w-full rounded-xl border border-[#cfe1e6] bg-white px-4 font-normal outline-none focus:border-[#0b718a] focus:ring-2 focus:ring-[#b2e2e9]" /></label>
-                <label className="block text-sm font-semibold text-[#31586a]">인원 <span className="text-[#b75353]">*</span><input name="people" type="number" min="1" max="99" required value={reservation.people} onChange={(event) => updateReservation("people", event.target.value)} className="mt-2 h-12 w-full rounded-xl border border-[#cfe1e6] bg-white px-4 font-normal outline-none focus:border-[#0b718a] focus:ring-2 focus:ring-[#b2e2e9]" /></label>
-                <label className="block text-sm font-semibold text-[#31586a]">수업 희망 일정 <span className="text-[#b75353]">*</span><input name="schedule" type="date" required value={reservation.schedule} onChange={(event) => updateReservation("schedule", event.target.value)} className="mt-2 h-12 w-full rounded-xl border border-[#cfe1e6] bg-white px-4 font-normal text-[#15394b] outline-none focus:border-[#0b718a] focus:ring-2 focus:ring-[#b2e2e9]" /></label>
+                <label className="block text-sm font-semibold text-[#31586a]">성함 <span className="text-[#b75353]">*</span><input name="name" type="text" autoComplete="name" required maxLength={40} value={reservation.name} onChange={(event) => updateReservation("name", event.target.value)} placeholder="성함을 입력해 주세요" className="mt-2 h-12 w-full rounded-xl border border-[#d5e2dc] bg-white px-4 font-normal outline-none focus:border-[#3b8178] focus:ring-2 focus:ring-[#b2e2e9]" /></label>
+                <label className="block text-sm font-semibold text-[#31586a]">연락처 <span className="text-[#b75353]">*</span><input name="phone" type="tel" inputMode="numeric" autoComplete="tel" required pattern="[0-9]{3}-[0-9]{4}-[0-9]{4}" maxLength={13} value={reservation.phone} onChange={(event) => updateReservation("phone", event.target.value)} placeholder="010-0000-0000" title="휴대전화 번호 11자리를 입력해 주세요" className="mt-2 h-12 w-full rounded-xl border border-[#d5e2dc] bg-white px-4 font-normal outline-none focus:border-[#3b8178] focus:ring-2 focus:ring-[#b2e2e9]" /></label>
+                <label className="block text-sm font-semibold text-[#31586a]">인원 <span className="text-[#b75353]">*</span><input name="people" type="number" min="1" max="99" required value={reservation.people} onChange={(event) => updateReservation("people", event.target.value)} className="mt-2 h-12 w-full rounded-xl border border-[#d5e2dc] bg-white px-4 font-normal outline-none focus:border-[#3b8178] focus:ring-2 focus:ring-[#b2e2e9]" /></label>
+                <label className="block text-sm font-semibold text-[#31586a]">수업 희망 일정 <span className="text-[#b75353]">*</span><input name="schedule" type="date" required value={reservation.schedule} onChange={(event) => updateReservation("schedule", event.target.value)} className="mt-2 h-12 w-full rounded-xl border border-[#d5e2dc] bg-white px-4 font-normal text-[#15394b] outline-none focus:border-[#3b8178] focus:ring-2 focus:ring-[#b2e2e9]" /></label>
               </div>
-              <label className="block text-sm font-semibold text-[#31586a]">기타 문의사항<textarea name="message" rows={4} maxLength={1000} value={reservation.message} onChange={(event) => updateReservation("message", event.target.value)} placeholder="궁금한 점을 편하게 적어 주세요" className="mt-2 w-full resize-y rounded-xl border border-[#cfe1e6] bg-white px-4 py-3 font-normal outline-none focus:border-[#0b718a] focus:ring-2 focus:ring-[#b2e2e9]" /></label>
+              <label className="block text-sm font-semibold text-[#31586a]">기타 문의사항<textarea name="message" rows={4} maxLength={1000} value={reservation.message} onChange={(event) => updateReservation("message", event.target.value)} placeholder="궁금한 점을 편하게 적어 주세요" className="mt-2 w-full resize-y rounded-xl border border-[#d5e2dc] bg-white px-4 py-3 font-normal outline-none focus:border-[#3b8178] focus:ring-2 focus:ring-[#b2e2e9]" /></label>
               <p className="break-keep text-xs leading-relaxed text-[#6a8793]">입력 내용은 이 기기에서 상담 문구로 정리됩니다. 접수하기를 누르면 복사 안내가 먼저 나타납니다. 이후 오픈채팅방으로 이동해 내용을 직접 보내야 상담이 전달됩니다.</p>
             </form>
           )}
         </div>
-        <div className="z-10 shrink-0 border-t border-[#d9e7ec] bg-[#f4f8fa]/95 px-5 py-3 shadow-[0_-10px_30px_rgba(6,44,67,.08)] backdrop-blur-md sm:px-8 sm:py-4">
+        <div className="z-10 shrink-0 border-t border-[#d5e2dc] bg-[#f7f6f1]/95 px-5 py-3 shadow-[0_-10px_30px_rgba(6,44,67,.08)] backdrop-blur-md sm:px-8 sm:py-4">
           {reservationStep === "select" && <>
             <p className="mb-2 truncate text-xs font-medium text-[#426575]">{selectedInstructor ? `선택한 강사 · ${selectedInstructor.role} ${selectedInstructor.name}` : "상담할 강사를 선택해 주세요"}</p>
             <div className="flex flex-col gap-2 sm:flex-row">
-              <button type="button" disabled={!selectedInstructor} onClick={() => setReservationStep("form")} className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[#0b5b77] px-4 text-center text-sm font-bold text-white transition hover:bg-[#08465e] disabled:cursor-not-allowed disabled:bg-[#c7d9df] disabled:text-[#6e8791]">{selectedInstructor ? "이 강사에게 상담 문의하기" : "강사를 먼저 선택해 주세요"} <ArrowIcon diagonal /></button>
-              <a href={generalInquiryUrl} className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl border border-[#a8c9d3] bg-white px-4 text-center text-xs font-bold text-[#0b5b77] transition hover:bg-[#eaf5f7] sm:min-h-12 sm:text-sm">전체 문의 / 강사 배정 요청</a>
+              <button type="button" disabled={!selectedInstructor} onClick={() => setReservationStep("form")} className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[#14333e] px-4 text-center text-sm font-bold text-white transition hover:bg-[#326a70] disabled:cursor-not-allowed disabled:bg-[#c7d9df] disabled:text-[#6e8791]">{selectedInstructor ? "이 강사에게 상담 문의하기" : "강사를 먼저 선택해 주세요"} <ArrowIcon diagonal /></button>
+              <a href={generalInquiryUrl} className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl border border-[#a8c9d3] bg-white px-4 text-center text-xs font-bold text-[#14333e] transition hover:bg-[#eaf5f7] sm:min-h-12 sm:text-sm">전체 문의 / 강사 배정 요청</a>
             </div>
           </>}
-          {reservationStep === "form" && <div className="flex gap-2"><button type="button" onClick={() => setReservationStep("select")} className="min-h-12 rounded-xl border border-[#a8c9d3] bg-white px-4 text-sm font-bold text-[#0b5b77]">이전</button><button type="submit" form="consultation-form" className="min-h-12 flex-1 rounded-xl bg-[#0b5b77] px-5 text-sm font-bold text-white transition hover:bg-[#08465e]">접수하기</button></div>}
+          {reservationStep === "form" && <div className="flex gap-2"><button type="button" onClick={() => setReservationStep("select")} className="min-h-12 rounded-xl border border-[#a8c9d3] bg-white px-4 text-sm font-bold text-[#14333e]">이전</button><button type="submit" form="consultation-form" className="min-h-12 flex-1 rounded-xl bg-[#14333e] px-5 text-sm font-bold text-white transition hover:bg-[#326a70]">접수하기</button></div>}
         </div>
         {reservationStep === "confirm" && (
           <div role="dialog" aria-modal="true" aria-labelledby="confirmation-title" className="absolute inset-0 z-30 flex items-center justify-center overflow-y-auto bg-[#031c2c]/85 p-4 backdrop-blur-sm sm:p-8">
             <div className="my-auto w-full max-w-lg rounded-2xl border border-[#add9e0] bg-[#f7fbfc] p-6 shadow-[0_25px_70px_rgba(0,0,0,.32)] sm:p-8">
-              <p className="text-[11px] font-bold uppercase tracking-[.2em] text-[#0b718a]">Blue Peace · Final check</p>
+              <p className="text-[11px] font-bold uppercase tracking-[.2em] text-[#3b8178]">Blue Peace · Final check</p>
               <h3 id="confirmation-title" className="mt-3 break-keep text-2xl font-semibold leading-tight text-[#102e40]">{copySucceeded ? "📋 상담 양식이 복사되었습니다" : "📋 상담 양식을 확인해 주세요"}</h3>
               {copySucceeded ? (
                 <div className="mt-5 space-y-3 break-keep text-sm leading-relaxed text-[#4f6e7d]">
@@ -793,12 +784,12 @@ export default function HomePage() {
                   <p>담당 강사님이 내용을 확인하는 대로 빠르고 친절하게 안내해 드립니다.</p>
                 </div>
               ) : (
-                <div className="mt-5 space-y-3 text-sm leading-relaxed text-[#4f6e7d]"><p>브라우저에서 자동 복사를 허용하지 않았습니다. 아래 내용을 직접 복사한 뒤 오픈채팅방에 붙여넣어 주세요.</p><textarea aria-label="상담 내용 복사본" readOnly value={submissionText} rows={6} onFocus={(event) => event.target.select()} className="w-full rounded-xl border border-[#cfe1e6] bg-white p-3 text-xs" /></div>
+                <div className="mt-5 space-y-3 text-sm leading-relaxed text-[#4f6e7d]"><p>브라우저에서 자동 복사를 허용하지 않았습니다. 아래 내용을 직접 복사한 뒤 오픈채팅방에 붙여넣어 주세요.</p><textarea aria-label="상담 내용 복사본" readOnly value={submissionText} rows={6} onFocus={(event) => event.target.select()} className="w-full rounded-xl border border-[#d5e2dc] bg-white p-3 text-xs" /></div>
               )}
               <div className="mt-6 flex flex-col gap-2 sm:flex-row">
-                {!copySucceeded && <button type="button" onClick={async () => { try { await navigator.clipboard.writeText(submissionText); setCopySucceeded(true); } catch { setCopySucceeded(false); } }} className="min-h-12 rounded-xl border border-[#a8c9d3] bg-white px-4 text-sm font-bold text-[#0b5b77]">다시 복사</button>}
-                <a href={selectedInstructor?.kakaoUrl || "https://open.kakao.com/"} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-12 flex-1 items-center justify-center rounded-xl bg-[#0b5b77] px-5 text-center text-sm font-bold text-white transition hover:bg-[#08465e]">오픈채팅방으로 이동하기 ↗</a>
-                <button type="button" onClick={() => setReservationStep("form")} className="min-h-12 rounded-xl border border-[#a8c9d3] bg-white px-4 text-sm font-bold text-[#0b5b77]">양식 수정</button>
+                {!copySucceeded && <button type="button" onClick={async () => { try { await navigator.clipboard.writeText(submissionText); setCopySucceeded(true); } catch { setCopySucceeded(false); } }} className="min-h-12 rounded-xl border border-[#a8c9d3] bg-white px-4 text-sm font-bold text-[#14333e]">다시 복사</button>}
+                <a href={selectedInstructor?.kakaoUrl || "https://open.kakao.com/"} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-12 flex-1 items-center justify-center rounded-xl bg-[#14333e] px-5 text-center text-sm font-bold text-white transition hover:bg-[#326a70]">오픈채팅방으로 이동하기 ↗</a>
+                <button type="button" onClick={() => setReservationStep("form")} className="min-h-12 rounded-xl border border-[#a8c9d3] bg-white px-4 text-sm font-bold text-[#14333e]">양식 수정</button>
               </div>
             </div>
           </div>
