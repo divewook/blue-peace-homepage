@@ -4,12 +4,33 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 
 const contactEmail = "divewook@naver.com";
-const naverReviewUrl = "https://map.naver.com/p/entry/place/1768533167/review";
+const instagramUrl = "https://www.instagram.com/bluepeace_diving/";
+const business = { name: "블루피스", owner: "김상욱", registration: "460-44-01113" };
+const naverReviewUrl = "https://map.naver.com/p/entry/place/1768533167?placePath=%2Freview";
 const heroImages = [
   "/DSC02297.jpg",
   "/DSC04128-Enhanced-NR.jpg",
   "/DSC05353-Enhanced-NR.jpg",
   "/DSC06986.jpg",
+];
+const galleryImages = [
+  { src: "/DSC02240.jpg", alt: "블루피스 수중 갤러리의 빛과 물결" },
+  { src: "/DSC02297.jpg", alt: "블루피스 수중 갤러리 사진 2" },
+  { src: "/DSC04128-Enhanced-NR.jpg", alt: "블루피스 수중 갤러리 사진 3" },
+  { src: "/DSC05353-Enhanced-NR.jpg", alt: "블루피스 수중 갤러리 사진 4" },
+  { src: "/DSC06986.jpg", alt: "블루피스 수중 갤러리 사진 5" },
+];
+const faqs = [
+  { question: "수영을 못해도 가능한가요?", answer: "가능합니다. 수영 실력보다 물에 적응하는 과정부터 천천히 진행합니다." },
+  { question: "물 공포가 있어도 괜찮나요?", answer: "괜찮습니다. 강사가 옆에서 단계별로 안내하며 편안하게 적응할 수 있도록 도와드립니다." },
+  { question: "준비물은 무엇인가요?", answer: "수영복 또는 래시가드, 수건, 개인 샤워도구를 준비해주세요." },
+  { question: "교육 시간은 얼마나 걸리나요?", answer: "과정별로 다르며, 체험 과정은 약 3시간 기준으로 진행됩니다." },
+  { question: "사진과 영상도 받을 수 있나요?", answer: "네. 수업 중 촬영한 사진과 영상은 선별 및 보정 후 전달해드립니다." },
+  { question: "추가 비용이 있나요?", answer: "풀장 입장료, 장비 렌탈료는 별도입니다." },
+  { question: "자격증은 어디서 발급되나요?", answer: "AIDA · PSA 국제 자격증 발급이 가능하며, 과정과 목표에 맞춰 안내해드립니다." },
+  { question: "자격증 취득까지 얼마나 걸리나요?", answer: "개인별 습득 속도에 따라 다릅니다. 자격 취득 전까지 무제한 트레이닝을 지원합니다." },
+  { question: "혼자 신청해도 괜찮나요?", answer: "물론입니다. 혼자 오셔도 편하게 수업받을 수 있고, 이후 트레이닝과 커뮤니티도 함께할 수 있습니다." },
+  { question: "교육 장소는 어디인가요?", answer: "이론 수업은 블루피스에서, 풀장 실습은 패스나인 등 일정에 맞는 풀장에서 진행됩니다." },
 ];
 
 // 코스명은 아래 categories의 title과 정확히 일치시켜 주세요.
@@ -251,6 +272,7 @@ export default function HomePage() {
   const [reservation, setReservation] = useState({ name: "", phone: "", people: "1", schedule: "", message: "" });
   const [submissionText, setSubmissionText] = useState("");
   const [copySucceeded, setCopySucceeded] = useState(false);
+  const [openFaq, setOpenFaq] = useState(null);
   const dialogRef = useRef(null);
   const activeCategory = categories.find((category) => category.id === activeTab);
   const selectedInstructor = directoryInstructors.find((instructor) => instructor.id === selectedInstructorId);
@@ -328,19 +350,19 @@ export default function HomePage() {
 
   return (
     <main className="overflow-hidden bg-[#061f32] text-white">
-      <style jsx global>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } } .no-scrollbar { scrollbar-width: none; } .no-scrollbar::-webkit-scrollbar { display: none; }`}</style>
+      <style jsx global>{`html { scroll-behavior: smooth; } @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } } @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } } .no-scrollbar { scrollbar-width: none; } .no-scrollbar::-webkit-scrollbar { display: none; }`}</style>
       <header className="absolute inset-x-0 top-0 z-30 border-b border-white/15 text-white">
         <nav aria-label="주 메뉴" className="mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-5 px-6 py-5 sm:px-10 lg:px-16">
           <a href="#top" className="flex items-center gap-3 text-xl font-bold tracking-[-0.06em] sm:text-2xl">
             <Image src="/화이트 로고.png" alt="" width={36} height={36} className="h-9 w-9 shrink-0 object-contain" />
             Blue Peace<span className="text-[#76d8e8]">.</span>
           </a>
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs font-medium sm:text-sm lg:gap-x-9">
-            <a href="#courses" className="transition hover:text-[#8ce5ed]">교육 과정</a>
-            <a href="#gallery" className="transition hover:text-[#8ce5ed]">갤러리</a>
-            <a href="#instructors" className="transition hover:text-[#8ce5ed]">강사진 소개</a>
-            <a href="#reviews" className="transition hover:text-[#8ce5ed]">수강생 후기</a>
-            <button type="button" onClick={() => openInquiry()} className="hidden rounded-full border border-white/55 px-5 py-2.5 transition hover:bg-white hover:text-[#073d57] md:inline-flex">교육 문의 ↗</button>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] font-medium sm:gap-x-6 sm:text-sm lg:gap-x-8">
+            <a href="#courses" className="transition hover:text-[#8ce5ed]">교육과정</a>
+            <a href="#instructors" className="transition hover:text-[#8ce5ed]">강사진</a>
+            <a href="#reviews" className="transition hover:text-[#8ce5ed]">후기</a>
+            <a href="#faq" className="transition hover:text-[#8ce5ed]">FAQ</a>
+            <a href="#contact" className="rounded-full border border-white/40 px-3 py-1.5 transition hover:bg-white hover:text-[#073d57] sm:px-5 sm:py-2.5">교육문의 ↗</a>
           </div>
         </nav>
       </header>
@@ -496,15 +518,19 @@ export default function HomePage() {
       </section>
 
       <section id="gallery" className="bg-[#09273b] px-6 py-10 text-white sm:px-10 sm:py-20 lg:px-16 lg:py-24">
-        <div className="mx-auto grid max-w-[1312px] gap-5 lg:grid-cols-[.8fr_1.2fr] lg:items-center lg:gap-16">
-          <div>
+        <div className="mx-auto max-w-[1312px]">
+          <div className="mb-6 max-w-2xl sm:mb-10">
             <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#7bd7e5]">The blue moment</p>
             <h2 className="mt-2 text-3xl font-semibold leading-tight tracking-[-0.06em] sm:mt-5 sm:text-5xl">말보다 오래 남는<br />바다의 순간</h2>
             <p className="mt-4 max-w-md break-keep text-sm leading-relaxed text-white/75 sm:mt-6 sm:text-lg">고요한 물속, 부드러운 빛, 자유로운 움직임.</p>
             <p className="mt-1 max-w-md break-keep text-sm leading-relaxed text-white/75 sm:mt-3 sm:text-lg">블루피스가 사랑하는 바다의 장면을 만나보세요.</p>
           </div>
-          <div className="relative mx-auto aspect-[2/3] w-full max-w-[240px] overflow-hidden rounded-2xl bg-[#0c6a84] shadow-[0_25px_60px_rgba(0,0,0,.26)] sm:max-w-[360px] lg:max-w-[400px]">
-            <Image src="/DSC02240.jpg" alt="햇살이 들어오는 물속에서 다이빙하는 블루피스의 장면" fill sizes="(min-width: 1024px) 460px, 90vw" className="object-contain" />
+          <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-3">
+            {galleryImages.map((photo, index) => (
+              <figure key={photo.src} className={`relative overflow-hidden rounded-2xl border border-white/10 bg-[#0b3449] shadow-[0_18px_45px_rgba(0,0,0,.16)] ${index === 0 ? "row-span-2 min-h-[264px] sm:min-h-[420px]" : "h-32 sm:h-52"}`}>
+                <Image src={photo.src} alt={photo.alt} fill sizes={index === 0 ? "(min-width: 1024px) 33vw, 50vw" : "(min-width: 1024px) 33vw, 50vw"} className={index === 0 ? "object-contain" : "object-cover transition-transform duration-700 hover:scale-105"} />
+              </figure>
+            ))}
           </div>
         </div>
       </section>
@@ -555,11 +581,40 @@ export default function HomePage() {
         </div>
       </section>
 
+      <section id="faq" className="bg-[#061f32] px-6 py-12 text-white sm:px-10 sm:py-20 lg:px-16 lg:py-24">
+        <div className="mx-auto max-w-[1312px]">
+          <div className="mb-7 max-w-2xl sm:mb-10">
+            <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#7ad7df]">Before you dive</p>
+            <h2 className="mt-2 break-keep text-3xl font-semibold leading-tight tracking-[-0.06em] sm:mt-5 sm:text-5xl">처음 시작하는 분들이<br />가장 많이 묻는 질문</h2>
+            <p className="mt-4 break-keep text-sm leading-relaxed text-white/60">처음이라 궁금한 점들을 모았습니다. 더 자세한 내용은 상담에서 편하게 물어보세요.</p>
+          </div>
+          <div className="grid items-start gap-3 md:grid-cols-2 md:gap-4">
+            {faqs.map((faq, index) => {
+              const isOpen = openFaq === index;
+              return (
+                <div key={faq.question} className={`overflow-hidden rounded-2xl border backdrop-blur-lg transition-colors duration-300 ${isOpen ? "border-[#80cbd3]/50 bg-white/[.1]" : "border-white/15 bg-white/[.055]"}`}>
+                  <h3>
+                    <button type="button" aria-expanded={isOpen} aria-controls={`faq-answer-${index}`} onClick={() => setOpenFaq(isOpen ? null : index)} className="flex w-full items-center gap-3 px-4 py-4 text-left sm:px-5 sm:py-5">
+                      <span className="shrink-0 text-xs font-bold text-[#83d4dc]">Q.{String(index + 1).padStart(2, "0")}</span>
+                      <span className="flex-1 break-keep text-sm font-semibold leading-relaxed sm:text-base">{faq.question}</span>
+                      <span aria-hidden="true" className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/20 text-lg leading-none text-[#9fe2e5] transition-transform duration-300 ${isOpen ? "rotate-45" : ""}`}>+</span>
+                    </button>
+                  </h3>
+                  <div id={`faq-answer-${index}`} aria-hidden={!isOpen} className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none ${isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
+                    <div className="overflow-hidden"><p className="break-keep border-t border-white/10 px-4 pb-5 pt-4 text-sm leading-relaxed text-white/70 sm:px-5"><SentenceText>{faq.answer}</SentenceText></p></div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
       <section id="reviews" className="bg-[#09283d] px-6 py-10 sm:px-10 sm:py-20 lg:px-16 lg:py-24">
         <div className="mx-auto max-w-[1312px]">
           <div className="max-w-2xl">
             <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#7ad7df]">Naver Place reviews</p>
-            <h2 className="mt-2 break-keep text-3xl font-semibold tracking-[-0.06em] sm:mt-5 sm:text-5xl">네이버 플레이스에서 남긴 이야기</h2>
+            <h2 className="mt-2 break-keep text-3xl font-semibold tracking-[-0.06em] sm:mt-5 sm:text-5xl">바다를 경험한 사람들의 이야기</h2>
             <p className="mt-3 break-keep text-xs leading-relaxed text-white/60 sm:mt-5 sm:text-base"><SentenceText>블루피스 네이버 플레이스에 공개된 방문자 후기의 핵심 내용을 짧게 요약했습니다. 원문은 네이버 플레이스에서 확인할 수 있습니다.</SentenceText></p>
           </div>
           <div className="no-scrollbar -mx-6 mt-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-6 pb-3 sm:mx-0 sm:mt-10 sm:grid sm:grid-cols-2 sm:gap-5 sm:overflow-visible sm:px-0 xl:grid-cols-4">
@@ -572,7 +627,7 @@ export default function HomePage() {
               </article>
             ))}
           </div>
-          <a href={naverReviewUrl} target="_blank" rel="noopener noreferrer" className="mt-4 inline-flex min-h-11 items-center gap-4 rounded-xl border border-white/25 bg-white/[.08] px-4 text-xs font-bold text-white backdrop-blur-lg transition hover:bg-white/15 sm:mt-9 sm:min-h-12 sm:px-6 sm:text-sm">네이버 플레이스 실시간 리뷰 보기 <ArrowIcon diagonal /></a>
+          <a href={naverReviewUrl} target="_blank" rel="noopener noreferrer" className="mt-4 inline-flex min-h-11 items-center gap-4 rounded-xl border border-white/25 bg-white/[.08] px-4 text-xs font-bold text-white backdrop-blur-lg transition hover:bg-white/15 sm:mt-9 sm:min-h-12 sm:px-6 sm:text-sm">네이버 플레이스 실시간 리뷰 전체보기 <ArrowIcon diagonal /></a>
         </div>
       </section>
 
@@ -703,11 +758,29 @@ export default function HomePage() {
         )}
       </dialog>
 
-      <footer className="bg-[#032b40] px-6 py-10 text-white/60 sm:px-10 lg:px-16">
-        <div className="mx-auto flex max-w-[1312px] flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-          <div><p className="text-xl font-bold tracking-[-0.05em] text-white">Blue Peace<span className="text-[#76d8e8]">.</span></p><p className="mt-3 text-xs">© {new Date().getFullYear()} Blue Peace. All rights reserved.</p></div>
-          <p className="text-xs">문의: <a href={`mailto:${contactEmail}`} className="underline decoration-white/30 underline-offset-4 hover:text-white">{contactEmail}</a></p>
+      <footer className="border-t border-white/10 bg-[#031a2a] px-6 py-10 text-white/65 sm:px-10 sm:py-14 lg:px-16">
+        <div className="mx-auto grid max-w-[1312px] gap-8 sm:grid-cols-2 lg:grid-cols-[1.2fr_1fr_1fr]">
+          <div>
+            <p className="text-2xl font-bold tracking-[-0.05em] text-white">Blue Peace<span className="text-[#76d8e8]">.</span></p>
+            <p className="mt-3 max-w-xs break-keep text-sm leading-relaxed">바다를 배우고, 더 자유롭게 경험하는 시간.</p>
+          </div>
+          <div>
+            <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-[#8ad6df]">Business</p>
+            <dl className="space-y-1.5 text-sm leading-relaxed">
+              <div className="flex gap-3"><dt className="w-24 shrink-0 text-white/45">상호</dt><dd>{business.name}</dd></div>
+              <div className="flex gap-3"><dt className="w-24 shrink-0 text-white/45">대표자</dt><dd>{business.owner}</dd></div>
+              <div className="flex gap-3"><dt className="w-24 shrink-0 text-white/45">사업자등록번호</dt><dd>{business.registration}</dd></div>
+            </dl>
+          </div>
+          <div>
+            <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-[#8ad6df]">Connect</p>
+            <div className="flex flex-col items-start gap-2 text-sm">
+              <a href={`mailto:${contactEmail}`} className="underline decoration-white/25 underline-offset-4 transition hover:text-white">{contactEmail}</a>
+              <a href={instagramUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 underline decoration-white/25 underline-offset-4 transition hover:text-white">Instagram · @bluepeace_diving <ArrowIcon diagonal /></a>
+            </div>
+          </div>
         </div>
+        <div className="mx-auto mt-9 max-w-[1312px] border-t border-white/10 pt-5 text-xs text-white/40">© {new Date().getFullYear()} Blue Peace. All rights reserved.</div>
       </footer>
     </main>
   );
