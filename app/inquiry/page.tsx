@@ -46,32 +46,39 @@ export default function InquiryPage() {
   const [course, setCourse] = useState<string>('freediving');
   const [level, setLevel] = useState<number | string>(0);
   
+  // 최초 접속 시 모든 풀장 및 시간대, 요일 기본값은 false (미체크 상태)
   const [pools, setPools] = useState<{ passnine: boolean; miryang: boolean; duryu: boolean }>({
-    passnine: true, miryang: false, duryu: false,
+    passnine: false, miryang: false, duryu: false,
   });
 
   const [days, setDays] = useState<{ [key: string]: boolean }>({
-    mon: false, tue: false, wed: false, thu: false, fri: false, sat: true, sun: true,
+    mon: false, tue: false, wed: false, thu: false, fri: false, sat: false, sun: false,
   });
   
   const [passnineTimes, setPassnineTimes] = useState<{ [key: string]: boolean }>({
-    t1: true, t2: true, t3: false, t4: false,
+    t1: false, t2: false, t3: false, t4: false,
   });
   const [miryangTimes, setMiryangTimes] = useState<{ [key: string]: boolean }>({
-    t0: false, t1: true, t2: true, t3: false, t4: false, t5: false, t6: false,
+    t0: false, t1: false, t2: false, t3: false, t4: false, t5: false, t6: false,
   });
 
+  // 풀장 체크 시에만 초기화 또는 기본값 부여
   useEffect(() => {
-    setPassnineTimes(pools.passnine ? { t1: true, t2: true, t3: false, t4: false } : { t1: false, t2: false, t3: false, t4: false });
+    if (!pools.passnine) {
+      setPassnineTimes({ t1: false, t2: false, t3: false, t4: false });
+    }
   }, [pools.passnine]);
 
   useEffect(() => {
-    setMiryangTimes(pools.miryang ? { t0: false, t1: true, t2: true, t3: false, t4: false, t5: false, t6: false } : { t0: false, t1: false, t2: false, t3: false, t4: false, t5: false, t6: false });
+    if (!pools.miryang) {
+      setMiryangTimes({ t0: false, t1: false, t2: false, t3: false, t4: false, t5: false, t6: false });
+    }
   }, [pools.miryang]);
 
   const [loading, setLoading] = useState(false);
   const [matchedInstructor, setMatchedInstructor] = useState<Instructor | null>(null);
   const [noMatch, setNoMatch] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleCourseChange = (c: string) => {
     setCourse(c);
@@ -81,9 +88,41 @@ export default function InquiryPage() {
   };
 
   const handleSubmit = async () => {
-    setLoading(true);
+    setErrorMessage(null);
     setMatchedInstructor(null);
     setNoMatch(false);
+
+    // 1. 풀장 선택 검증
+    if (!pools.passnine && !pools.miryang && !pools.duryu) {
+      setErrorMessage('⚠️ 희망 교육 풀장을 최소 1곳 이상 선택해 주세요.');
+      return;
+    }
+
+    // 2. 요일 선택 검증
+    const selDays = Object.keys(days).filter((d) => days[d]);
+    if (selDays.length === 0) {
+      setErrorMessage('⚠️ 수업 희망 요일을 최소 1개 이상 선택해 주세요.');
+      return;
+    }
+
+    // 3. 풀장별 세부 시간대 검증
+    if (pools.passnine) {
+      const selPn = Object.keys(passnineTimes).filter((t) => passnineTimes[t]);
+      if (selPn.length === 0) {
+        setErrorMessage('⚠️ 칠곡 패스나인 풀장의 세부 시간대를 최소 1개 이상 선택해 주세요.');
+        return;
+      }
+    }
+
+    if (pools.miryang) {
+      const selMr = Object.keys(miryangTimes).filter((t) => miryangTimes[t]);
+      if (selMr.length === 0) {
+        setErrorMessage('⚠️ 밀양 아리랑 풀장의 세부 시간대를 최소 1개 이상 선택해 주세요.');
+        return;
+      }
+    }
+
+    setLoading(true);
     await new Promise((r) => setTimeout(r, 1200));
 
     try {
@@ -102,23 +141,22 @@ export default function InquiryPage() {
         if (pools.miryang && !ins.can_miryang) return false;
         if (pools.duryu && !ins.can_duryu) return false;
 
-        const selDays = Object.keys(days).filter((d) => days[d]);
         const dayMap: { [k: string]: keyof Instructor } = {
           mon: 'available_mon', tue: 'available_tue', wed: 'available_wed',
           thu: 'available_thu', fri: 'available_fri', sat: 'available_sat', sun: 'available_sun',
         };
-        if (selDays.length > 0 && !selDays.some((d) => ins[dayMap[d]])) return false;
+        if (!selDays.some((d) => ins[dayMap[d]])) return false;
 
         if (pools.passnine) {
           const selPn = Object.keys(passnineTimes).filter((t) => passnineTimes[t]);
           const pnMap: { [k: string]: keyof Instructor } = { t1: 'passnine_t1', t2: 'passnine_t2', t3: 'passnine_t3', t4: 'passnine_t4' };
-          if (selPn.length > 0 && !selPn.some((t) => ins[pnMap[t]])) return false;
+          if (!selPn.some((t) => ins[pnMap[t]])) return false;
         }
 
         if (pools.miryang) {
           const selMr = Object.keys(miryangTimes).filter((t) => miryangTimes[t]);
           const mrMap: { [k: string]: keyof Instructor } = { t0: 'miryang_t0', t1: 'miryang_t1', t2: 'miryang_t2', t3: 'miryang_t3', t4: 'miryang_t4', t5: 'miryang_t5', t6: 'miryang_t6' };
-          if (selMr.length > 0 && !selMr.some((t) => ins[mrMap[t]])) return false;
+          if (!selMr.some((t) => ins[mrMap[t]])) return false;
         }
         return true;
       });
@@ -143,8 +181,16 @@ export default function InquiryPage() {
       <header className="text-center mb-6 pt-3">
         <span className="text-xs font-semibold px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">BLUE PEACE SYSTEM</span>
         <h1 className="text-2xl sm:text-3xl font-extrabold mt-3 text-white">🌊 교육 신청 & 1:1 전담 강사 매칭</h1>
-        <p className="text-sm text-slate-400 mt-1">원하시는 조건에 100% 부합하는 전문 강사님이 실시간 매칭됩니다.</p>
+        <p className="text-sm text-slate-400 mt-1">원하시는 조건을 직접 체크하시면 100% 부합하는 전문 강사님이 매칭됩니다.</p>
       </header>
+
+      {/* 에러 안내 메시지 배너 */}
+      {errorMessage && (
+        <div className="mb-4 bg-red-950/80 border border-red-500 text-red-200 px-4 py-3 rounded-xl text-sm font-semibold flex items-center justify-between animate-shake">
+          <span>{errorMessage}</span>
+          <button onClick={() => setErrorMessage(null)} className="text-xs opacity-75 hover:opacity-100">✕ 닫기</button>
+        </div>
+      )}
 
       {/* 1. 교육 과정 */}
       <section className="bg-slate-900/80 p-4 rounded-2xl mb-4 border border-slate-800 shadow-xl">
