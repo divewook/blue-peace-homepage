@@ -43,14 +43,14 @@ interface Instructor {
   miryang_t6: boolean;
 }
 
-// 코스별 상세 레벨 옵션 정의
+// 코스별 정확한 상세 레벨 및 패키지 옵션 정의
 const courseLevelOptions: { [key: string]: string[] } = {
-  '프리다이빙': ['1레벨 (입문)', '2레벨 (어드밴스드)', '3레벨 (마스터)', '4레벨 (상위)', '강사 과정', '패키지 과정'],
-  '머메이드 다이빙': ['베이직 머메이드', '머메이드', '오션 머메이드', '머메이드 강사 과정'],
-  '유스 프리다이빙': ['1레벨 (Dolphin)', '2레벨 (Orca)', '3레벨 (Shark)', '유스 강사 과정'],
+  '프리다이빙': ['체험 과정', '1레벨 (입문)', '2레벨 (어드밴스드)', '3레벨 (마스터)', '4레벨 (상위)', '강사 과정', '1+2레벨 패키지', '3+4레벨 패키지'],
+  '머메이드 다이빙': ['체험 과정', '베이직 머메이드', '머메이드', '오션 머메이드', '머메이드 강사 과정', '베이직+머메이드 패키지', '머메이드+오션 패키지'],
+  '유스 프리다이빙': ['체험 과정', '1레벨 (Dolphin)', '2레벨 (Orca)', '3레벨 (Shark)', '유스 강사 과정', '돌핀+오르카 패키지', '오르카+샤크 패키지'],
   '수중레저안전요원': ['수중레저안전요원', '마스터 안전요원', '안전요원 강사 과정'],
-  '스쿠버다이빙': ['오픈워터', '어드밴스드', '스쿠버 강사 과정'],
-  '스페셜 교육': ['응급처치 및 CPR 교육', '수중 사진 촬영 교육'],
+  '스쿠버다이빙': ['체험 과정', '오픈워터', '어드밴스드', '오픈워터+어드밴스드 패키지'],
+  '스페셜 교육': ['응급처치 및 CPR 교육', '응급처치 CPR 강사 과정', '수중 사진 촬영 교육'],
 };
 
 function InquiryFormContent() {
@@ -108,7 +108,6 @@ function InquiryFormContent() {
     }
   }, [initialCourseParam]);
 
-  // 코스 변경 시 상세 레벨 첫 번째 항목으로 자동 지정
   const handleCourseChange = (selectedCourse: string) => {
     setCourse(selectedCourse);
     setDetailLevel(courseLevelOptions[selectedCourse][0]);
@@ -289,16 +288,16 @@ function InquiryFormContent() {
           </div>
         </div>
 
-        {/* 2차 세부 레벨 / 과정 선택 */}
+        {/* 2차 세부 레벨 / 과정 / 패키지 선택 */}
         <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800">
-          <label className="block text-xs font-bold text-cyan-400 mb-2">2. [{course}] 세부 희망 레벨 및 과정 선택</label>
+          <label className="block text-xs font-bold text-cyan-400 mb-2">2. [{course}] 세부 과정 및 패키지 선택</label>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
             {courseLevelOptions[course]?.map((lvl) => (
               <button
                 key={lvl}
                 type="button"
                 onClick={() => setDetailLevel(lvl)}
-                className={`py-2 px-2 rounded-lg text-xs font-medium border transition cursor-pointer ${
+                className={`py-2.5 px-2 rounded-lg text-xs font-medium border transition cursor-pointer ${
                   detailLevel === lvl
                     ? 'bg-cyan-950 border-cyan-400 text-cyan-200 font-bold'
                     : 'bg-slate-900 border-slate-800 text-slate-400'
@@ -372,7 +371,7 @@ function InquiryFormContent() {
           )}
         </div>
 
-        {/* 밀양 아리랑 풀장 세부 시간대 복수 선택 (오전부 주말 안내 반영) */}
+        {/* 밀양 아리랑 풀장 세부 시간대 복수 선택 */}
         <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2.5">
           <label className="flex items-center space-x-2 text-xs font-bold text-white cursor-pointer">
             <input
@@ -430,7 +429,7 @@ function InquiryFormContent() {
           <h3 className="text-base sm:text-lg font-bold text-cyan-400 text-center animate-pulse">
             🫧 블루피스 전담 잠수 다이버가<br />맞춤형 담당 강사님을 찾는 중입니다...
           </h3>
-          <p className="text-xs text-slate-400 mt-2">입력하신 요일과 세부 레벨 조건을 실시간 분석하고 있습니다.</p>
+          <p className="text-xs text-slate-400 mt-2">입력하신 요일과 세부 과정 레벨 조건을 실시간 분석하고 있습니다.</p>
         </div>
       )}
 
