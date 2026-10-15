@@ -17,17 +17,14 @@ interface Instructor {
   phone: string | null;
   bio: string | null;
   
-  // 지도 가능 레벨 및 과정 (숫자 또는 문자열 상태)
-  max_freediving_level: number; // 0:불가, 1:1레벨, 2:2레벨, 3:3레벨, 4:4레벨(강사)
-  max_mermaid_level: number;    // 0:불가, 1:1레벨, 2:2레벨, 3:3레벨(강사)
-  max_youth_level: number;      // 0:불가, 1:1레벨, 2:2레벨, 3:3레벨(강사)
-  
-  safety_guard_level: number;   // 0:불가, 1:일반, 2:마스터, 3:강사
-  scuba_level: number;          // 0:불가, 1:오픈워터~레스큐/마스터, 2:강사
-  first_aid_level: number;      // 0:불가, 1:일반, 2:강사
-  underwater_photo_level: number; // 0:불가, 1:일반, 2:강사
+  max_freediving_level: number;
+  max_mermaid_level: number;
+  max_youth_level: number;
+  safety_guard_level: number;
+  scuba_level: number;
+  first_aid_level: number;
+  underwater_photo_level: number;
 
-  // 풀장 및 요일
   can_passnine: boolean;
   can_miryang: boolean;
   available_mon: boolean;
@@ -38,13 +35,11 @@ interface Instructor {
   available_sat: boolean;
   available_sun: boolean;
 
-  // 패스나인 시간대 (교육생 페이지 연동)
   passnine_t1: boolean;
   passnine_t2: boolean;
   passnine_t3: boolean;
   passnine_t4: boolean;
 
-  // 밀양 시간대 (교육생 페이지 연동)
   miryang_t0: boolean;
   miryang_t1: boolean;
   miryang_t2: boolean;
@@ -54,8 +49,19 @@ interface Instructor {
   miryang_t6: boolean;
 }
 
+interface CustomerBooking {
+  id: string;
+  created_at: string;
+  name: string;
+  phone: string;
+  course: string;
+  pool: string;
+  time_slot: string;
+  matched_instructor: string;
+}
+
 export default function InstructorMyPage() {
-  const [viewMode, setViewMode] = useState<'login' | 'signup' | 'dashboard' | 'admin'>('login');
+  const [viewMode, setViewMode] = useState<'login' | 'signup' | 'dashboard' | 'admin' | 'settings'>('login');
   
   const [loginId, setLoginId] = useState('');
   const [loginPw, setLoginPw] = useState('');
@@ -64,21 +70,32 @@ export default function InstructorMyPage() {
   const [signupId, setSignupId] = useState('');
   const [signupPw, setSignupPw] = useState('');
 
+  // 비밀번호 변경용 state
+  const [currentPwInput, setCurrentPwInput] = useState('');
+  const [newPwInput, setNewPwInput] = useState('');
+
   const [currentInstructor, setCurrentInstructor] = useState<Instructor | null>(null);
   const [allInstructors, setAllInstructors] = useState<Instructor[]>([]);
+  const [bookings, setBookings] = useState<CustomerBooking[]>([]);
+  
+  // 통계 기간 필터 ('1d' | '1w' | '1m' | '6m' | '1y')
+  const [statsPeriod, setStatsPeriod] = useState<'1d' | '1w' | '1m' | '6m' | '1y'>('1m');
+  const [adminSelectedInstructorId, setAdminSelectedInstructorId] = useState<string>('all');
+
   const [loading, setLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
-  const fetchInstructors = async () => {
-    const { data, error } = await supabase.from('instructors').select('*');
-    if (!error && data) {
-      setAllInstructors(data);
-    }
+  const fetchData = async () => {
+    const { data: insData } = await supabase.from('instructors').select('*');
+    if (insData) setAllInstructors(insData);
+
+    const { data: bookData } = await supabase.from('customers').select('*').order('created_at', { ascending: false });
+    if (bookData) setBookings(bookData);
   };
 
   useEffect(() => {
-    fetchInstructors();
+    fetchData();
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -87,7 +104,7 @@ export default function InstructorMyPage() {
 
     if (loginId.trim() === 'admin' && loginPw === 'ksu0393!') {
       setViewMode('admin');
-      fetchInstructors();
+      fetchData();
       return;
     }
 
@@ -105,21 +122,41 @@ export default function InstructorMyPage() {
       return;
     }
 
+    if (data.password && data.password !== loginPw) {
+      setNotice('⚠️ 비밀번호가 일치하지 않습니다.');
+      return;
+    }
+
     if (!data.is_approved) {
       setNotice('⏳ 관리자의 승인이 대기 중입니다. 승인 후 로그인이 가능합니다.');
       return;
     }
 
     setCurrentInstructor(data);
-    setViewMode('dashboard');
+    
+    // 프로필 세팅이 아직 안 되어 있거나 비어있으면 설정 화면으로 유도
+    if (!data.phone || !data.bio) {
+      setViewMode('settings');
+      setNotice('✨ 최초 로그인입니다! 고객 매칭을 위해 프로필 및 조건을 설정해 주세요.');
+    } else {
+      setViewMode('dashboard');
+    }
   };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setNotice(null);
 
-    if (!signupName || !signupId || !signupPw) {
-      setNotice('⚠️ 모든 항목을 입력해 주세요.');
+    // 아이디 유효성 검증: 영문 및 숫자 조합만 허용
+    const idRegex = /^[a-zA-Z0-9]+$/;
+    if (!idRegex.test(signupId)) {
+      setNotice('⚠️ 아이디는 영문 또는 영문+숫자 조합으로만 입력해 주세요.');
+      return;
+    }
+
+    // 비밀번호 유효성 검증: 8자리~13자리 (영문, 숫자, 특수문자 조합 허용)
+    if (signupPw.length < 8 || signupPw.length > 13) {
+      setNotice('⚠️ 비밀번호는 8자리 이상 13자리 이하로 입력해 주세요.');
       return;
     }
 
@@ -127,7 +164,7 @@ export default function InstructorMyPage() {
     const { error } = await supabase.from('instructors').insert([
       {
         name: signupName,
-        username: signupId,
+        username: signupId.trim(),
         password: signupPw,
         is_approved: false,
       },
@@ -135,14 +172,43 @@ export default function InstructorMyPage() {
     setLoading(false);
 
     if (error) {
-      setNotice(`⚠️ 회원가입 실패: ${error.message}`);
+      setNotice(`⚠️ 회원가입 실패 (이미 사용 중인 아이디일 수 있습니다): ${error.message}`);
     } else {
       setNotice('🎉 회원가입 신청이 완료되었습니다! 관리자 승인 후 로그인해 주세요.');
       setViewMode('login');
     }
   };
 
-  // 전화번호 자동 하이픈 포맷팅 핸들러
+  // 비밀번호 변경 핸들러
+  const handleChangePassword = async () => {
+    if (!currentInstructor) return;
+    if (currentInstructor.password && currentInstructor.password !== currentPwInput) {
+      setNotice('⚠️ 현재 비밀번호가 올바르지 않습니다.');
+      return;
+    }
+    if (newPwInput.length < 8 || newPwInput.length > 13) {
+      setNotice('⚠️ 새 비밀번호는 8자리 이상 13자리 이하로 입력해 주세요.');
+      return;
+    }
+
+    setLoading(true);
+    const { error } = await supabase
+      .from('instructors')
+      .update({ password: newPwInput })
+      .eq('id', currentInstructor.id);
+    setLoading(false);
+
+    if (error) {
+      setNotice(`⚠️ 비밀번호 변경 실패: ${error.message}`);
+    } else {
+      setCurrentInstructor({ ...currentInstructor, password: newPwInput });
+      setCurrentPwInput('');
+      setNewPwInput('');
+      setNotice('🔒 비밀번호가 성공적으로 변경되었습니다!');
+    }
+  };
+
+  // 전화번호 자동 하이픈 포맷팅
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = e.target.value.replace(/[^0-9]/g, '');
     let formatted = rawValue;
@@ -156,22 +222,30 @@ export default function InstructorMyPage() {
     }
   };
 
-  // 이미지 파일 업로드 핸들러
+  // 이미지 업로드 (스토리지 실패 시 Base64 로컬 대체 지원)
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0 || !currentInstructor) return;
 
     const file = files[0];
+    setUploadingImage(true);
+
     const fileExt = file.name.split('.').pop();
     const fileName = `${currentInstructor.id}_${Math.random()}.${fileExt}`;
     const filePath = `instructor_profiles/${fileName}`;
 
-    setUploadingImage(true);
     const { error: uploadError } = await supabase.storage.from('images').upload(filePath, file);
 
     if (uploadError) {
-      setNotice('⚠️ 이미지 업로드 실패 (Supabase Storage에 "images" 버킷이 공개 상태로 생성되어 있는지 확인해주세요)');
-      setUploadingImage(false);
+      // 스토리지 미설정 시 Base64로 즉시 인코딩하여 프로필 반영
+      const reader = new FileReader();
+      reader.onload = (uploadEvent) => {
+        const base64Result = uploadEvent.target?.result as string;
+        setCurrentInstructor({ ...currentInstructor, profile_image: base64Result });
+        setUploadingImage(false);
+        setNotice('📸 프로필 사진이 로컬에 등록되었습니다!');
+      };
+      reader.readAsDataURL(file);
       return;
     }
 
@@ -194,16 +268,33 @@ export default function InstructorMyPage() {
       setNotice(`⚠️ 저장 실패: ${error.message}`);
     } else {
       setNotice('✨ 프로필 및 매칭 조건이 성공적으로 저장되었습니다!');
+      setViewMode('dashboard'); // 저장 완료 후 메인 대시보드로 이동
     }
   };
 
   const handleApproveInstructor = async (id: string, status: boolean) => {
     await supabase.from('instructors').update({ is_approved: status }).eq('id', id);
-    fetchInstructors();
+    fetchData();
   };
 
+  // 기간별 필터링 함수
+  const filterByPeriod = (items: CustomerBooking[]) => {
+    const now = new Date().getTime();
+    const msMap = {
+      '1d': 24 * 60 * 60 * 1000,
+      '1w': 7 * 24 * 60 * 60 * 1000,
+      '1m': 30 * 24 * 60 * 60 * 1000,
+      '6m': 180 * 24 * 60 * 60 * 1000,
+      '1y': 365 * 24 * 60 * 60 * 1000,
+    };
+    const limit = msMap[statsPeriod];
+    return items.filter(b => now - new Date(b.created_at).getTime() <= limit);
+  };
+
+  const myBookings = currentInstructor ? filterByPeriod(bookings.filter(b => b.matched_instructor === currentInstructor.name)) : [];
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-6 max-w-3xl mx-auto font-sans pb-20">
+    <div className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-6 max-w-4xl mx-auto font-sans pb-24">
       
       <header className="text-center mb-6 pt-4">
         <span className="text-[11px] font-semibold px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
@@ -220,7 +311,7 @@ export default function InstructorMyPage() {
         </div>
       )}
 
-      {/* 로그인 화면 */}
+      {/* 1. 로그인 화면 */}
       {viewMode === 'login' && (
         <div className="max-w-md mx-auto bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl">
           <h2 className="text-lg font-bold mb-4 text-cyan-400 text-center">강사 / 관리자 로그인</h2>
@@ -266,7 +357,7 @@ export default function InstructorMyPage() {
         </div>
       )}
 
-      {/* 회원가입 화면 */}
+      {/* 2. 회원가입 화면 */}
       {viewMode === 'signup' && (
         <div className="max-w-md mx-auto bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl">
           <h2 className="text-lg font-bold mb-4 text-cyan-400 text-center">소속 강사 회원가입</h2>
@@ -283,23 +374,24 @@ export default function InstructorMyPage() {
               />
             </div>
             <div>
-              <label className="block text-xs text-slate-400 mb-1">아이디</label>
+              <label className="block text-xs text-slate-400 mb-1">아이디 (영문 또는 영문+숫자)</label>
               <input
                 type="text"
                 value={signupId}
                 onChange={(e) => setSignupId(e.target.value)}
-                placeholder="사용할 아이디"
+                placeholder="예: instructor1"
                 className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:border-cyan-500 focus:outline-none"
                 required
               />
             </div>
             <div>
-              <label className="block text-xs text-slate-400 mb-1">비밀번호</label>
+              <label className="block text-xs text-slate-400 mb-1">비밀번호 (8~13자리, 영문/숫자/특수문자 조합)</label>
               <input
                 type="password"
                 value={signupPw}
                 onChange={(e) => setSignupPw(e.target.value)}
-                placeholder="비밀번호"
+                placeholder="8~13자리 비밀번호"
+                maxLength={13}
                 className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:border-cyan-500 focus:outline-none"
                 required
               />
@@ -323,23 +415,24 @@ export default function InstructorMyPage() {
         </div>
       )}
 
-      {/* 관리자 대시보드 */}
+      {/* 3. 관리자 대시보드 */}
       {viewMode === 'admin' && (
-        <div className="space-y-5">
+        <div className="space-y-6">
           <div className="flex justify-between items-center bg-slate-900 p-4 rounded-2xl border border-cyan-500/40">
             <div>
               <h2 className="text-base font-bold text-cyan-400">👑 관리자 대시보드</h2>
-              <p className="text-[11px] text-slate-400">강사 가입 승인 및 관리</p>
+              <p className="text-[11px] text-slate-400">강사 승인 및 강사별 매칭 통계 모니터링</p>
             </div>
             <button
               onClick={() => setViewMode('login')}
-              className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-bold rounded-xl border border-slate-700"
+              className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-bold rounded-xl border border-slate-700 cursor-pointer"
             >
               로그아웃
             </button>
           </div>
 
-          <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800">
+          {/* 강사 승인 관리 섹션 */}
+          <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800">
             <h3 className="text-sm font-bold mb-3 text-slate-200">👥 소속 강사 승인 관리</h3>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs sm:text-sm">
@@ -367,14 +460,14 @@ export default function InstructorMyPage() {
                         {ins.is_approved ? (
                           <button
                             onClick={() => handleApproveInstructor(ins.id, false)}
-                            className="px-2.5 py-1 bg-red-900/60 hover:bg-red-900 text-red-200 rounded-lg text-xs"
+                            className="px-2.5 py-1 bg-red-900/60 hover:bg-red-900 text-red-200 rounded-lg text-xs cursor-pointer"
                           >
                             취소
                           </button>
                         ) : (
                           <button
                             onClick={() => handleApproveInstructor(ins.id, true)}
-                            className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold"
+                            className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold cursor-pointer"
                           >
                             승인
                           </button>
@@ -386,26 +479,241 @@ export default function InstructorMyPage() {
               </table>
             </div>
           </div>
+
+          {/* 관리자용 전체/강사별 매칭 통계 섹션 */}
+          <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <h3 className="text-sm font-bold text-slate-200">📊 강사별 매칭 및 통계 모니터링</h3>
+              
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                {/* 강사 선택 필터 */}
+                <select
+                  value={adminSelectedInstructorId}
+                  onChange={(e) => setAdminSelectedInstructorId(e.target.value)}
+                  className="bg-slate-800 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white"
+                >
+                  <option value="all">전체 강사 보기</option>
+                  {allInstructors.filter(i => i.is_approved).map(ins => (
+                    <option key={ins.id} value={ins.name}>{ins.name} 강사님</option>
+                  ))}
+                </select>
+
+                {/* 기간별 필터 버튼 */}
+                <div className="flex bg-slate-800 rounded-xl p-1 border border-slate-700 text-[11px]">
+                  {(['1d', '1w', '1m', '6m', '1y'] as const).map(p => (
+                    <button
+                      key={p}
+                      onClick={() => setStatsPeriod(p)}
+                      className={`px-2 py-1 rounded-lg font-bold transition cursor-pointer ${statsPeriod === p ? 'bg-cyan-600 text-white' : 'text-slate-400'}`}
+                    >
+                      {p === '1d' ? '1일' : p === '1w' ? '1주일' : p === '1m' ? '1달' : p === '6m' ? '6개월' : '1년'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* 통계 요약 카드 */}
+            {(() => {
+              const targetBookings = adminSelectedInstructorId === 'all' 
+                ? filterByPeriod(bookings) 
+                : filterByPeriod(bookings.filter(b => b.matched_instructor === adminSelectedInstructorId));
+              
+              return (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-center">
+                      <p className="text-[11px] text-slate-400">선택 기간 총 매칭 건수</p>
+                      <p className="text-xl font-extrabold text-cyan-400 mt-1">{targetBookings.length} 건</p>
+                    </div>
+                    <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-center">
+                      <p className="text-[11px] text-slate-400">인기 풀장</p>
+                      <p className="text-sm font-bold text-white mt-1">
+                        {targetBookings.length > 0 ? targetBookings[0].pool : '데이터 없음'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs sm:text-sm">
+                      <thead>
+                        <tr className="border-b border-slate-800 text-slate-400">
+                          <th className="pb-2">접수 일시</th>
+                          <th className="pb-2">담당 강사</th>
+                          <th className="pb-2">고객 성함</th>
+                          <th className="pb-2">연락처</th>
+                          <th className="pb-2">코스</th>
+                          <th className="pb-2">풀장 및 시간대</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800/60">
+                        {targetBookings.length === 0 ? (
+                          <tr>
+                            <td colSpan={6} className="py-6 text-center text-slate-500 text-xs">
+                              해당 기간에 매칭된 내역이 없습니다.
+                            </td>
+                          </tr>
+                        ) : (
+                          targetBookings.map((b) => (
+                            <tr key={b.id}>
+                              <td className="py-2.5 text-slate-400">{new Date(b.created_at).toLocaleDateString()}</td>
+                              <td className="py-2.5 font-bold text-cyan-300">{b.matched_instructor}</td>
+                              <td className="py-2.5 font-bold text-white">{b.name}</td>
+                              <td className="py-2.5 text-slate-300">{b.phone}</td>
+                              <td className="py-2.5 text-slate-300">{b.course}</td>
+                              <td className="py-2.5 text-slate-400">{b.pool} / {b.time_slot}</td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
         </div>
       )}
 
-      {/* 강사 마이페이지 대시보드 */}
+      {/* 4. 강사 메인 대시보드 (매칭 리스트 및 통계) */}
       {viewMode === 'dashboard' && currentInstructor && (
+        <div className="space-y-6">
+          <div className="flex justify-between items-center bg-slate-900 p-4 rounded-2xl border border-cyan-500/40">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-slate-800 overflow-hidden shrink-0 border border-slate-700">
+                {currentInstructor.profile_image ? (
+                  <img src={currentInstructor.profile_image} alt="프로필" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-[10px] text-slate-500">사진없음</div>
+                )}
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-cyan-400">👋 {currentInstructor.name} 강사님 대시보드</h2>
+                <p className="text-[11px] text-slate-400">연락처: {currentInstructor.phone || '미등록'}</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setViewMode('settings')}
+                className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-xs font-bold rounded-xl text-white transition cursor-pointer"
+              >
+                프로필/조건 수정
+              </button>
+              <button
+                onClick={() => { setCurrentInstructor(null); setViewMode('login'); }}
+                className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-bold rounded-xl border border-slate-700 cursor-pointer"
+              >
+                로그아웃
+              </button>
+            </div>
+          </div>
+
+          {/* 등록된 조건 요약 카드 */}
+          <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-3">
+            <h3 className="text-sm font-bold text-slate-200">📌 내 설정 조건 요약</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1">
+                <p className="text-slate-400 font-bold">✨ 강사 소개글</p>
+                <p className="text-slate-300 line-clamp-2">{currentInstructor.bio || '등록된 소개글이 없습니다.'}</p>
+              </div>
+              <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1">
+                <p className="text-slate-400 font-bold">📍 가능 풀장 및 요일</p>
+                <p className="text-slate-300">
+                  {currentInstructor.can_passnine ? '칠곡 패스나인 ' : ''}
+                  {currentInstructor.can_miryang ? '밀양 아리랑' : ''}
+                  {!currentInstructor.can_passnine && !currentInstructor.can_miryang ? '선택된 풀장 없음' : ''}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* 매칭된 고객 리스트 & 기간별 통계 */}
+          <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <div>
+                <h3 className="text-sm font-bold text-slate-200">📋 나에게 매칭된 고객 리스트</h3>
+                <p className="text-[11px] text-slate-400">기간별 매칭 통계 및 수강생 정보 확인</p>
+              </div>
+
+              {/* 기간별 필터 버튼 */}
+              <div className="flex bg-slate-800 rounded-xl p-1 border border-slate-700 text-[11px]">
+                {(['1d', '1w', '1m', '6m', '1y'] as const).map(p => (
+                  <button
+                    key={p}
+                    onClick={() => setStatsPeriod(p)}
+                    className={`px-2 py-1 rounded-lg font-bold transition cursor-pointer ${statsPeriod === p ? 'bg-cyan-600 text-white' : 'text-slate-400'}`}
+                  >
+                    {p === '1d' ? '1일' : p === '1w' ? '1주일' : p === '1m' ? '1달' : p === '6m' ? '6개월' : '1년'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-center">
+                <p className="text-[11px] text-slate-400">선택 기간 매칭 수</p>
+                <p className="text-xl font-extrabold text-cyan-400 mt-1">{myBookings.length} 건</p>
+              </div>
+              <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-center">
+                <p className="text-[11px] text-slate-400">매칭 상태</p>
+                <p className="text-sm font-bold text-emerald-400 mt-1">정상 운영중 🚀</p>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs sm:text-sm">
+                <thead>
+                  <tr className="border-b border-slate-800 text-slate-400">
+                    <th className="pb-2">접수 일시</th>
+                    <th className="pb-2">고객 성함</th>
+                    <th className="pb-2">연락처</th>
+                    <th className="pb-2">희망 코스</th>
+                    <th className="pb-2">풀장 / 시간대</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60">
+                  {myBookings.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-8 text-center text-slate-500 text-xs">
+                        해당 기간에 매칭된 고객이 없습니다.
+                      </td>
+                    </tr>
+                  ) : (
+                    myBookings.map((b) => (
+                      <tr key={b.id}>
+                        <td className="py-3 text-slate-400">{new Date(b.created_at).toLocaleDateString()}</td>
+                        <td className="py-3 font-bold text-white">{b.name}</td>
+                        <td className="py-3 text-cyan-300">{b.phone}</td>
+                        <td className="py-3 text-slate-300">{b.course}</td>
+                        <td className="py-3 text-slate-400">{b.pool} / {b.time_slot}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 5. 프로필 및 조건 설정 화면 */}
+      {viewMode === 'settings' && currentInstructor && (
         <div className="space-y-5">
           <div className="flex justify-between items-center bg-slate-900 p-4 rounded-2xl border border-cyan-500/40">
             <div>
-              <h2 className="text-base font-bold text-cyan-400">👋 환영합니다, {currentInstructor.name} 강사님!</h2>
-              <p className="text-[11px] text-slate-400">고객 매칭용 프로필 및 조건 설정</p>
+              <h2 className="text-base font-bold text-cyan-400">⚙️ 프로필 및 매칭 조건 설정</h2>
+              <p className="text-[11px] text-slate-400">모바일 환경에 최적화된 설정 페이지</p>
             </div>
             <button
-              onClick={() => { setCurrentInstructor(null); setViewMode('login'); }}
-              className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-bold rounded-xl border border-slate-700"
+              onClick={() => setViewMode('dashboard')}
+              className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-bold rounded-xl border border-slate-700 cursor-pointer"
             >
-              로그아웃
+              ← 대시보드로 돌아가기
             </button>
           </div>
 
-          {/* 1. 기본 프로필 설정 */}
+          {/* 기본 프로필 */}
           <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-4">
             <h3 className="text-sm font-bold text-slate-200">📝 기본 프로필 설정</h3>
             
@@ -425,12 +733,12 @@ export default function InstructorMyPage() {
                   onChange={handleImageUpload}
                   className="w-full text-xs text-slate-400 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-cyan-600 file:text-white hover:file:bg-cyan-500 cursor-pointer"
                 />
-                {uploadingImage && <p className="text-[11px] text-cyan-400 animate-pulse">사진 업로드 중...</p>}
+                {uploadingImage && <p className="text-[11px] text-cyan-400 animate-pulse">사진 처리 중...</p>}
               </div>
             </div>
 
             <div>
-              <label className="block text-xs text-slate-400 mb-1">개인 연락처 (숫자만 입력 시 자동 하이픈)</label>
+              <label className="block text-xs text-slate-400 mb-1">개인 연락처 (자동 하이픈)</label>
               <input
                 type="text"
                 value={currentInstructor.phone || ''}
@@ -443,7 +751,7 @@ export default function InstructorMyPage() {
 
             <div>
               <div className="flex justify-between items-center mb-1">
-                <label className="block text-xs text-slate-400">강사 소개글 (고객 노출용)</label>
+                <label className="block text-xs text-slate-400">강사 소개글 (최대 300자)</label>
                 <span className={`text-[11px] ${(currentInstructor.bio || '').length > 300 ? 'text-red-400 font-bold' : 'text-slate-500'}`}>
                   {(currentInstructor.bio || '').length} / 300자
                 </span>
@@ -453,13 +761,49 @@ export default function InstructorMyPage() {
                 maxLength={300}
                 value={currentInstructor.bio || ''}
                 onChange={(e) => setCurrentInstructor({ ...currentInstructor, bio: e.target.value })}
-                placeholder="수강생들에게 전할 소개 및 인사말을 적어주세요 (최대 300자)"
+                placeholder="수강생들에게 전할 소개 및 인사말을 적어주세요"
                 className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-cyan-500"
               />
             </div>
           </div>
 
-          {/* 2. 지도 가능 레벨 및 자격 설정 */}
+          {/* 비밀번호 변경 섹션 */}
+          <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-4">
+            <h3 className="text-sm font-bold text-slate-200">🔒 비밀번호 재설정</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">현재 비밀번호</label>
+                <input
+                  type="password"
+                  value={currentPwInput}
+                  onChange={(e) => setCurrentPwInput(e.target.value)}
+                  placeholder="현재 비밀번호 입력"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">새 비밀번호 (8~13자리)</label>
+                <input
+                  type="password"
+                  value={newPwInput}
+                  onChange={(e) => setNewPwInput(e.target.value)}
+                  placeholder="새 비밀번호 (8~13자리)"
+                  maxLength={13}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
+                />
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleChangePassword}
+              disabled={loading}
+              className="py-2.5 px-4 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold rounded-xl text-white transition cursor-pointer"
+            >
+              비밀번호 변경하기
+            </button>
+          </div>
+
+          {/* 지도 가능 레벨 및 자격 설정 */}
           <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-4">
             <h3 className="text-sm font-bold text-slate-200">🎯 지도 가능 레벨 및 자격 설정</h3>
             
@@ -644,7 +988,7 @@ export default function InstructorMyPage() {
             </div>
           </div>
 
-          {/* 3. 풀장, 요일 및 교육생 매칭 연동 세부 시간대 설정 */}
+          {/* 풀장 및 시간대 설정 */}
           <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-4">
             <h3 className="text-sm font-bold text-slate-200">📍 풀장, 요일 및 세부 시간대 설정</h3>
             
@@ -754,7 +1098,7 @@ export default function InstructorMyPage() {
             disabled={loading}
             className="w-full py-4 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-2xl text-sm font-extrabold text-white hover:from-cyan-400 hover:to-blue-500 transition shadow-lg cursor-pointer"
           >
-            {loading ? '💾 저장 중...' : '💾 내 프로필 및 조건 변경사항 저장하기'}
+            {loading ? '💾 저장 중...' : '💾 프로필 및 조건 변경사항 저장하기'}
           </button>
         </div>
       )}
