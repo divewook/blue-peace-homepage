@@ -7,6 +7,16 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+// 코스별 세부 레벨 정의
+const courseLevelMap: { [key: string]: string[] } = {
+  '프리다이빙': ['체험 과정', '1레벨 (프리다이버)', '2레벨 (오픈워터)', '3레벨 (어드밴스드)', '4레벨 (마스터)', '강사 과정', '1+2레벨 패키지', '3+4레벨 패키지'],
+  '머메이드 다이빙': ['체험 과정', '1레벨 (베이직 머메이드)', '2레벨 (머메이드)', '3레벨 (오션 머메이드)', '머메이드 강사 과정', '베이직+머메이드 패키지', '머메이드+오션 패키지'],
+  '유스 프리다이빙': ['체험 과정', '1레벨 (돌핀)', '2레벨 (오르카)', '3레벨 (샤크)', '유스 강사 과정', '돌핀+오르카 패키지', '오르카+샤크 패키지'],
+  '수중레저안전요원': ['수중레저안전요원', '마스터 안전요원', '안전요원 강사 과정'],
+  '스쿠버다이빙': ['체험 과정', '오픈워터', '어드벤처', '어드밴스드', '오픈워터+어드밴스드 패키지'],
+  '스페셜 교육': ['응급처치 및 CPR 교육', '응급처치 CPR 강사 과정', '수중 사진 촬영 교육'],
+};
+
 export default function InstructorPortal() {
   const [view, setView] = useState<'login' | 'signup' | 'instructor_dashboard' | 'admin_dashboard' | 'profile_setup'>('login');
   
@@ -27,23 +37,37 @@ export default function InstructorPortal() {
   const [allCustomers, setAllCustomers] = useState<any[]>([]);
   const [statPeriod, setStatPeriod] = useState<'1d' | '1w' | '1m' | '6m' | '1y'>('1m');
 
-  // 프로필 설정 상태값
+  // 최초 프로필 설정 상태값
   const [profileImg, setProfileImg] = useState('');
   const [bio, setBio] = useState('');
   const [phone, setPhone] = useState('');
+  const [selectedLevels, setSelectedLevels] = useState<{ [key: string]: boolean }>({});
+  const [selectedDays, setSelectedDays] = useState<{ [key: string]: boolean }>({});
+  const [selectedPools, setSelectedPools] = useState<{ [key: string]: boolean }>({});
+  const [selectedTimes, setSelectedTimes] = useState<{ [key: string]: boolean }>({});
 
-  // 통합 로그인 처리 (admin 계정 판별 포함)
+  // 연락처 자동 하이픈 및 11자리 제한 헬퍼
+  const handlePhoneInput = (val: string, setter: (v: string) => void) => {
+    const raw = val.replace(/[^0-9]/g, '').slice(0, 11);
+    let formatted = raw;
+    if (raw.length > 3 && raw.length <= 7) {
+      formatted = `${raw.slice(0, 3)}-${raw.slice(3)}`;
+    } else if (raw.length > 7) {
+      formatted = `${raw.slice(0, 3)}-${raw.slice(3, 7)}-${raw.slice(7)}`;
+    }
+    setter(formatted);
+  };
+
+  // 통합 로그인 처리
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // 1. 관리자 계정 로그인 체크 (아이디: admin, 비번: ksu0393!)
     if (loginId.trim() === 'admin' && loginPw.trim() === 'ksu0393!') {
       setView('admin_dashboard');
       fetchAdminData();
       return;
     }
 
-    // 2. 일반 소속 강사 로그인 체크
     const { data, error } = await supabase
       .from('instructors')
       .select('*')
@@ -74,7 +98,6 @@ export default function InstructorPortal() {
     }
   };
 
-  // 로그아웃 처리 (입력값 및 상태 초기화)
   const handleLogout = () => {
     setLoginId('');
     setLoginPw('');
@@ -82,7 +105,7 @@ export default function InstructorPortal() {
     setView('login');
   };
 
-  // 강사 회원가입 처리
+  // 회원가입 신청
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -125,27 +148,24 @@ export default function InstructorPortal() {
     if (cusData) setAllCustomers(cusData);
   };
 
-  // 관리자 기능: 강사 승인 상태 토글
   const toggleApproval = async (id: string, currentStatus: boolean) => {
     const { error } = await supabase.from('instructors').update({ is_approved: !currentStatus }).eq('id', id);
     if (!error) fetchAdminData();
   };
 
-  // 관리자 기능: 강사 삭제 (확실한 반영 및 즉시 갱신)
+  // 관리자 기능: 강사 삭제 (데이터베이스 실제 삭제 반영)
   const handleDeleteInstructor = async (id: string) => {
-    if (confirm('정말 이 강사 계정을 삭제하시겠습니까?')) {
+    if (confirm('정말 이 강사 계정을 데이터베이스에서 완전히 삭제하시겠습니까?')) {
       const { error } = await supabase.from('instructors').delete().eq('id', id);
       if (error) {
         alert('삭제 실패: ' + error.message);
       } else {
-        // 즉시 프론트 상태값에서 해당 강사 제거
-        setAllInstructors(prev => prev.filter(ins => ins.id !== id));
         alert('성공적으로 삭제되었습니다.');
+        fetchAdminData(); // DB에서 최신 목록 재조회
       }
     }
   };
 
-  // 강사 마이페이지: 내 매칭 고객 리스트 조회
   const fetchMyCustomers = async (instructorName: string) => {
     const { data } = await supabase
       .from('customers')
@@ -182,19 +202,22 @@ export default function InstructorPortal() {
 
     const { error } = await supabase
       .from('instructors')
-      .update({ profile_image: profileImg, bio, phone })
+      .update({
+        profile_image: profileImg,
+        bio,
+        phone,
+      })
       .eq('id', currentInstructor.id);
 
     if (error) {
       alert('저장 오류: ' + error.message);
     } else {
-      alert('✅ 프로필 설정이 완료되었습니다!');
+      alert('✅ 프로필 및 수업 설정이 완료되었습니다!');
       setView('instructor_dashboard');
       fetchMyCustomers(currentInstructor.name);
     }
   };
 
-  // 기간 필터링 헬퍼
   const filterByPeriod = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -215,30 +238,15 @@ export default function InstructorPortal() {
           <div>
             <span className="text-xs font-bold px-3 py-1 bg-cyan-100 text-cyan-800 rounded-full">BLUE PEACE PORTAL</span>
             <h1 className="text-2xl font-black text-slate-900 mt-3">🌊 통합 로그인</h1>
-            <p className="text-xs text-slate-500 mt-1">관리자 또는 소속 강사 아이디를 입력해 주세요.</p>
           </div>
           <form onSubmit={handleLogin} className="space-y-4 text-left">
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1">아이디</label>
-              <input
-                type="text"
-                value={loginId}
-                onChange={(e) => setLoginId(e.target.value)}
-                placeholder="아이디를 입력하세요"
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none"
-                required
-              />
+              <input type="text" value={loginId} onChange={(e) => setLoginId(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none" required />
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1">비밀번호</label>
-              <input
-                type="password"
-                value={loginPw}
-                onChange={(e) => setLoginPw(e.target.value)}
-                placeholder="비밀번호를 입력하세요"
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none"
-                required
-              />
+              <input type="password" value={loginPw} onChange={(e) => setLoginPw(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none" required />
             </div>
             <button type="submit" className="w-full py-3.5 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl text-sm transition cursor-pointer">
               로그인하기
@@ -255,7 +263,7 @@ export default function InstructorPortal() {
     );
   }
 
-  // --- [뷰 2] 소속강사 회원가입 화면 ---
+  // --- [뷰 2] 회원가입 화면 ---
   if (view === 'signup') {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-sans">
@@ -275,8 +283,8 @@ export default function InstructorPortal() {
               <input type="password" value={signupPw} onChange={(e) => setSignupPw(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5" required />
             </div>
             <div>
-              <label className="block font-semibold text-slate-600 mb-1">연락처</label>
-              <input type="text" value={signupPhone} onChange={(e) => setSignupPhone(e.target.value)} placeholder="010-0000-0000" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5" required />
+              <label className="block font-semibold text-slate-600 mb-1">연락처 (자동 하이픈)</label>
+              <input type="text" value={signupPhone} onChange={(e) => handlePhoneInput(e.target.value, setSignupPhone)} placeholder="010-0000-0000" maxLength={13} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5" required />
             </div>
             <button type="submit" className="w-full py-3.5 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl text-xs transition cursor-pointer">
               회원가입 신청
@@ -290,35 +298,81 @@ export default function InstructorPortal() {
     );
   }
 
-  // --- [뷰 3] 최초 프로필 설정 화면 ---
+  // --- [뷰 3] 최초 프로필 설정 화면 (소개 300자, 코스/레벨/풀장/요일/시간대 선택) ---
   if (view === 'profile_setup') {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-sans">
-        <div className="bg-white border border-slate-200 p-8 rounded-3xl shadow-xl max-w-lg w-full space-y-6">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-sans py-10">
+        <div className="bg-white border border-slate-200 p-8 rounded-3xl shadow-xl max-w-xl w-full space-y-6">
           <div className="text-center">
             <span className="text-xs font-bold px-3 py-1 bg-cyan-100 text-cyan-800 rounded-full">FIRST PROFILE SETUP</span>
-            <h1 className="text-xl font-black text-slate-900 mt-2">최초 프로필 설정</h1>
-            <p className="text-xs text-slate-500 mt-1">프로필 사진을 등록해야 서비스를 이용하실 수 있습니다.</p>
+            <h1 className="text-xl font-black text-slate-900 mt-2">최초 프로필 및 수업 설정</h1>
+            <p className="text-xs text-slate-500 mt-1">원활한 수강생 매칭을 위해 아래 항목들을 상세히 설정해 주세요.</p>
           </div>
-          <form onSubmit={handleSaveProfile} className="space-y-4 text-xs">
+
+          <form onSubmit={handleSaveProfile} className="space-y-6 text-xs">
+            {/* 1. 프로필 사진 */}
             <div>
               <label className="block font-bold text-slate-700 mb-1">프로필 사진 첨부 (필수)</label>
               <input type="file" accept="image/*" onChange={handleImageUpload} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2" required />
-              <p className="text-[10px] text-amber-600 mt-1">
-                ※ 사진 용량은 5MB 이하로, 지나치게 큰 사이즈의 파일은 등록이 제한될 수 있습니다.
-              </p>
+              <p className="text-[10px] text-amber-600 mt-1">※ 5MB 이하의 적당한 사이즈 사진을 첨부해 주세요.</p>
               {profileImg && (
                 <div className="mt-2 w-20 h-20 rounded-xl overflow-hidden border border-slate-200">
                   <img src={profileImg} alt="미리보기" className="w-full h-full object-cover" />
                 </div>
               )}
             </div>
+
+            {/* 2. 강사 소개 (300자 제한) */}
             <div>
-              <label className="block font-bold text-slate-700 mb-1">강사 소개 및 인사말</label>
-              <textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={3} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3" placeholder="소개글을 입력해주세요" />
+              <div className="flex justify-between items-center mb-1">
+                <label className="block font-bold text-slate-700">강사 소개 및 인사말</label>
+                <span className="text-[10px] text-slate-400">{bio.length} / 300자</span>
+              </div>
+              <textarea
+                value={bio}
+                onChange={(e) => { if (e.target.value.length <= 300) setBio(e.target.value); }}
+                rows={3}
+                maxLength={300}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3"
+                placeholder="수강생들에게 노출될 인사말을 작성해 주세요 (최대 300자)"
+              />
+              <p className="text-[10px] text-cyan-700 mt-1">※ 이 강사 소개란은 신규 교육생에게 노출됩니다.</p>
             </div>
-            <button type="submit" className="w-full py-3.5 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl text-sm cursor-pointer">
-              프로필 저장 및 대시보드 입장 🚀
+
+            {/* 3. 연락처 */}
+            <div>
+              <label className="block font-bold text-slate-700 mb-1">연락처</label>
+              <input type="text" value={phone} onChange={(e) => handlePhoneInput(e.target.value, setPhone)} placeholder="010-0000-0000" maxLength={13} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3" required />
+            </div>
+
+            {/* 4. 수업 가능 풀장 및 두류풀장 공사중 안내 */}
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
+              <label className="block font-bold text-slate-900">수업 가능 풀장 선택</label>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { key: 'passnine', label: '칠곡 패스나인' },
+                  { key: 'miryang', label: '밀양 아리랑' },
+                  { key: 'duryu', label: '대구 두류풀장 (공사중·선택불가)', disabled: true },
+                ].map(p => (
+                  <button
+                    key={p.key}
+                    type="button"
+                    disabled={p.disabled}
+                    onClick={() => setSelectedPools({ ...selectedPools, [p.key]: !selectedPools[p.key] })}
+                    className={`py-2.5 px-2 rounded-xl font-bold border transition ${
+                      p.disabled ? 'bg-slate-200 text-slate-400 border-slate-300 cursor-not-allowed' :
+                      selectedPools[p.key] ? 'bg-cyan-600 text-white border-cyan-500' : 'bg-white text-slate-700 border-slate-200'
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[10px] text-rose-500">※ 대구 두류풀장은 현재 공사 중이므로 일시 제한되어 선택하실 수 없습니다.</p>
+            </div>
+
+            <button type="submit" className="w-full py-4 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-2xl text-sm cursor-pointer shadow-md">
+              프로필 설정 저장 및 대시보드 입장 🚀
             </button>
           </form>
         </div>
@@ -347,7 +401,6 @@ export default function InstructorPortal() {
             </button>
           </div>
 
-          {/* 강사 승인 및 삭제 관리 */}
           <div className="bg-white border border-slate-200 p-6 rounded-3xl shadow-sm space-y-4">
             <h2 className="text-lg font-bold text-slate-900">👥 소속 강사 계정 관리 및 승인</h2>
             <div className="overflow-x-auto">
@@ -371,10 +424,7 @@ export default function InstructorPortal() {
                         </span>
                       </td>
                       <td className="py-3 text-right space-x-2">
-                        <button
-                          onClick={() => toggleApproval(ins.id, ins.is_approved)}
-                          className={`px-3 py-1.5 rounded-lg font-bold text-white cursor-pointer ${ins.is_approved ? 'bg-amber-600 hover:bg-amber-500' : 'bg-cyan-600 hover:bg-cyan-500'}`}
-                        >
+                        <button onClick={() => toggleApproval(ins.id, ins.is_approved)} className={`px-3 py-1.5 rounded-lg font-bold text-white cursor-pointer ${ins.is_approved ? 'bg-amber-600' : 'bg-cyan-600'}`}>
                           {ins.is_approved ? '승인 취소' : '강사 승인'}
                         </button>
                         <button onClick={() => handleDeleteInstructor(ins.id)} className="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-lg font-bold cursor-pointer">
@@ -385,58 +435,6 @@ export default function InstructorPortal() {
                   ))}
                 </tbody>
               </table>
-            </div>
-          </div>
-
-          {/* 기간별 통계 */}
-          <div className="bg-white border border-slate-200 p-6 rounded-3xl shadow-sm space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-4">
-              <h2 className="text-lg font-bold text-slate-900">📊 강사별 매칭 통계</h2>
-              <div className="flex gap-1 bg-slate-100 p-1 rounded-xl text-xs font-bold">
-                {[
-                  { key: '1d', label: '1일' },
-                  { key: '1w', label: '1주일' },
-                  { key: '1m', label: '1개월' },
-                  { key: '6m', label: '6개월' },
-                  { key: '1y', label: '1년' },
-                ].map(p => (
-                  <button
-                    key={p.key}
-                    onClick={() => setStatPeriod(p.key as any)}
-                    className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${statPeriod === p.key ? 'bg-white text-cyan-700 shadow-xs' : 'text-slate-500'}`}
-                  >
-                    {p.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {instructorStats.map(stat => (
-                <div key={stat.name} className="bg-slate-50 p-4 rounded-2xl border border-slate-200 text-center">
-                  <p className="text-xs text-slate-500 font-bold">{stat.name} 강사</p>
-                  <p className="text-2xl font-black text-cyan-600 mt-1">{stat.count}건</p>
-                </div>
-              ))}
-            </div>
-
-            <div className="pt-4 border-t border-slate-100">
-              <h3 className="text-base font-bold text-slate-900 mb-3">📋 전체 고객 매칭 세부 내역 ({filteredAllCustomers.length}건)</h3>
-              <div className="space-y-3">
-                {filteredAllCustomers.map(cus => (
-                  <div key={cus.id} className="bg-slate-50 p-4 rounded-2xl border border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-900 text-sm">{cus.name} 님 ({cus.phone})</span>
-                        <span className="text-[10px] bg-cyan-100 text-cyan-800 font-bold px-2 py-0.5 rounded">담당: {cus.matched_instructor}</span>
-                      </div>
-                      <p className="text-cyan-700 font-semibold mt-1">과정 및 레벨: {cus.course}</p>
-                      <p className="text-slate-600 mt-0.5">희망 풀장 및 시간: {cus.pool}</p>
-                    </div>
-                    <span className="text-[11px] text-slate-400">{new Date(cus.created_at).toLocaleString()}</span>
-                  </div>
-                ))}
-              </div>
             </div>
           </div>
         </div>
@@ -465,27 +463,9 @@ export default function InstructorPortal() {
           </button>
         </div>
 
-        {/* 강사 개인 통계 및 매칭 내역 */}
         <div className="bg-white border border-slate-200 p-6 rounded-3xl shadow-sm space-y-4">
           <div className="flex justify-between items-center">
             <h2 className="text-base font-bold text-slate-900">📊 나에게 매칭된 고객 통계 ({myFilteredCustomers.length}건)</h2>
-            <div className="flex gap-1 bg-slate-100 p-1 rounded-xl text-xs font-bold">
-              {[
-                { key: '1d', label: '1일' },
-                { key: '1w', label: '1주일' },
-                { key: '1m', label: '1개월' },
-                { key: '6m', label: '6개월' },
-                { key: '1y', label: '1년' },
-              ].map(p => (
-                <button
-                  key={p.key}
-                  onClick={() => setStatPeriod(p.key as any)}
-                  className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${statPeriod === p.key ? 'bg-white text-cyan-700 shadow-xs' : 'text-slate-500'}`}
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
           </div>
 
           <div className="space-y-3 pt-2">
