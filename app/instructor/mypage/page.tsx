@@ -2,6 +2,8 @@
 
 import React, { useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
+import CustomerMatchCard from '../../../components/customer-match-card';
+import MarketingSummary from '../../../components/marketing-summary';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -641,21 +643,13 @@ export default function InstructorPortal() {
               ))}
             </div>
 
+            <MarketingSummary customers={filteredAllCustomers} />
+
             <div className="pt-4 border-t border-slate-100">
               <h3 className="text-base font-bold text-slate-900 mb-3">📋 전체 고객 매칭 세부 내역 ({filteredAllCustomers.length}건)</h3>
               <div className="space-y-3">
                 {filteredAllCustomers.map(cus => (
-                  <div key={cus.id} className="bg-slate-50 p-4 rounded-2xl border border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-900 text-sm">{cus.name} 님 ({cus.phone})</span>
-                        <span className="text-[10px] bg-cyan-100 text-cyan-800 font-bold px-2 py-0.5 rounded">담당: {cus.matched_instructor}</span>
-                      </div>
-                      <p className="text-cyan-700 font-semibold mt-1">과정 및 레벨: {cus.course}</p>
-                      <p className="text-slate-600 mt-0.5">희망 풀장 및 시간: {cus.pool}</p>
-                    </div>
-                    <span className="text-[11px] text-slate-400">{new Date(cus.created_at).toLocaleString()}</span>
-                  </div>
+                  <CustomerMatchCard key={cus.id} customer={cus} showAttribution />
                 ))}
               </div>
             </div>
@@ -786,17 +780,7 @@ export default function InstructorPortal() {
               <p className="text-xs text-slate-400 py-6 text-center">선택하신 기간에 매칭된 수강생이 없습니다.</p>
             ) : (
               myFilteredCustomers.map(cus => (
-                <div key={cus.id} className="bg-slate-50 p-4 rounded-2xl border border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs">
-                  <div>
-                    <p className="font-bold text-slate-900 text-sm">{cus.name} 님 ({cus.phone})</p>
-                    <p className="text-cyan-700 font-semibold mt-1">과정 및 레벨: {cus.course}</p>
-                    <p className="text-slate-600 mt-0.5">희망 풀장 및 시간: {cus.pool}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <a href={`tel:${cus.phone}`} className="px-3 py-1.5 bg-cyan-600 text-white rounded-lg font-bold">전화</a>
-                    <a href={`sms:${cus.phone}`} className="px-3 py-1.5 bg-slate-100 text-cyan-700 border border-cyan-300 rounded-lg font-bold">문자</a>
-                  </div>
-                </div>
+                <CustomerMatchCard key={cus.id} customer={cus} />
               ))
             )}
           </div>

@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
+import CustomerMatchCard from '../../components/customer-match-card';
+import MarketingSummary from '../../components/marketing-summary';
 
 interface Instructor {
   id: string;
@@ -17,8 +19,18 @@ interface CustomerLead {
   phone: string;
   course: string;
   pool: string;
+  time_slot?: string;
+  preferred_days?: string[];
+  preferred_schedule?: Record<string, string[]>;
   matched_instructor: string;
   created_at: string;
+  traffic_source?: string;
+  traffic_medium?: string;
+  traffic_campaign?: string;
+  traffic_term?: string;
+  landing_url?: string;
+  referrer_url?: string;
+  device_type?: string;
 }
 
 export default function AdminDashboard() {
@@ -209,22 +221,14 @@ export default function AdminDashboard() {
             ))}
           </div>
 
+          <MarketingSummary customers={filteredCustomers} />
+
           {/* 3. 고객 매칭 세부 내역 (과정, 레벨, 풀장, 요일/시간) */}
           <div className="pt-4 border-t border-slate-100">
             <h3 className="text-base font-bold text-slate-900 mb-3">📋 고객 매칭 세부 신청 내역 ({filteredCustomers.length}건)</h3>
             <div className="space-y-3">
               {filteredCustomers.map(cus => (
-                <div key={cus.id} className="bg-slate-50 p-4 rounded-2xl border border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-slate-900 text-sm">{cus.name} 님 ({cus.phone})</span>
-                      <span className="text-[10px] bg-cyan-100 text-cyan-800 font-bold px-2 py-0.5 rounded">담당: {cus.matched_instructor}</span>
-                    </div>
-                    <p className="text-cyan-700 font-semibold mt-1">과정 및 레벨: {cus.course}</p>
-                    <p className="text-slate-600 mt-0.5">희망 풀장 및 시간: {cus.pool}</p>
-                  </div>
-                  <span className="text-[11px] text-slate-400">{new Date(cus.created_at).toLocaleString()}</span>
-                </div>
+                <CustomerMatchCard key={cus.id} customer={cus} showAttribution />
               ))}
             </div>
           </div>

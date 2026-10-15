@@ -3,10 +3,25 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
+import { getMarketingAttribution } from '../../components/marketing-attribution';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+const dayLabels: Record<string, string> = {
+  available_mon: '월', available_tue: '화', available_wed: '수', available_thu: '목',
+  available_fri: '금', available_sat: '토', available_sun: '일',
+};
+const passnineTimeLabels: Record<string, string> = {
+  t1: '1부 (09:00~11:30)', t2: '2부 (12:30~15:00)',
+  t3: '3부 (16:00~18:30)', t4: '4부 (19:30~22:00)',
+};
+const miryangTimeLabels: Record<string, string> = {
+  t0: '오전부 (08:00~10:00) ※주말만', t1: '1부 (10:00~12:00)',
+  t2: '2부 (12:00~14:00)', t3: '3부 (14:00~16:00)',
+  t4: '4부 (16:00~18:00)', t5: '5부 (18:00~20:00)', t6: '6부 (20:00~22:00)',
+};
 
 interface Instructor {
   id: string;
@@ -143,6 +158,7 @@ function InquiryFormContent() {
 
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showResultModal, setShowResultModal] = useState(false);
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
 
   useEffect(() => {
     if (initialCourseParam) {
@@ -176,6 +192,10 @@ function InquiryFormContent() {
     e.preventDefault();
     if (!name || !phone) {
       alert('성함과 연락처를 입력해 주세요.');
+      return;
+    }
+    if (!privacyAccepted) {
+      alert('개인정보 수집 및 이용에 동의해 주세요.');
       return;
     }
     setShowConfirmModal(true);
@@ -243,6 +263,21 @@ function InquiryFormContent() {
       } else {
         const randomIndex = Math.floor(Math.random() * qualifiedInstructors.length);
         const selected = qualifiedInstructors[randomIndex];
+        const preferredDays = Object.entries(selectedDays)
+          .filter(([, selectedDay]) => selectedDay)
+          .map(([day]) => dayLabels[day]);
+        const preferredSchedule = {
+          ...(canPassnine ? {
+            '칠곡 패스나인': Object.entries(passnineSlots)
+              .filter(([, selectedTime]) => selectedTime)
+              .map(([slot]) => passnineTimeLabels[slot]),
+          } : {}),
+          ...(canMiryang ? {
+            '밀양 아리랑': Object.entries(miryangSlots)
+              .filter(([, selectedTime]) => selectedTime)
+              .map(([slot]) => miryangTimeLabels[slot]),
+          } : {}),
+        };
         const response = await fetch('/api/matches', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -251,11 +286,10 @@ function InquiryFormContent() {
             phone,
             course: `${course} (${detailLevel})`,
             pool: canPassnine && canMiryang ? '패스나인/밀양' : canPassnine ? '칠곡 패스나인' : '밀양 아리랑',
-            time_slot: [
-              ...Object.entries(selectedDays).filter(([, selected]) => selected).map(([day]) => ({ available_mon: '월', available_tue: '화', available_wed: '수', available_thu: '목', available_fri: '금', available_sat: '토', available_sun: '일' }[day])),
-              ...Object.entries(passnineSlots).filter(([, selected]) => canPassnine && selected).map(([slot]) => `패스나인 ${slot}`),
-              ...Object.entries(miryangSlots).filter(([, selected]) => canMiryang && selected).map(([slot]) => `밀양 ${slot}`),
-            ].filter(Boolean).join(' · '),
+            time_slot: [...preferredDays, ...Object.values(preferredSchedule).flat()].join(' · '),
+            preferred_days: preferredDays,
+            preferred_schedule: preferredSchedule,
+            attribution: getMarketingAttribution(),
             instructor_id: selected.id,
           }),
         });
@@ -280,6 +314,17 @@ function InquiryFormContent() {
     <div className="bg-white border border-slate-200 p-5 sm:p-8 rounded-3xl shadow-xl max-w-xl mx-auto text-slate-800">
       
       <div className="mb-4">
+        <label className="flex items-start gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs leading-5 text-slate-600 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={privacyAccepted}
+            onChange={(event) => setPrivacyAccepted(event.target.checked)}
+            className="mt-0.5 h-4 w-4 accent-cyan-600"
+            required
+          />
+          <span><strong className="text-slate-800">개인정보 수집 및 이용 동의 (필수)</strong><br />강사 매칭과 상담, 서비스 분석을 위해 이름·연락처·신청 조건·유입 경로 정보가 저장됩니다.</span>
+        </label>
+
         <button
           onClick={() => router.push('/')}
           className="text-xs font-bold text-slate-500 hover:text-cyan-600 transition flex items-center gap-1 cursor-pointer"

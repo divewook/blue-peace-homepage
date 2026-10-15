@@ -1,4 +1,5 @@
 import "./globals.css";
+import MarketingAttributionTracker from "../components/marketing-attribution";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
   || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://www.freediving.pe.kr");
@@ -55,6 +56,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="ko">
       <body>
+        <MarketingAttributionTracker />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessData) }} />
         {children}
       </body>
