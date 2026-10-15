@@ -313,26 +313,6 @@ function InquiryFormContent() {
   return (
     <div className="bg-white border border-slate-200 p-5 sm:p-8 rounded-3xl shadow-xl max-w-xl mx-auto text-slate-800">
       
-      <div className="mb-4">
-        <label className="flex items-start gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs leading-5 text-slate-600 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={privacyAccepted}
-            onChange={(event) => setPrivacyAccepted(event.target.checked)}
-            className="mt-0.5 h-4 w-4 accent-cyan-600"
-            required
-          />
-          <span><strong className="text-slate-800">개인정보 수집 및 이용 동의 (필수)</strong><br />강사 매칭과 상담, 서비스 분석을 위해 이름·연락처·신청 조건·유입 경로 정보가 저장됩니다.</span>
-        </label>
-
-        <button
-          onClick={() => router.push('/')}
-          className="text-xs font-bold text-slate-500 hover:text-cyan-600 transition flex items-center gap-1 cursor-pointer"
-        >
-          ← 메인 홈페이지로 돌아가기
-        </button>
-      </div>
-
       <h2 className="text-xl sm:text-2xl font-black text-slate-900 mb-6 text-center">🌊 수강생 맞춤 강사 매칭 신청</h2>
 
       <form onSubmit={handleOpenConfirmModal} className="space-y-5">
@@ -513,11 +493,40 @@ function InquiryFormContent() {
           )}
         </div>
 
+        <div aria-disabled="true" className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+          <div className="flex items-start gap-2">
+            <input type="checkbox" disabled className="mt-0.5 h-4 w-4" aria-label="대구 두류풀장 선택 불가" />
+            <div>
+              <p className="text-xs font-bold text-slate-800">대구 두류풀장</p>
+              <p className="mt-1 text-xs font-semibold text-amber-800">내부 공사 중으로 현재 일시 이용이 불가합니다.</p>
+            </div>
+          </div>
+        </div>
+
+        <label className="flex items-start gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs leading-5 text-slate-600 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={privacyAccepted}
+            onChange={(event) => setPrivacyAccepted(event.target.checked)}
+            className="mt-0.5 h-4 w-4 accent-cyan-600"
+            required
+          />
+          <span><strong className="text-slate-800">개인정보 수집 및 이용 동의 (필수)</strong><br />강사 매칭과 상담, 서비스 분석을 위해 이름·연락처·신청 조건·유입 경로 정보가 저장됩니다.</span>
+        </label>
+
         <button
           type="submit"
           className="w-full py-4 bg-cyan-600 hover:bg-cyan-500 rounded-2xl text-white font-extrabold transition shadow-lg shadow-cyan-600/20 mt-2 cursor-pointer"
         >
           🎯 선택 옵션 및 예상 금액 확인 후 매칭하기
+        </button>
+
+        <button
+          type="button"
+          onClick={() => router.push('/')}
+          className="w-full py-2 text-xs font-bold text-slate-500 hover:text-cyan-700 transition cursor-pointer"
+        >
+          ← 메인페이지로 이동하기
         </button>
       </form>
 
