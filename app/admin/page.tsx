@@ -1,11 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+import React, { useState } from 'react';
 
 interface Instructor {
   id: string;
@@ -33,35 +28,49 @@ export default function AdminDashboard() {
   const [customers, setCustomers] = useState<CustomerLead[]>([]);
   const [statPeriod, setStatPeriod] = useState<'1d' | '1w' | '1m' | '6m' | '1y'>('1m');
 
-  const handleAdminLogin = (e: React.FormEvent) => {
+  const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (adminPw === 'ksu0393!') {
+    const response = await fetch('/api/admin/session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: 'admin', password: adminPw }),
+    });
+    const result = await response.json();
+    if (response.ok) {
+      setAdminPw('');
       setIsAdminLoggedIn(true);
-      fetchAdminData();
+      void fetchAdminData();
     } else {
-      alert('관리자 비밀번호가 일치하지 않습니다.');
+      alert(result.error || '관리자 로그인에 실패했습니다.');
     }
   };
 
   const fetchAdminData = async () => {
-    // 1. 강사 목록 조회
-    const { data: insData } = await supabase.from('instructors').select('*').order('created_at', { ascending: false });
-    if (insData) setInstructors(insData);
-
-    // 2. 고객 매칭 내역 조회
-    const { data: cusData } = await supabase.from('customers').select('*').order('created_at', { ascending: false });
-    if (cusData) setCustomers(cusData);
+    const response = await fetch('/api/admin/data', { cache: 'no-store' });
+    const result = await response.json();
+    if (!response.ok) {
+      alert(result.error || '관리자 데이터를 불러오지 못했습니다.');
+      return;
+    }
+    setInstructors(result.instructors || []);
+    setCustomers(result.customers || []);
   };
 
   const toggleApproval = async (id: string, currentStatus: boolean) => {
-    const { error } = await supabase.from('instructors').update({ is_approved: !currentStatus }).eq('id', id);
-    if (!error) fetchAdminData();
+    const response = await fetch(`/api/admin/instructors/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ is_approved: !currentStatus }),
+    });
+    if (response.ok) void fetchAdminData();
+    else alert((await response.json()).error || '승인 변경에 실패했습니다.');
   };
 
   const deleteInstructor = async (id: string) => {
     if (confirm('정말 이 강사를 삭제하시겠습니까?')) {
-      await supabase.from('instructors').delete().eq('id', id);
-      fetchAdminData();
+      const response = await fetch(`/api/admin/instructors/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      if (response.ok) void fetchAdminData();
+      else alert((await response.json()).error || '강사 삭제에 실패했습니다.');
     }
   };
 
@@ -121,7 +130,7 @@ export default function AdminDashboard() {
             <span className="text-xs font-bold px-3 py-1 bg-cyan-100 text-cyan-800 rounded-full">ADMIN DASHBOARD</span>
             <h1 className="text-2xl font-black text-slate-900 mt-2">블루피스 통합 관리 센터</h1>
           </div>
-          <button onClick={() => setIsAdminLoggedIn(false)} className="px-4 py-2 bg-slate-100 text-slate-700 text-xs font-bold rounded-xl">
+          <button onClick={() => { void fetch('/api/admin/session', { method: 'DELETE' }); setIsAdminLoggedIn(false); setCustomers([]); }} className="px-4 py-2 bg-slate-100 text-slate-700 text-xs font-bold rounded-xl">
             로그아웃
           </button>
         </div>

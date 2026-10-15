@@ -138,6 +138,7 @@ function InquiryFormContent() {
 
   const [matchedInstructor, setMatchedInstructor] = useState<Instructor | null>(null);
   const [noMatchFound, setNoMatchFound] = useState(false);
+  const [submissionError, setSubmissionError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -181,21 +182,25 @@ function InquiryFormContent() {
   };
 
   const handleFinalSubmit = async () => {
+    if (submitting) return;
     setShowConfirmModal(false);
     setSubmitting(true);
     setMatchedInstructor(null);
     setNoMatchFound(false);
+    setSubmissionError('');
     setShowResultModal(false);
 
     const randomDelay = Math.floor(Math.random() * 1500) + 3000;
 
     setTimeout(async () => {
+      try {
       const { data: instructors, error } = await supabase
         .from('instructors')
         .select('*')
         .eq('is_approved', true);
 
-      if (error || !instructors || instructors.length === 0) {
+      if (error) throw new Error('강사 정보를 불러오지 못했습니다. 다시 시도해 주세요.');
+      if (!instructors || instructors.length === 0) {
         setSubmitting(false);
         setNoMatchFound(true);
         setShowResultModal(true);
@@ -233,27 +238,35 @@ function InquiryFormContent() {
         return true;
       });
 
-      setSubmitting(false);
-
       if (qualifiedInstructors.length === 0) {
         setNoMatchFound(true);
       } else {
         const randomIndex = Math.floor(Math.random() * qualifiedInstructors.length);
         const selected = qualifiedInstructors[randomIndex];
-        setMatchedInstructor(selected);
-
-        await supabase.from('customers').insert([
-          {
+        const response = await fetch('/api/matches', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
             name,
             phone,
             course: `${course} (${detailLevel})`,
             pool: canPassnine && canMiryang ? '패스나인/밀양' : canPassnine ? '칠곡 패스나인' : '밀양 아리랑',
-            time_slot: '복수 선택 조건',
-            matched_instructor: selected.name,
-          },
-        ]);
+            time_slot: [
+              ...Object.entries(selectedDays).filter(([, selected]) => selected).map(([day]) => ({ available_mon: '월', available_tue: '화', available_wed: '수', available_thu: '목', available_fri: '금', available_sat: '토', available_sun: '일' }[day])),
+              ...Object.entries(passnineSlots).filter(([, selected]) => canPassnine && selected).map(([slot]) => `패스나인 ${slot}`),
+              ...Object.entries(miryangSlots).filter(([, selected]) => canMiryang && selected).map(([slot]) => `밀양 ${slot}`),
+            ].filter(Boolean).join(' · '),
+            instructor_id: selected.id,
+          }),
+        });
+        const result = await response.json();
+        if (!response.ok || !result.id) throw new Error(result.error || '신청 내용을 저장하지 못했습니다.');
+        setMatchedInstructor(selected);
       }
-
+      } catch (saveError) {
+        setSubmissionError(saveError instanceof Error ? saveError.message : '신청 내용을 저장하지 못했습니다. 다시 시도해 주세요.');
+      }
+      setSubmitting(false);
       setShowResultModal(true);
     }, randomDelay);
   };
@@ -564,6 +577,12 @@ function InquiryFormContent() {
                   </p>
                 </div>
               </>
+            ) : submissionError ? (
+              <div role="alert" className="space-y-3">
+                <h3 className="text-lg font-bold text-rose-700">신청이 완료되지 않았습니다</h3>
+                <p className="text-sm text-slate-700">{submissionError}</p>
+                <p className="text-sm text-slate-600">신청 정보가 저장되지 않았습니다. 다시 시도해 주세요.</p>
+              </div>
             ) : noMatchFound ? (
               <>
                 <div className="inline-block px-4 py-1.5 bg-amber-50 rounded-full text-amber-700 font-extrabold text-xs sm:text-sm border border-amber-200">

@@ -20,9 +20,7 @@ export async function GET() {
       .from("customers")
       .select("*")
       .order("created_at", { ascending: false });
-    // The customer matching feature is optional until its table is created.
-    const customersTableMissing = customers.error && ["PGRST205", "42P01"].includes(customers.error.code);
-    if (customers.error && !customersTableMissing) {
+    if (customers.error) {
       return NextResponse.json({ error: customers.error.message }, { status: 500 });
     }
 

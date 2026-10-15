@@ -100,22 +100,18 @@ export default function InstructorPortal() {
       return;
     }
 
-    const { data, error } = await supabase
-      .from('instructors')
-      .select('*')
-      .eq('username', loginId.trim())
-      .eq('password', loginPw.trim())
-      .single();
-
-    if (error || !data) {
-      alert('아이디 또는 비밀번호가 일치하지 않습니다.');
+    const loginResponse = await fetch('/api/instructor/session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: loginId.trim(), password: loginPw }),
+    }).catch(() => null);
+    const loginResult = await loginResponse?.json().catch(() => ({}));
+    if (!loginResponse?.ok || !loginResult?.instructor) {
+      alert(loginResult?.error || '로그인에 실패했습니다. 다시 시도해 주세요.');
       return;
     }
-
-    if (!data.is_approved) {
-      alert('⚠️ 관리자의 승인 대기 중입니다. 관리자 승인 후에 로그인이 가능합니다!');
-      return;
-    }
+    const data = loginResult.instructor;
+    setLoginPw('');
 
     setCurrentInstructor(data);
     setProfileImg(data.profile_image || '');
@@ -150,17 +146,20 @@ export default function InstructorPortal() {
       setView('profile_setup');
     } else {
       setView('instructor_dashboard');
-      fetchMyCustomers(data.name);
+      fetchMyCustomers();
     }
   };
 
   const handleLogout = () => {
     if (view === 'admin_dashboard') {
       void fetch('/api/admin/session', { method: 'DELETE' });
+    } else if (currentInstructor) {
+      void fetch('/api/instructor/session', { method: 'DELETE' });
     }
     setLoginId('');
     setLoginPw('');
     setCurrentInstructor(null);
+    setCustomers([]);
     setAllInstructors([]);
     setAllCustomers([]);
     setView('login');
@@ -234,13 +233,15 @@ export default function InstructorPortal() {
     }
   };
 
-  const fetchMyCustomers = async (instructorName: string) => {
-    const { data } = await supabase
-      .from('customers')
-      .select('*')
-      .eq('matched_instructor', instructorName)
-      .order('created_at', { ascending: false });
-    if (data) setCustomers(data);
+  const fetchMyCustomers = async () => {
+    try {
+      const response = await fetch('/api/instructor/customers', { cache: 'no-store' });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || '매칭 내역을 불러오지 못했습니다.');
+      setCustomers(result.customers || []);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : '매칭 내역을 불러오지 못했습니다.');
+    }
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -328,7 +329,7 @@ export default function InstructorPortal() {
       alert('✅ 프로필 및 수업 설정이 성공적으로 저장되었습니다!');
       setCurrentInstructor({ ...currentInstructor, ...updateData });
       setView('instructor_dashboard');
-      fetchMyCustomers(currentInstructor.name);
+      fetchMyCustomers();
     }
   };
 
