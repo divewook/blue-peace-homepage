@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -40,13 +40,11 @@ export default function InstructorPortal() {
   // 최초 프로필 설정 상태값
   const [profileImg, setProfileImg] = useState('');
   const [bio, setBio] = useState('');
-  const [phone, setPhone] = useState('');
   const [selectedLevels, setSelectedLevels] = useState<{ [key: string]: boolean }>({});
-  const [selectedDays, setSelectedDays] = useState<{ [key: string]: boolean }>({});
   const [selectedPools, setSelectedPools] = useState<{ [key: string]: boolean }>({});
   const [selectedTimes, setSelectedTimes] = useState<{ [key: string]: boolean }>({});
+  const [selectedDays, setSelectedDays] = useState<{ [key: string]: boolean }>({});
 
-  // 연락처 자동 하이픈 및 11자리 제한 헬퍼
   const handlePhoneInput = (val: string, setter: (v: string) => void) => {
     const raw = val.replace(/[^0-9]/g, '').slice(0, 11);
     let formatted = raw;
@@ -88,7 +86,6 @@ export default function InstructorPortal() {
     setCurrentInstructor(data);
     setProfileImg(data.profile_image || '');
     setBio(data.bio || '');
-    setPhone(data.phone || '');
 
     if (!data.profile_image) {
       setView('profile_setup');
@@ -153,7 +150,7 @@ export default function InstructorPortal() {
     if (!error) fetchAdminData();
   };
 
-  // 관리자 기능: 강사 삭제 (데이터베이스 실제 삭제 반영)
+  // 관리자 기능: 강사 삭제 (DB 실제 삭제 및 리스트 갱신)
   const handleDeleteInstructor = async (id: string) => {
     if (confirm('정말 이 강사 계정을 데이터베이스에서 완전히 삭제하시겠습니까?')) {
       const { error } = await supabase.from('instructors').delete().eq('id', id);
@@ -161,7 +158,7 @@ export default function InstructorPortal() {
         alert('삭제 실패: ' + error.message);
       } else {
         alert('성공적으로 삭제되었습니다.');
-        fetchAdminData(); // DB에서 최신 목록 재조회
+        fetchAdminData();
       }
     }
   };
@@ -205,7 +202,6 @@ export default function InstructorPortal() {
       .update({
         profile_image: profileImg,
         bio,
-        phone,
       })
       .eq('id', currentInstructor.id);
 
@@ -298,11 +294,11 @@ export default function InstructorPortal() {
     );
   }
 
-  // --- [뷰 3] 최초 프로필 설정 화면 (소개 300자, 코스/레벨/풀장/요일/시간대 선택) ---
+  // --- [뷰 3] 최초 프로필 설정 화면 (강사 소개 300자 + 코스/레벨 + 풀장 + 시간대 + 요일) ---
   if (view === 'profile_setup') {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-sans py-10">
-        <div className="bg-white border border-slate-200 p-8 rounded-3xl shadow-xl max-w-xl w-full space-y-6">
+        <div className="bg-white border border-slate-200 p-8 rounded-3xl shadow-xl max-w-2xl w-full space-y-6">
           <div className="text-center">
             <span className="text-xs font-bold px-3 py-1 bg-cyan-100 text-cyan-800 rounded-full">FIRST PROFILE SETUP</span>
             <h1 className="text-xl font-black text-slate-900 mt-2">최초 프로필 및 수업 설정</h1>
@@ -339,36 +335,105 @@ export default function InstructorPortal() {
               <p className="text-[10px] text-cyan-700 mt-1">※ 이 강사 소개란은 신규 교육생에게 노출됩니다.</p>
             </div>
 
-            {/* 3. 연락처 */}
-            <div>
-              <label className="block font-bold text-slate-700 mb-1">연락처</label>
-              <input type="text" value={phone} onChange={(e) => handlePhoneInput(e.target.value, setPhone)} placeholder="010-0000-0000" maxLength={13} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3" required />
+            {/* 3. 수업 가능 코스 및 세부 레벨 선택 */}
+            <div className="space-y-4 border-t border-slate-100 pt-4">
+              <label className="block font-bold text-slate-900 text-sm">🏊‍♂️ 수업 가능 교육 코스 및 세부 레벨 선택</label>
+              {Object.entries(courseLevelMap).map(([courseName, levels]) => (
+                <div key={courseName} className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
+                  <p className="font-bold text-cyan-800">{courseName}</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                    {levels.map(lvl => {
+                      const key = `${courseName}_${lvl}`;
+                      const isSelected = selectedLevels[key];
+                      return (
+                        <button
+                          key={lvl}
+                          type="button"
+                          onClick={() => setSelectedLevels({ ...selectedLevels, [key]: !isSelected })}
+                          className={`py-2 px-2 rounded-xl text-[11px] font-bold border transition cursor-pointer ${
+                            isSelected ? 'bg-cyan-600 text-white border-cyan-500 shadow-xs' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                          }`}
+                        >
+                          {lvl}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
 
-            {/* 4. 수업 가능 풀장 및 두류풀장 공사중 안내 */}
-            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
-              <label className="block font-bold text-slate-900">수업 가능 풀장 선택</label>
-              <div className="grid grid-cols-3 gap-2">
+            {/* 4. 수업 가능 요일 선택 */}
+            <div className="border-t border-slate-100 pt-4 space-y-2">
+              <label className="block font-bold text-slate-900 text-sm">📅 수업 가능 요일 선택 (복수 선택)</label>
+              <div className="grid grid-cols-7 gap-1">
                 {[
-                  { key: 'passnine', label: '칠곡 패스나인' },
-                  { key: 'miryang', label: '밀양 아리랑' },
-                  { key: 'duryu', label: '대구 두류풀장 (공사중·선택불가)', disabled: true },
-                ].map(p => (
+                  { key: 'mon', label: '월' },
+                  { key: 'tue', label: '화' },
+                  { key: 'wed', label: '수' },
+                  { key: 'thu', label: '목' },
+                  { key: 'fri', label: '금' },
+                  { key: 'sat', label: '토' },
+                  { key: 'sun', label: '일' },
+                ].map(d => (
                   <button
-                    key={p.key}
+                    key={d.key}
                     type="button"
-                    disabled={p.disabled}
-                    onClick={() => setSelectedPools({ ...selectedPools, [p.key]: !selectedPools[p.key] })}
-                    className={`py-2.5 px-2 rounded-xl font-bold border transition ${
-                      p.disabled ? 'bg-slate-200 text-slate-400 border-slate-300 cursor-not-allowed' :
-                      selectedPools[p.key] ? 'bg-cyan-600 text-white border-cyan-500' : 'bg-white text-slate-700 border-slate-200'
+                    onClick={() => setSelectedDays({ ...selectedDays, [d.key]: !selectedDays[d.key] })}
+                    className={`py-2 rounded-xl font-bold border transition cursor-pointer ${
+                      selectedDays[d.key] ? 'bg-cyan-600 text-white border-cyan-500' : 'bg-slate-50 text-slate-700 border-slate-200'
                     }`}
                   >
-                    {p.label}
+                    {d.label}
                   </button>
                 ))}
               </div>
-              <p className="text-[10px] text-rose-500">※ 대구 두류풀장은 현재 공사 중이므로 일시 제한되어 선택하실 수 없습니다.</p>
+            </div>
+
+            {/* 5. 수업 가능 풀장 및 시간대 선택 */}
+            <div className="border-t border-slate-100 pt-4 space-y-4">
+              <label className="block font-bold text-slate-900 text-sm">🌊 수업 가능 풀장 및 시간대 선택</label>
+              
+              {/* 칠곡 패스나인 */}
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
+                <label className="flex items-center space-x-2 font-bold text-slate-900 cursor-pointer">
+                  <input type="checkbox" checked={selectedPools['passnine'] || false} onChange={(e) => setSelectedPools({ ...selectedPools, passnine: e.target.checked })} className="accent-cyan-600 w-4 h-4" />
+                  <span>칠곡 패스나인 풀장</span>
+                </label>
+                {selectedPools['passnine'] && (
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    {['1부 (09:00~11:00)', '2부 (13:00~15:00)', '3부 (15:30~17:30)', '4부 (19:00~21:00)'].map(t => (
+                      <label key={t} className={`flex items-center space-x-2 p-2.5 rounded-xl border cursor-pointer ${selectedTimes[`passnine_${t}`] ? 'bg-cyan-50 border-cyan-500 font-bold text-cyan-900' : 'bg-white border-slate-200'}`}>
+                        <input type="checkbox" checked={selectedTimes[`passnine_${t}`] || false} onChange={(e) => setSelectedTimes({ ...selectedTimes, [`passnine_${t}`]: e.target.checked })} className="accent-cyan-600" />
+                        <span>{t}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* 밀양 아리랑 */}
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
+                <label className="flex items-center space-x-2 font-bold text-slate-900 cursor-pointer">
+                  <input type="checkbox" checked={selectedPools['miryang'] || false} onChange={(e) => setSelectedPools({ ...selectedPools, miryang: e.target.checked })} className="accent-cyan-600 w-4 h-4" />
+                  <span>밀양 아리랑 풀장</span>
+                </label>
+                {selectedPools['miryang'] && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                    {['오전부 (06:00~09:00) ※주말', '오전 1부 (09:00~11:00)', '오전 2부 (11:00~13:00)', '오후 1부 (13:00~15:00)', '오후 2부 (15:00~17:00)', '저녁 1부 (17:00~19:00)', '저녁 2부 (19:00~21:00)'].map(t => (
+                      <label key={t} className={`flex items-center space-x-2 p-2.5 rounded-xl border cursor-pointer ${selectedTimes[`miryang_${t}`] ? 'bg-cyan-50 border-cyan-500 font-bold text-cyan-900' : 'bg-white border-slate-200'}`}>
+                        <input type="checkbox" checked={selectedTimes[`miryang_${t}`] || false} onChange={(e) => setSelectedTimes({ ...selectedTimes, [`miryang_${t}`]: e.target.checked })} className="accent-cyan-600" />
+                        <span>{t}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* 대구 두류풀장 (공사중 제한) */}
+              <div className="bg-slate-100 p-4 rounded-2xl border border-slate-300 opacity-60">
+                <span className="font-bold text-slate-500 line-through">대구 두류풀장 (현재 공사 중 - 선택 불가)</span>
+              </div>
             </div>
 
             <button type="submit" className="w-full py-4 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-2xl text-sm cursor-pointer shadow-md">
@@ -380,7 +445,7 @@ export default function InstructorPortal() {
     );
   }
 
-  // --- [뷰 4] 관리자 페이지 (Admin Dashboard) ---
+  // --- [뷰 4] 관리자 페이지 (Admin Dashboard - 통계 포함 복원) ---
   if (view === 'admin_dashboard') {
     const filteredAllCustomers = allCustomers.filter(c => filterByPeriod(c.created_at));
     const instructorStats = allInstructors.map(ins => {
@@ -435,6 +500,48 @@ export default function InstructorPortal() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+
+          {/* 기간별 통계 복원 */}
+          <div className="bg-white border border-slate-200 p-6 rounded-3xl shadow-sm space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-4">
+              <h2 className="text-lg font-bold text-slate-900">📊 강사별 매칭 통계</h2>
+              <div className="flex gap-1 bg-slate-100 p-1 rounded-xl text-xs font-bold">
+                {[{ key: '1d', label: '1일' }, { key: '1w', label: '1주일' }, { key: '1m', label: '1개월' }, { key: '6m', label: '6개월' }, { key: '1y', label: '1년' }].map(p => (
+                  <button key={p.key} onClick={() => setStatPeriod(p.key as any)} className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${statPeriod === p.key ? 'bg-white text-cyan-700 shadow-xs' : 'text-slate-500'}`}>
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {instructorStats.map(stat => (
+                <div key={stat.name} className="bg-slate-50 p-4 rounded-2xl border border-slate-200 text-center">
+                  <p className="text-xs text-slate-500 font-bold">{stat.name} 강사</p>
+                  <p className="text-2xl font-black text-cyan-600 mt-1">{stat.count}건</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="pt-4 border-t border-slate-100">
+              <h3 className="text-base font-bold text-slate-900 mb-3">📋 전체 고객 매칭 세부 내역 ({filteredAllCustomers.length}건)</h3>
+              <div className="space-y-3">
+                {filteredAllCustomers.map(cus => (
+                  <div key={cus.id} className="bg-slate-50 p-4 rounded-2xl border border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-slate-900 text-sm">{cus.name} 님 ({cus.phone})</span>
+                        <span className="text-[10px] bg-cyan-100 text-cyan-800 font-bold px-2 py-0.5 rounded">담당: {cus.matched_instructor}</span>
+                      </div>
+                      <p className="text-cyan-700 font-semibold mt-1">과정 및 레벨: {cus.course}</p>
+                      <p className="text-slate-600 mt-0.5">희망 풀장 및 시간: {cus.pool}</p>
+                    </div>
+                    <span className="text-[11px] text-slate-400">{new Date(cus.created_at).toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
