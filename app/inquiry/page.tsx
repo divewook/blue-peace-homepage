@@ -43,6 +43,16 @@ interface Instructor {
   miryang_t6: boolean;
 }
 
+// 코스별 상세 레벨 옵션 정의
+const courseLevelOptions: { [key: string]: string[] } = {
+  '프리다이빙': ['1레벨 (입문)', '2레벨 (어드밴스드)', '3레벨 (마스터)', '4레벨 (상위)', '강사 과정', '패키지 과정'],
+  '머메이드 다이빙': ['베이직 머메이드', '머메이드', '오션 머메이드', '머메이드 강사 과정'],
+  '유스 프리다이빙': ['1레벨 (Dolphin)', '2레벨 (Orca)', '3레벨 (Shark)', '유스 강사 과정'],
+  '수중레저안전요원': ['수중레저안전요원', '마스터 안전요원', '안전요원 강사 과정'],
+  '스쿠버다이빙': ['오픈워터', '어드밴스드', '스쿠버 강사 과정'],
+  '스페셜 교육': ['응급처치 및 CPR 교육', '수중 사진 촬영 교육'],
+};
+
 function InquiryFormContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -63,8 +73,9 @@ function InquiryFormContent() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [course, setCourse] = useState(() => getInitialCourse(initialCourseParam));
-  
-  // 복수 선택 상태값들
+  const [detailLevel, setDetailLevel] = useState(courseLevelOptions['프리다이빙'][0]);
+
+  // 희망 요일 복수 선택
   const [selectedDays, setSelectedDays] = useState<{ [key: string]: boolean }>({
     available_mon: true,
     available_tue: false,
@@ -91,9 +102,17 @@ function InquiryFormContent() {
 
   useEffect(() => {
     if (initialCourseParam) {
-      setCourse(getInitialCourse(initialCourseParam));
+      const selected = getInitialCourse(initialCourseParam);
+      setCourse(selected);
+      setDetailLevel(courseLevelOptions[selected][0]);
     }
   }, [initialCourseParam]);
+
+  // 코스 변경 시 상세 레벨 첫 번째 항목으로 자동 지정
+  const handleCourseChange = (selectedCourse: string) => {
+    setCourse(selectedCourse);
+    setDetailLevel(courseLevelOptions[selectedCourse][0]);
+  };
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = e.target.value.replace(/[^0-9]/g, '');
@@ -117,12 +136,11 @@ function InquiryFormContent() {
       return;
     }
 
-    // 귀여운 잠수 다이버 로딩 애니메이션 시작
     setSubmitting(true);
     setMatchedInstructor(null);
     setNoMatchFound(false);
 
-    // 2초간 애니메이션 노출 후 매칭 검색 실행
+    // 2초간 잠수 다이버 로딩 연출
     setTimeout(async () => {
       const { data: instructors, error } = await supabase
         .from('instructors')
@@ -135,9 +153,9 @@ function InquiryFormContent() {
         return;
       }
 
-      // 복수 조건 매칭 필터링
+      // 조건 매칭 필터링
       const qualifiedInstructors = instructors.filter((ins: Instructor) => {
-        // 1. 선택된 요일 중 하나라도 강사 가능 요일과 겹치는지 체크
+        // 1. 요일 매칭
         const dayMatch = Object.keys(selectedDays).some(dayKey => selectedDays[dayKey] && ins[dayKey as keyof Instructor]);
         if (!dayMatch) return false;
 
@@ -168,7 +186,7 @@ function InquiryFormContent() {
 
         if (!passnineMatch && !miryangMatch) return false;
 
-        // 4. 교육 과정 자격 레벨 체크
+        // 4. 지도 가능 분야 자격 체크
         if (course === '프리다이빙' && ins.max_freediving_level === 0) return false;
         if (course === '머메이드 다이빙' && ins.max_mermaid_level === 0) return false;
         if (course === '유스 프리다이빙' && ins.max_youth_level === 0) return false;
@@ -187,12 +205,12 @@ function InquiryFormContent() {
         const selected = qualifiedInstructors[randomIndex];
         setMatchedInstructor(selected);
 
-        // 고객 접수 내역 DB 추가
+        // 접수 DB 저장
         await supabase.from('customers').insert([
           {
             name,
             phone,
-            course,
+            course: `${course} (${detailLevel})`,
             pool: canPassnine && canMiryang ? '패스나인/밀양' : canPassnine ? '칠곡 패스나인' : '밀양 아리랑',
             time_slot: '복수 선택 조건',
             matched_instructor: selected.name,
@@ -247,9 +265,9 @@ function InquiryFormContent() {
           </div>
         </div>
 
-        {/* 희망 교육 코스 선택 */}
+        {/* 1차 희망 교육 코스 선택 */}
         <div>
-          <label className="block text-xs text-slate-400 mb-2">희망 교육 코스</label>
+          <label className="block text-xs text-slate-400 mb-2">1. 희망 교육 코스 분야</label>
           <div className="grid grid-cols-3 gap-1.5">
             {[
               '프리다이빙', '머메이드 다이빙', '유스 프리다이빙',
@@ -258,8 +276,8 @@ function InquiryFormContent() {
               <button
                 key={c}
                 type="button"
-                onClick={() => setCourse(c)}
-                className={`py-2 px-1 rounded-xl text-[11px] sm:text-xs font-bold border transition cursor-pointer ${
+                onClick={() => handleCourseChange(c)}
+                className={`py-2.5 px-1 rounded-xl text-[11px] sm:text-xs font-bold border transition cursor-pointer ${
                   course === c
                     ? 'bg-cyan-600 border-cyan-400 text-white shadow'
                     : 'bg-slate-800 border-slate-700 text-slate-400'
@@ -271,9 +289,30 @@ function InquiryFormContent() {
           </div>
         </div>
 
-        {/* 희망 요일 복수 선택 (버튼 방식) */}
+        {/* 2차 세부 레벨 / 과정 선택 */}
+        <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800">
+          <label className="block text-xs font-bold text-cyan-400 mb-2">2. [{course}] 세부 희망 레벨 및 과정 선택</label>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+            {courseLevelOptions[course]?.map((lvl) => (
+              <button
+                key={lvl}
+                type="button"
+                onClick={() => setDetailLevel(lvl)}
+                className={`py-2 px-2 rounded-lg text-xs font-medium border transition cursor-pointer ${
+                  detailLevel === lvl
+                    ? 'bg-cyan-950 border-cyan-400 text-cyan-200 font-bold'
+                    : 'bg-slate-900 border-slate-800 text-slate-400'
+                }`}
+              >
+                {lvl}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 희망 요일 복수 선택 */}
         <div>
-          <label className="block text-xs text-slate-400 mb-2">희망 수업 요일 (복수 선택 가능)</label>
+          <label className="block text-xs text-slate-400 mb-2">3. 희망 수업 요일 (복수 선택 가능)</label>
           <div className="grid grid-cols-7 gap-1">
             {[
               { key: 'available_mon', label: '월' },
@@ -309,7 +348,7 @@ function InquiryFormContent() {
               onChange={(e) => setCanPassnine(e.target.checked)}
               className="accent-cyan-500 w-4 h-4"
             />
-            <span>칠곡 패스나인 풀장 (복수 선택 가능)</span>
+            <span>칠곡 패스나인 풀장 (시간대 복수 선택 가능)</span>
           </label>
           {canPassnine && (
             <div className="grid grid-cols-2 gap-2 pt-1">
@@ -333,7 +372,7 @@ function InquiryFormContent() {
           )}
         </div>
 
-        {/* 밀양 아리랑 풀장 세부 시간대 복수 선택 */}
+        {/* 밀양 아리랑 풀장 세부 시간대 복수 선택 (오전부 주말 안내 반영) */}
         <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2.5">
           <label className="flex items-center space-x-2 text-xs font-bold text-white cursor-pointer">
             <input
@@ -342,12 +381,12 @@ function InquiryFormContent() {
               onChange={(e) => setCanMiryang(e.target.checked)}
               className="accent-cyan-500 w-4 h-4"
             />
-            <span>밀양 아리랑 풀장 (복수 선택 가능)</span>
+            <span>밀양 아리랑 풀장 (시간대 복수 선택 가능)</span>
           </label>
           {canMiryang && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
               {[
-                { key: 't0', label: '조조부 (06:00~09:00)' },
+                { key: 't0', label: '오전부 (06:00~09:00) ※주말 전용' },
                 { key: 't1', label: '오전 1부 (09:00~11:00)' },
                 { key: 't2', label: '오전 2부 (11:00~13:00)' },
                 { key: 't3', label: '오후 1부 (13:00~15:00)' },
@@ -382,7 +421,6 @@ function InquiryFormContent() {
       {submitting && (
         <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center p-4">
           <div className="relative w-28 h-28 mb-4">
-            {/* CSS 애니메이션 다이버 SVG */}
             <div className="w-full h-full animate-bounce flex items-center justify-center text-5xl">
               🥽
             </div>
@@ -392,7 +430,7 @@ function InquiryFormContent() {
           <h3 className="text-base sm:text-lg font-bold text-cyan-400 text-center animate-pulse">
             🫧 블루피스 전담 잠수 다이버가<br />맞춤형 담당 강사님을 찾는 중입니다...
           </h3>
-          <p className="text-xs text-slate-400 mt-2">입력하신 요일과 풀장 조건을 실시간으로 분석하고 있습니다.</p>
+          <p className="text-xs text-slate-400 mt-2">입력하신 요일과 세부 레벨 조건을 실시간 분석하고 있습니다.</p>
         </div>
       )}
 
