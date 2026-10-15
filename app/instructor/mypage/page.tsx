@@ -66,7 +66,6 @@ export default function InstructorPortal() {
     setBio(data.bio || '');
     setPhone(data.phone || '');
 
-    // 최초 프로필 사진이 없으면 프로필 설정 화면으로 이동
     if (!data.profile_image) {
       setView('profile_setup');
     } else {
@@ -75,7 +74,7 @@ export default function InstructorPortal() {
     }
   };
 
-  // 강사 회원가입 처리 (유효성 검증 포함)
+  // 강사 회원가입 처리
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -124,15 +123,16 @@ export default function InstructorPortal() {
     if (!error) fetchAdminData();
   };
 
-  // 관리자 기능: 강사 삭제 (버그 수정 완료)
+  // 관리자 기능: 강사 삭제 (프론트 상태 즉시 반영 보완)
   const handleDeleteInstructor = async (id: string) => {
     if (confirm('정말 이 강사 계정을 삭제하시겠습니까?')) {
       const { error } = await supabase.from('instructors').delete().eq('id', id);
       if (error) {
-        alert('삭제 중 오류가 발생했습니다: ' + error.message);
+        alert('삭제 실패: Supabase 테이블의 RLS(보안 정책) 설정을 확인해 주세요. (' + error.message + ')');
       } else {
-        alert('강사 계정이 삭제되었습니다.');
-        fetchAdminData();
+        // 즉시 화면 리스트에서 제거하여 반영
+        setAllInstructors(prev => prev.filter(ins => ins.id !== id));
+        alert('강사 계정이 성공적으로 삭제되었습니다.');
       }
     }
   };
@@ -147,7 +147,7 @@ export default function InstructorPortal() {
     if (data) setCustomers(data);
   };
 
-  // 프로필 사진 업로드 (5MB 제한 및 안내)
+  // 프로필 사진 업로드 (5MB 제한)
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
