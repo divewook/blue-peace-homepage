@@ -96,7 +96,6 @@ export default function InstructorMyPage() {
     fetchData();
   }, []);
 
-  // 로그아웃 및 입력값 완전 초기화 함수
   const handleLogout = () => {
     setCurrentInstructor(null);
     setLoginId('');
@@ -141,7 +140,6 @@ export default function InstructorMyPage() {
 
     setCurrentInstructor(data);
     
-    // 프로필 미입력 강사는 무조건 설정 화면으로 강제 이동
     if (!data.phone || !data.bio) {
       setViewMode('settings');
       setNotice('✨ 최초 로그인입니다! 고객 매칭을 위해 프로필 및 조건을 먼저 설정해 주세요.');
@@ -225,7 +223,6 @@ export default function InstructorMyPage() {
     }
   };
 
-  // 이미지 용량(5MB 제한) 및 해상도(2000px 제한) 검증 및 업로드 핸들러
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0 || !currentInstructor) return;
@@ -234,16 +231,15 @@ export default function InstructorMyPage() {
     const MAX_SIZE_MB = 5;
     const MAX_BYTES = MAX_SIZE_MB * 1024 * 1024;
 
-    // 1. 용량 검증
     if (file.size > MAX_BYTES) {
-      setNotice(`⚠️ 이미지 업로드 실패: 파일 용량이 너무 큽니다 (${(file.size / (1024 * 1024)).MB?.toFixed?.(1) || Math.round(file.size / (1024*1024))}MB). 5MB 이하의 이미지를 첨부해 주세요.`);
+      const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
+      setNotice(`⚠️ 이미지 업로드 실패: 파일 용량이 너무 큽니다 (${fileSizeMB}MB). 5MB 이하의 이미지를 첨부해 주세요.`);
       e.target.value = '';
       return;
     }
 
     setUploadingImage(true);
 
-    // 2. 해상도(크기) 검증
     const img = new Image();
     const objectUrl = URL.createObjectURL(file);
     img.src = objectUrl;
@@ -259,7 +255,6 @@ export default function InstructorMyPage() {
         return;
       }
 
-      // 검증 통과 시 안전하게 Base64 데이터 또는 스토리지 업로드 처리
       const reader = new FileReader();
       reader.onload = (uploadEvent) => {
         const base64Result = uploadEvent.target?.result as string;
@@ -279,7 +274,6 @@ export default function InstructorMyPage() {
   const handleUpdateProfile = async () => {
     if (!currentInstructor) return;
     
-    // 필수 프로필 입력 검증
     if (!currentInstructor.phone || !currentInstructor.bio) {
       setNotice('⚠️ 개인 연락처와 강사 소개글은 필수 입력 항목입니다.');
       return;
@@ -364,7 +358,6 @@ export default function InstructorMyPage() {
     }
   };
 
-  // 대시보드 진입 시 프로필 미입력자 차단 핸들러
   const handleGoDashboard = () => {
     if (!currentInstructor?.phone || !currentInstructor?.bio) {
       setNotice('⚠️ 최초 강사 가입 후 프로필 및 연락처를 반드시 입력해야 대시보드로 이동할 수 있습니다.');
@@ -392,7 +385,6 @@ export default function InstructorMyPage() {
         </div>
       )}
 
-      {/* 1. 로그인 화면 */}
       {viewMode === 'login' && (
         <div className="max-w-md mx-auto bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl">
           <h2 className="text-lg font-bold mb-4 text-cyan-400 text-center">강사 로그인</h2>
@@ -438,7 +430,6 @@ export default function InstructorMyPage() {
         </div>
       )}
 
-      {/* 2. 회원가입 화면 */}
       {viewMode === 'signup' && (
         <div className="max-w-md mx-auto bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl">
           <h2 className="text-lg font-bold mb-4 text-cyan-400 text-center">소속 강사 회원가입</h2>
@@ -496,7 +487,6 @@ export default function InstructorMyPage() {
         </div>
       )}
 
-      {/* 3. 관리자 대시보드 */}
       {viewMode === 'admin' && (
         <div className="space-y-6">
           <div className="flex justify-between items-center bg-slate-900 p-4 rounded-2xl border border-cyan-500/40">
@@ -645,7 +635,6 @@ export default function InstructorMyPage() {
         </div>
       )}
 
-      {/* 4. 강사 메인 대시보드 */}
       {viewMode === 'dashboard' && currentInstructor && (
         <div className="space-y-6">
           <div className="flex justify-between items-center bg-slate-900 p-4 rounded-2xl border border-cyan-500/40">
@@ -804,7 +793,6 @@ export default function InstructorMyPage() {
         </div>
       )}
 
-      {/* 5. 프로필 및 조건 설정 화면 */}
       {viewMode === 'settings' && currentInstructor && (
         <div className="space-y-5">
           <div className="flex justify-between items-center bg-slate-900 p-4 rounded-2xl border border-cyan-500/40">
