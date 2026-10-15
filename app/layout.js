@@ -15,6 +15,7 @@ const localBusinessData = {
   email: "divewook@naver.com",
   address: {
     "@type": "PostalAddress",
+    streetAddress: "인강1길 38-12, 1층",
     addressRegion: "경상북도",
     addressLocality: "칠곡군 북삼읍",
     addressCountry: "KR",

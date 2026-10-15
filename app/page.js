@@ -5,6 +5,9 @@ import Image from "next/image";
 
 const contactEmail = "divewook@naver.com";
 const contactPhone = "010-9897-8990";
+const centerAddress = "경상북도 칠곡군 북삼읍 인강1길 38-12, 1층";
+const centerMapEmbedUrl = `https://maps.google.com/maps?q=${encodeURIComponent("경상북도 칠곡군 북삼읍 인강1길 38-12")}&z=17&hl=ko&output=embed`;
+const centerMapLink = "https://map.naver.com/p/entry/place/1768533167";
 const phoneNotice = "💡 강습 중에는 통화 연결이 어려울 수 있습니다. 연결이 안 될 경우 문자를 남겨주시면 수업 직후 빠르게 확인하여 연락드리겠습니다.";
 const instagramUrl = "https://www.instagram.com/bluepeace_diving/";
 const business = { name: "블루피스", owner: "김상욱", registration: "460-44-01113" };
@@ -25,14 +28,32 @@ const galleryImages = [
   "DSC07628.jpg",
 ].map((filename, index) => ({ src: `/${filename}`, alt: `블루피스 수중 작품 ${index + 1}` }));
 
-function shuffleGallery(images) {
-  const shuffled = [...images];
+const portraitGallerySources = new Set([
+  "/DSC01193.jpg", "/DSC01428-Enhanced-NR.jpg", "/DSC01936.jpg",
+  "/DSC02031.jpg", "/DSC02125-Enhanced-NR.jpg", "/DSC05737-Enhanced-NR.jpg",
+]);
+
+function shuffleItems(items) {
+  const shuffled = [...items];
   for (let index = shuffled.length - 1; index > 0; index -= 1) {
     const randomIndex = Math.floor(Math.random() * (index + 1));
     [shuffled[index], shuffled[randomIndex]] = [shuffled[randomIndex], shuffled[index]];
   }
   return shuffled;
 }
+
+function shuffleGallery(images) {
+  const portraits = shuffleItems(images.filter((photo) => portraitGallerySources.has(photo.src)));
+  const landscapes = shuffleItems(images.filter((photo) => !portraitGallerySources.has(photo.src)));
+  return [portraits[0], ...landscapes.slice(0, 5), ...shuffleItems([...portraits.slice(1), ...landscapes.slice(5)])];
+}
+
+const initialGallery = (() => {
+  const portrait = galleryImages.find((photo) => portraitGallerySources.has(photo.src));
+  const landscapes = galleryImages.filter((photo) => !portraitGallerySources.has(photo.src));
+  const featured = [portrait, ...landscapes.slice(0, 5)];
+  return [...featured, ...galleryImages.filter((photo) => !featured.includes(photo))];
+})();
 const faqs = [
   { question: "수영을 못해도 가능한가요?", answer: "가능합니다. 수영 실력보다 물에 적응하는 과정부터 천천히 진행합니다." },
   { question: "물 공포가 있어도 괜찮나요?", answer: "괜찮습니다. 강사가 옆에서 단계별로 안내하며 편안하게 적응할 수 있도록 도와드립니다." },
@@ -43,7 +64,7 @@ const faqs = [
   { question: "자격증은 어디서 발급되나요?", answer: "AIDA · PSA 국제 자격증 발급이 가능하며, 과정과 목표에 맞춰 안내해드립니다." },
   { question: "자격증 취득까지 얼마나 걸리나요?", answer: "개인별 습득 속도에 따라 다릅니다. 자격 취득 전까지 무제한 트레이닝을 지원합니다." },
   { question: "혼자 신청해도 괜찮나요?", answer: "물론입니다. 혼자 오셔도 편하게 수업받을 수 있고, 이후 트레이닝과 커뮤니티도 함께할 수 있습니다." },
-  { question: "교육 장소는 어디인가요?", answer: "이론 수업은 블루피스에서, 풀장 실습은 패스나인 등 일정에 맞는 풀장에서 진행됩니다." },
+  { question: "교육 장소는 어디인가요?", answer: "이론 수업은 블루피스 센터(경상북도 칠곡군 북삼읍 인강1길 38-12, 1층)에서, 풀장 실습은 패스나인 등 일정에 맞는 풀장에서 진행됩니다." },
 ];
 
 // 코스명은 아래 categories의 title과 정확히 일치시켜 주세요.
@@ -246,6 +267,20 @@ function ArrowIcon({ diagonal = false }) {
   );
 }
 
+function GalleryTile({ photo, onOpen, className = "", sizes = "(min-width: 1024px) 50vw, 50vw" }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen(photo)}
+      aria-label={`${photo.alt} 확대 보기`}
+      className={`group relative block h-full w-full overflow-hidden rounded-xl bg-[#d9e5e1] text-left shadow-[0_14px_30px_rgba(20,51,62,.08)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4c8d88] ${className}`}
+    >
+      <Image src={photo.src} alt={photo.alt} fill sizes={sizes} className="object-cover transition-transform duration-700 group-hover:scale-105" />
+      <span aria-hidden="true" className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/55 to-transparent px-4 pb-3 pt-8 text-xs font-medium text-white/90 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">원본 보기 ↗</span>
+    </button>
+  );
+}
+
 function SentenceText({ children }) {
   return String(children).split(/(?<=\.)\s+(?=\S)/u).map((sentence, index) => (
     <span key={index} className="block">{sentence}</span>
@@ -286,7 +321,7 @@ export default function HomePage() {
   const [submissionText, setSubmissionText] = useState("");
   const [copySucceeded, setCopySucceeded] = useState(false);
   const [openFaq, setOpenFaq] = useState(null);
-  const [shuffledGallery, setShuffledGallery] = useState(galleryImages);
+  const [shuffledGallery, setShuffledGallery] = useState(initialGallery);
   const [showAllGallery, setShowAllGallery] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState(null);
   const dialogRef = useRef(null);
@@ -294,6 +329,7 @@ export default function HomePage() {
   const activeCategory = categories.find((category) => category.id === activeTab);
   const selectedInstructor = directoryInstructors.find((instructor) => instructor.id === selectedInstructorId);
   const generalInquiryUrl = `mailto:${contactEmail}?subject=${encodeURIComponent(`블루피스 ${inquiryCourse || "교육"} 전체 문의`)}`;
+  const previewGallery = shuffledGallery.slice(0, 6);
 
   const orderedInstructors = useMemo(() => instructorOrder.map((id) => directoryInstructors.find((instructor) => instructor.id === id)), [instructorOrder]);
 
@@ -396,23 +432,21 @@ export default function HomePage() {
       <section id="top" className="bg-[#f5f3ec] px-5 pb-8 pt-7 sm:px-10 sm:pb-14 sm:pt-12 lg:px-16">
         <div className="mx-auto grid max-w-[1440px] items-stretch gap-8 lg:min-h-[650px] lg:grid-cols-[.92fr_1.08fr] lg:gap-0">
           <div className="relative z-10 flex flex-col justify-center py-5 lg:py-16 lg:pr-10">
-            <p className="mb-8 flex items-center gap-4 text-[11px] font-semibold uppercase tracking-[0.27em] text-[#4c8d88]"><span className="h-px w-9 bg-[#4c8d88]" /> Blue Peace / Ocean Academy</p>
-            <p className="mb-4 break-keep text-[11px] font-semibold tracking-[0.13em] text-[#688080] sm:text-sm">대구·경북 최대 다이빙 전문 센터 · BLUE PEACE</p>
-            <h1 className="max-w-[680px] break-keep text-[clamp(2.8rem,5.8vw,6.3rem)] font-semibold leading-[1.12] tracking-[-0.075em]">
-              바다 속에서 만나는<br />가장 완벽한 <span className="font-serif italic text-[#4c8d88]">자유</span>
+            <p className="mb-5 break-keep text-[11px] font-semibold tracking-[0.13em] text-[#688080] sm:text-sm">대구·경북 최대 다이빙 전문 센터</p>
+            <h1 className="max-w-[720px] break-keep text-[clamp(2.1rem,3.8vw,4.4rem)] font-semibold leading-[1.3] tracking-[-0.065em]">
+              <span className="block">블루피스와 함께 처음의 설렘부터 깊은 몰입까지,</span>
+              <span className="mt-3 block text-[#4c8d88]">당신만의 바다를 만나보세요.</span>
             </h1>
-            <p className="mt-7 max-w-lg break-keep text-sm leading-[1.95] text-[#52666a] sm:text-base"><SentenceText>숨을 고르는 순간, 세상은 조용해집니다. 블루피스와 함께 처음의 설렘부터 깊은 몰입까지, 당신만의 바다를 만나보세요.</SentenceText></p>
             <div className="mt-9 flex flex-wrap gap-3">
               <button type="button" onClick={() => openInquiry()} className="inline-flex min-h-13 items-center gap-8 rounded-full bg-[#14333e] px-6 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(20,51,62,.14)] transition hover:-translate-y-0.5 hover:bg-[#326a70] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#4c8d88]">교육 문의하기 <ArrowIcon diagonal /></button>
               <a href="#courses" className="inline-flex min-h-13 items-center gap-6 rounded-full border border-[#b7c7c3] px-6 text-sm font-semibold text-[#14333e] transition hover:border-[#4c8d88] hover:bg-white">코스 둘러보기 <ArrowIcon /></a>
             </div>
-            <p className="mt-12 hidden text-[10px] font-medium uppercase tracking-[.28em] text-[#8b9d9a] lg:block">01 — A quieter kind of freedom</p>
           </div>
           <div className="relative isolate min-h-[360px] overflow-hidden rounded-[1.25rem] bg-[#0b3445] shadow-[0_30px_70px_rgba(18,49,61,.13)] sm:min-h-[520px] lg:min-h-[650px] lg:rounded-[1.5rem]">
             {heroImages.map((src, index) => <div key={src} className={`absolute inset-0 -z-10 transition-opacity duration-[1800ms] ease-in-out motion-reduce:transition-none ${heroIndex === index ? "opacity-100" : "opacity-0"}`} aria-hidden="true"><Image src={src} alt="" fill priority={index === 0} sizes="(min-width: 1024px) 55vw, 100vw" quality={85} className="object-cover" /></div>)}
             <div className="absolute inset-0 bg-gradient-to-t from-[#062735]/60 via-transparent to-transparent" />
             <div className="absolute bottom-5 left-5 right-5 flex items-end justify-between border-t border-white/50 pt-4 text-white sm:bottom-8 sm:left-8 sm:right-8">
-              <span className="text-[10px] font-semibold uppercase tracking-[.25em]">Breathe / Dive / Belong</span>
+              <span className="text-[10px] font-semibold tracking-[.15em]">블루피스와 함께하는 바다</span>
               <span className="font-serif text-lg italic">0{heroIndex + 1} / 04</span>
             </div>
           </div>
@@ -542,23 +576,28 @@ export default function HomePage() {
             <div><p className="text-xs font-bold uppercase tracking-[0.3em] text-[#4c8d88]">The blue moment / 02</p><h2 className="mt-3 text-3xl font-semibold leading-tight tracking-[-0.06em] sm:text-5xl">말보다 오래 남는<br />바다의 순간</h2></div>
             <div><p className="max-w-md break-keep text-sm leading-[1.9] text-[#60777a] sm:text-base">고요한 물속, 부드러운 빛, 자유로운 움직임.</p><p className="mt-1 max-w-md break-keep text-sm leading-[1.9] text-[#60777a] sm:text-base">블루피스가 사랑하는 바다의 장면을 만나보세요.</p></div>
           </div>
-          <div className="grid auto-rows-[126px] grid-cols-2 gap-2.5 sm:auto-rows-[180px] sm:gap-4 lg:auto-rows-[190px] lg:grid-cols-4">
-            {(showAllGallery ? shuffledGallery : shuffledGallery.slice(0, 8)).map((photo, index) => (
-              <button
-                key={photo.src}
-                type="button"
-                onClick={() => openLightbox(photo)}
-                aria-label={`${photo.alt} 확대 보기`}
-                className={`group relative overflow-hidden rounded-xl bg-[#d9e5e1] text-left shadow-[0_14px_30px_rgba(20,51,62,.08)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4c8d88] ${index % 7 === 0 ? "row-span-2" : ""}`}
-              >
-                <Image src={photo.src} alt={photo.alt} fill sizes="(min-width: 1024px) 25vw, 50vw" className="object-cover transition-transform duration-700 group-hover:scale-105" />
-                <span aria-hidden="true" className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/55 to-transparent px-4 pb-3 pt-8 text-xs font-medium text-white/90 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">원본 보기 ↗</span>
-              </button>
-            ))}
+          <div className="space-y-2.5 sm:space-y-4">
+            <div className="grid h-[300px] grid-cols-2 grid-rows-2 gap-2.5 sm:h-[520px] sm:gap-4">
+              <GalleryTile photo={previewGallery[0]} onOpen={openLightbox} className="row-span-2" />
+              <GalleryTile photo={previewGallery[1]} onOpen={openLightbox} />
+              <GalleryTile photo={previewGallery[2]} onOpen={openLightbox} />
+            </div>
+            <div className="grid h-[130px] grid-cols-2 gap-2.5 sm:h-[240px] sm:gap-4">
+              <GalleryTile photo={previewGallery[3]} onOpen={openLightbox} />
+              <GalleryTile photo={previewGallery[4]} onOpen={openLightbox} />
+            </div>
+            <div className="h-[130px] sm:h-[240px]">
+              <GalleryTile photo={previewGallery[5]} onOpen={openLightbox} sizes="100vw" />
+            </div>
           </div>
+          {showAllGallery && (
+            <div className="mt-2.5 grid auto-rows-[130px] grid-cols-2 gap-2.5 sm:mt-4 sm:auto-rows-[210px] sm:gap-4 lg:grid-cols-4">
+              {shuffledGallery.slice(6).map((photo, index) => <GalleryTile key={photo.src} photo={photo} onOpen={openLightbox} className={index >= 12 ? "lg:col-span-2" : ""} sizes="(min-width: 1024px) 25vw, 50vw" />)}
+            </div>
+          )}
           <div className="mt-6 flex justify-center sm:mt-8">
             <button type="button" onClick={() => setShowAllGallery((current) => !current)} aria-expanded={showAllGallery} className="inline-flex min-h-12 items-center justify-center rounded-full border border-[#b8cbc5] px-6 text-sm font-semibold text-[#14333e] transition hover:border-[#4c8d88] hover:bg-[#f0f5f1] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4c8d88]">
-              {showAllGallery ? "수중 작품 접기" : "블루피스 수중 작품 더보기 (+12장)"}
+              {showAllGallery ? "수중 작품 접기" : `블루피스 수중 작품 더보기 (+${galleryImages.length - previewGallery.length}장)`}
             </button>
           </div>
         </div>
@@ -583,20 +622,6 @@ export default function HomePage() {
               <h2 className="mt-2 break-keep text-3xl font-semibold leading-tight tracking-[-0.06em] sm:mt-5 sm:text-5xl">나의 바다를 함께할 강사진</h2>
             </div>
             <p className="max-w-lg break-keep text-xs leading-[1.9] text-[#60777a] sm:text-base"><SentenceText>BLUE PEACE 대표강사 김상욱을 소개합니다. 전체 강사진과 각 강사의 문의 가능 코스는 강사 선택 창에서 확인해 주세요.</SentenceText></p>
-          </div>
-          <div className="mb-7 grid gap-7 border-y border-[#cbd9d1] py-7 sm:mb-12 sm:gap-10 sm:py-12 lg:grid-cols-[.95fr_1.05fr] lg:items-end">
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-[.28em] text-[#4c8d88]">Our philosophy / Blue Peace</p>
-              <h3 className="mt-5 break-keep text-[clamp(1.7rem,3.4vw,3.5rem)] font-semibold leading-[1.35] tracking-[-.06em]">
-                선수를 키우는 것이 아닙니다.<br />
-                <span className="text-[#4c8d88]">물속에서 편안하고 자유롭게</span><br className="hidden sm:block" /> 노는 즐거움을 선물합니다.
-              </h3>
-            </div>
-            <div className="max-w-xl border-l-2 border-[#8fbdb3] pl-5 text-sm leading-[1.95] text-[#52686b] sm:pl-8 sm:text-base">
-              <p className="break-keep">블루피스는 단순히 자격증을 따는 교육기관에 머물지 않습니다.</p>
-              <p className="mt-3 break-keep">모든 수업에서 잊지 못할 수중 사진과 고화질 영상 기록을 정성껏 전해드리며,</p>
-              <p className="mt-3 break-keep">해루질 투어, 국내외 바다 투어, 캠핑 등 같은 취미를 공유하는 소중한 사람들과의 인프라와 경험을 만들어갑니다.</p>
-            </div>
           </div>
           <div className="ml-auto max-w-5xl">
             {[directoryInstructors[0]].map((instructor) => (
@@ -665,20 +690,31 @@ export default function HomePage() {
       </section>
 
       <section id="location" aria-labelledby="location-title" className="border-y border-[#dce5dc] bg-[#edf1eb] px-5 py-12 text-[#142c36] sm:px-10 sm:py-18 lg:px-16 lg:py-22">
-        <div className="mx-auto grid max-w-[1312px] gap-8 lg:grid-cols-[.7fr_1.3fr] lg:gap-16">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[.3em] text-[#4c8d88]">Visit Blue Peace / 05</p>
-            <h2 id="location-title" className="mt-3 break-keep text-3xl font-semibold leading-tight tracking-[-.06em] sm:text-5xl">블루피스 센터<br />오시는 길</h2>
-            <p className="mt-5 max-w-md break-keep text-sm leading-[1.9] text-[#60777a]">처음 방문하신다면 출발 전 교육 일정과 정확한 위치를 문의해 주세요.</p>
-            <a href={`tel:${contactPhone}`} className="mt-6 inline-flex min-h-11 items-center gap-4 rounded-full bg-[#14333e] px-5 text-sm font-semibold text-white transition hover:bg-[#326a70]">센터 위치 전화 문의 <ArrowIcon diagonal /></a>
+        <div className="mx-auto max-w-[1312px]">
+          <div className="mb-6 flex flex-col gap-5 sm:mb-9 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[.3em] text-[#4c8d88]">Visit Blue Peace / 05</p>
+              <h2 id="location-title" className="mt-3 break-keep text-3xl font-semibold leading-tight tracking-[-.06em] sm:text-5xl">블루피스 센터 오시는 길</h2>
+              <p className="mt-4 break-keep text-sm leading-[1.9] text-[#60777a]">이론 교육장: 블루피스 센터 ({centerAddress})</p>
+            </div>
+            <a href={centerMapLink} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 self-start items-center gap-4 rounded-full bg-[#14333e] px-5 text-sm font-semibold text-white transition hover:bg-[#326a70] lg:self-auto">네이버 지도에서 길찾기 <ArrowIcon diagonal /></a>
           </div>
-          <div className="border-t border-[#b4cbc0]">
+          <div className="relative aspect-[4/3] min-h-[300px] overflow-hidden rounded-[1.25rem] border border-[#d3dfd6] bg-[#dce8e1] shadow-[0_18px_42px_rgba(20,51,62,.08)] sm:aspect-[16/8]">
+            <iframe
+              title="블루피스 센터 위치 지도"
+              src={centerMapEmbedUrl}
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              allowFullScreen
+              className="absolute inset-0 h-full w-full border-0"
+            />
+          </div>
+          <div className="mt-7 grid gap-0 border-t border-[#b4cbc0] md:grid-cols-2 md:gap-8">
             {[
-              { number: "01", label: "이론 교육장", detail: "블루피스 전용 센터 (경북 칠곡군 북삼읍 인근)" },
-              { number: "02", label: "주차 안내", detail: "Center 1층 출입문 맞은편 담벼락 편안하게 주차 가능" },
-              { number: "03", label: "대중교통 안내", detail: "북삼역 하차 후 택시 이용 시 약 3~5분 소요 (기본요금 거리)" },
+              { number: "01", label: "주차 안내", detail: "Center 1층 출입문 맞은편 담벼락 편안하게 주차 가능" },
+              { number: "02", label: "대중교통 안내", detail: "북삼역 하차 후 택시 이용 시 약 3~5분 소요 (기본요금 거리)" },
             ].map((item) => (
-              <div key={item.number} className="grid gap-1 border-b border-[#cedbd1] py-5 sm:grid-cols-[52px_160px_1fr] sm:items-start sm:gap-4 sm:py-7">
+              <div key={item.number} className="grid gap-1 border-b border-[#cedbd1] py-5 sm:grid-cols-[45px_130px_1fr] sm:items-start sm:gap-3 sm:py-7">
                 <span className="text-xs font-bold text-[#4c8d88]">{item.number}</span>
                 <h3 className="text-sm font-semibold sm:text-base">{item.label}</h3>
                 <p className="break-keep text-sm leading-[1.85] text-[#60777a]">{item.detail}</p>
@@ -859,6 +895,7 @@ export default function HomePage() {
               <div className="flex gap-3"><dt className="w-24 shrink-0 text-white/45">상호</dt><dd>{business.name}</dd></div>
               <div className="flex gap-3"><dt className="w-24 shrink-0 text-white/45">대표자</dt><dd>{business.owner}</dd></div>
               <div className="flex gap-3"><dt className="w-24 shrink-0 text-white/45">사업자등록번호</dt><dd>{business.registration}</dd></div>
+              <div className="flex gap-3"><dt className="w-24 shrink-0 text-white/45">이론 센터</dt><dd className="break-keep">{centerAddress}</dd></div>
             </dl>
           </div>
           <div>
