@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -45,9 +45,9 @@ interface Instructor {
 
 function InquiryFormContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const initialCourseParam = searchParams.get('course');
 
-  // URL 파라미터(?course=...)에 따른 초기 선택 코스 자동 지정
   const getInitialCourse = (param: string | null) => {
     switch (param) {
       case 'freediving': return '프리다이빙';
@@ -63,22 +63,38 @@ function InquiryFormContent() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [course, setCourse] = useState(() => getInitialCourse(initialCourseParam));
-  const [pool, setPool] = useState('칠곡 패스나인');
-  const [timeSlot, setTimeSlot] = useState('1부 (09:00~11:00)');
-  const [day, setDay] = useState('available_mon');
+  
+  // 복수 선택 상태값들
+  const [selectedDays, setSelectedDays] = useState<{ [key: string]: boolean }>({
+    available_mon: true,
+    available_tue: false,
+    available_wed: false,
+    available_thu: false,
+    available_fri: false,
+    available_sat: false,
+    available_sun: false,
+  });
+
+  const [canPassnine, setCanPassnine] = useState(true);
+  const [passnineSlots, setPassnineSlots] = useState<{ [key: string]: boolean }>({
+    t1: true, t2: false, t3: false, t4: false
+  });
+
+  const [canMiryang, setCanMiryang] = useState(false);
+  const [miryangSlots, setMiryangSlots] = useState<{ [key: string]: boolean }>({
+    t0: false, t1: false, t2: false, t3: false, t4: false, t5: false, t6: false
+  });
 
   const [matchedInstructor, setMatchedInstructor] = useState<Instructor | null>(null);
   const [noMatchFound, setNoMatchFound] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // URL 파라미터 변경 감지 및 반영
   useEffect(() => {
     if (initialCourseParam) {
       setCourse(getInitialCourse(initialCourseParam));
     }
   }, [initialCourseParam]);
 
-  // 전화번호 자동 하이픈
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = e.target.value.replace(/[^0-9]/g, '');
     let formatted = rawValue;
@@ -90,6 +106,10 @@ function InquiryFormContent() {
     setPhone(formatted);
   };
 
+  const toggleDay = (key: string) => {
+    setSelectedDays(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !phone) {
@@ -97,197 +117,284 @@ function InquiryFormContent() {
       return;
     }
 
+    // 귀여운 잠수 다이버 로딩 애니메이션 시작
     setSubmitting(true);
     setMatchedInstructor(null);
     setNoMatchFound(false);
 
-    // 승인된 강사 목록 조회
-    const { data: instructors, error } = await supabase
-      .from('instructors')
-      .select('*')
-      .eq('is_approved', true);
+    // 2초간 애니메이션 노출 후 매칭 검색 실행
+    setTimeout(async () => {
+      const { data: instructors, error } = await supabase
+        .from('instructors')
+        .select('*')
+        .eq('is_approved', true);
 
-    if (error || !instructors || instructors.length === 0) {
-      setSubmitting(false);
-      setNoMatchFound(true);
-      return;
-    }
-
-    // 조건에 부합하는 강사 필터링
-    const qualifiedInstructors = instructors.filter((ins: Instructor) => {
-      // 1. 요일 조건
-      if (!ins[day as keyof Instructor]) return false;
-
-      // 2. 풀장 및 시간대 조건
-      if (pool === '칠곡 패스나인') {
-        if (!ins.can_passnine) return false;
-        if (timeSlot.includes('1부') && !ins.passnine_t1) return false;
-        if (timeSlot.includes('2부') && !ins.passnine_t2) return false;
-        if (timeSlot.includes('3부') && !ins.passnine_t3) return false;
-        if (timeSlot.includes('4부') && !ins.passnine_t4) return false;
-      } else if (pool === '밀양 아리랑') {
-        if (!ins.can_miryang) return false;
-        if (timeSlot.includes('조조부') && !ins.miryang_t0) return false;
-        if (timeSlot.includes('오전 1부') && !ins.miryang_t1) return false;
-        if (timeSlot.includes('오전 2부') && !ins.miryang_t2) return false;
-        if (timeSlot.includes('오후 1부') && !ins.miryang_t3) return false;
-        if (timeSlot.includes('오후 2부') && !ins.miryang_t4) return false;
-        if (timeSlot.includes('저녁 1부') && !ins.miryang_t5) return false;
-        if (timeSlot.includes('저녁 2부') && !ins.miryang_t6) return false;
+      if (error || !instructors || instructors.length === 0) {
+        setSubmitting(false);
+        setNoMatchFound(true);
+        return;
       }
 
-      // 3. 자격 레벨 조건
-      if (course === '프리다이빙' && ins.max_freediving_level === 0) return false;
-      if (course === '머메이드 다이빙' && ins.max_mermaid_level === 0) return false;
-      if (course === '유스 프리다이빙' && ins.max_youth_level === 0) return false;
-      if (course === '수중레저안전요원' && ins.safety_guard_level === 0) return false;
-      if (course === '스쿠버다이빙' && ins.scuba_level === 0) return false;
+      // 복수 조건 매칭 필터링
+      const qualifiedInstructors = instructors.filter((ins: Instructor) => {
+        // 1. 선택된 요일 중 하나라도 강사 가능 요일과 겹치는지 체크
+        const dayMatch = Object.keys(selectedDays).some(dayKey => selectedDays[dayKey] && ins[dayKey as keyof Instructor]);
+        if (!dayMatch) return false;
 
-      return true;
-    });
+        // 2. 패스나인 시간대 매칭
+        let passnineMatch = false;
+        if (canPassnine && ins.can_passnine) {
+          if ((passnineSlots.t1 && ins.passnine_t1) ||
+              (passnineSlots.t2 && ins.passnine_t2) ||
+              (passnineSlots.t3 && ins.passnine_t3) ||
+              (passnineSlots.t4 && ins.passnine_t4)) {
+            passnineMatch = true;
+          }
+        }
 
-    setSubmitting(false);
+        // 3. 밀양 아리랑 시간대 매칭
+        let miryangMatch = false;
+        if (canMiryang && ins.can_miryang) {
+          if ((miryangSlots.t0 && ins.miryang_t0) ||
+              (miryangSlots.t1 && ins.miryang_t1) ||
+              (miryangSlots.t2 && ins.miryang_t2) ||
+              (miryangSlots.t3 && ins.miryang_t3) ||
+              (miryangSlots.t4 && ins.miryang_t4) ||
+              (miryangSlots.t5 && ins.miryang_t5) ||
+              (miryangSlots.t6 && ins.miryang_t6)) {
+            miryangMatch = true;
+          }
+        }
 
-    if (qualifiedInstructors.length === 0) {
-      setNoMatchFound(true);
-    } else {
-      // 공정한 2명 이상일 경우 무작위(Random) 1명 매칭
-      const randomIndex = Math.floor(Math.random() * qualifiedInstructors.length);
-      const selected = qualifiedInstructors[randomIndex];
-      setMatchedInstructor(selected);
+        if (!passnineMatch && !miryangMatch) return false;
 
-      // 매칭 접수 결과 DB 저장
-      await supabase.from('customers').insert([
-        {
-          name,
-          phone,
-          course,
-          pool,
-          time_slot: timeSlot,
-          matched_instructor: selected.name,
-        },
-      ]);
-    }
+        // 4. 교육 과정 자격 레벨 체크
+        if (course === '프리다이빙' && ins.max_freediving_level === 0) return false;
+        if (course === '머메이드 다이빙' && ins.max_mermaid_level === 0) return false;
+        if (course === '유스 프리다이빙' && ins.max_youth_level === 0) return false;
+        if (course === '수중레저안전요원' && ins.safety_guard_level === 0) return false;
+        if (course === '스쿠버다이빙' && ins.scuba_level === 0) return false;
+
+        return true;
+      });
+
+      setSubmitting(false);
+
+      if (qualifiedInstructors.length === 0) {
+        setNoMatchFound(true);
+      } else {
+        const randomIndex = Math.floor(Math.random() * qualifiedInstructors.length);
+        const selected = qualifiedInstructors[randomIndex];
+        setMatchedInstructor(selected);
+
+        // 고객 접수 내역 DB 추가
+        await supabase.from('customers').insert([
+          {
+            name,
+            phone,
+            course,
+            pool: canPassnine && canMiryang ? '패스나인/밀양' : canPassnine ? '칠곡 패스나인' : '밀양 아리랑',
+            time_slot: '복수 선택 조건',
+            matched_instructor: selected.name,
+          },
+        ]);
+      }
+    }, 2000);
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-800 p-5 sm:p-7 rounded-2xl shadow-xl max-w-xl mx-auto">
+    <div className="bg-slate-900 border border-slate-800 p-5 sm:p-7 rounded-2xl shadow-xl max-w-xl mx-auto text-slate-100">
+      
+      {/* 뒤로가기 버튼 */}
+      <div className="mb-4">
+        <button
+          onClick={() => router.push('/')}
+          className="text-xs font-bold text-slate-400 hover:text-cyan-400 transition flex items-center gap-1 cursor-pointer"
+        >
+          ← 메인 홈페이지로 돌아가기
+        </button>
+      </div>
+
       <h2 className="text-xl font-bold text-cyan-400 mb-6 text-center">🌊 수강생 맞춤 강사 매칭 신청</h2>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-xs text-slate-400 mb-1">성함</label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="성함을 입력하세요"
-            className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:border-cyan-500 focus:outline-none"
-            required
-          />
+      <form onSubmit={handleSubmit} className="space-y-5">
+        
+        {/* 성함 및 연락처 */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">성함</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="성함을 입력하세요"
+              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:border-cyan-500 focus:outline-none"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">연락처</label>
+            <input
+              type="text"
+              value={phone}
+              onChange={handlePhoneChange}
+              placeholder="010-0000-0000"
+              maxLength={13}
+              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:border-cyan-500 focus:outline-none"
+              required
+            />
+          </div>
         </div>
 
+        {/* 희망 교육 코스 선택 */}
         <div>
-          <label className="block text-xs text-slate-400 mb-1">연락처</label>
-          <input
-            type="text"
-            value={phone}
-            onChange={handlePhoneChange}
-            placeholder="010-0000-0000"
-            maxLength={13}
-            className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:border-cyan-500 focus:outline-none"
-            required
-          />
+          <label className="block text-xs text-slate-400 mb-2">희망 교육 코스</label>
+          <div className="grid grid-cols-3 gap-1.5">
+            {[
+              '프리다이빙', '머메이드 다이빙', '유스 프리다이빙',
+              '수중레저안전요원', '스쿠버다이빙', '스페셜 교육'
+            ].map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setCourse(c)}
+                className={`py-2 px-1 rounded-xl text-[11px] sm:text-xs font-bold border transition cursor-pointer ${
+                  course === c
+                    ? 'bg-cyan-600 border-cyan-400 text-white shadow'
+                    : 'bg-slate-800 border-slate-700 text-slate-400'
+                }`}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
         </div>
 
+        {/* 희망 요일 복수 선택 (버튼 방식) */}
         <div>
-          <label className="block text-xs text-slate-400 mb-1">희망 교육 코스</label>
-          <select
-            value={course}
-            onChange={(e) => setCourse(e.target.value)}
-            className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:border-cyan-500 focus:outline-none"
-          >
-            <option value="프리다이빙">프리다이빙</option>
-            <option value="머메이드 다이빙">머메이드 다이빙</option>
-            <option value="유스 프리다이빙">유스 프리다이빙</option>
-            <option value="수중레저안전요원">수중레저안전요원</option>
-            <option value="스쿠버다이빙">스쿠버다이빙</option>
-            <option value="스페셜 교육">스페셜 교육</option>
-          </select>
+          <label className="block text-xs text-slate-400 mb-2">희망 수업 요일 (복수 선택 가능)</label>
+          <div className="grid grid-cols-7 gap-1">
+            {[
+              { key: 'available_mon', label: '월' },
+              { key: 'available_tue', label: '화' },
+              { key: 'available_wed', label: '수' },
+              { key: 'available_thu', label: '목' },
+              { key: 'available_fri', label: '금' },
+              { key: 'available_sat', label: '토' },
+              { key: 'available_sun', label: '일' },
+            ].map((d) => (
+              <button
+                key={d.key}
+                type="button"
+                onClick={() => toggleDay(d.key)}
+                className={`py-2 rounded-xl text-xs font-bold border transition cursor-pointer ${
+                  selectedDays[d.key]
+                    ? 'bg-cyan-600 border-cyan-400 text-white shadow'
+                    : 'bg-slate-800 border-slate-700 text-slate-400'
+                }`}
+              >
+                {d.label}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div>
-          <label className="block text-xs text-slate-400 mb-1">희망 요일</label>
-          <select
-            value={day}
-            onChange={(e) => setDay(e.target.value)}
-            className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:border-cyan-500 focus:outline-none"
-          >
-            <option value="available_mon">월요일</option>
-            <option value="available_tue">화요일</option>
-            <option value="available_wed">수요일</option>
-            <option value="available_thu">목요일</option>
-            <option value="available_fri">금요일</option>
-            <option value="available_sat">토요일</option>
-            <option value="available_sun">일요일</option>
-          </select>
+        {/* 칠곡 패스나인 풀장 세부 시간대 복수 선택 */}
+        <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2.5">
+          <label className="flex items-center space-x-2 text-xs font-bold text-white cursor-pointer">
+            <input
+              type="checkbox"
+              checked={canPassnine}
+              onChange={(e) => setCanPassnine(e.target.checked)}
+              className="accent-cyan-500 w-4 h-4"
+            />
+            <span>칠곡 패스나인 풀장 (복수 선택 가능)</span>
+          </label>
+          {canPassnine && (
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              {[
+                { key: 't1', label: '1부 (09:00~11:00)' },
+                { key: 't2', label: '2부 (13:00~15:00)' },
+                { key: 't3', label: '3부 (15:30~17:30)' },
+                { key: 't4', label: '4부 (19:00~21:00)' },
+              ].map((t) => (
+                <label key={t.key} className={`flex items-center space-x-2 text-xs p-2.5 rounded-lg border cursor-pointer ${passnineSlots[t.key] ? 'bg-cyan-950/60 border-cyan-500 text-cyan-200' : 'bg-slate-900 border-slate-800 text-slate-400'}`}>
+                  <input
+                    type="checkbox"
+                    checked={passnineSlots[t.key]}
+                    onChange={(e) => setPassnineSlots({ ...passnineSlots, [t.key]: e.target.checked })}
+                    className="accent-cyan-500 w-4 h-4"
+                  />
+                  <span>{t.label}</span>
+                </label>
+              ))}
+            </div>
+          )}
         </div>
 
-        <div>
-          <label className="block text-xs text-slate-400 mb-1">희망 풀장</label>
-          <select
-            value={pool}
-            onChange={(e) => {
-              setPool(e.target.value);
-              if (e.target.value === '칠곡 패스나인') {
-                setTimeSlot('1부 (09:00~11:00)');
-              } else {
-                setTimeSlot('오전 1부 (09:00~11:00)');
-              }
-            }}
-            className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:border-cyan-500 focus:outline-none"
-          >
-            <option value="칠곡 패스나인">칠곡 패스나인</option>
-            <option value="밀양 아리랑">밀양 아리랑</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-xs text-slate-400 mb-1">희망 시간대</label>
-          <select
-            value={timeSlot}
-            onChange={(e) => setTimeSlot(e.target.value)}
-            className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:border-cyan-500 focus:outline-none"
-          >
-            {pool === '칠곡 패스나인' ? (
-              <>
-                <option value="1부 (09:00~11:00)">1부 (09:00~11:00)</option>
-                <option value="2부 (13:00~15:00)">2부 (13:00~15:00)</option>
-                <option value="3부 (15:30~17:30)">3부 (15:30~17:30)</option>
-                <option value="4부 (19:00~21:00)">4부 (19:00~21:00)</option>
-              </>
-            ) : (
-              <>
-                <option value="조조부 (06:00~09:00)">조조부 (06:00~09:00)</option>
-                <option value="오전 1부 (09:00~11:00)">오전 1부 (09:00~11:00)</option>
-                <option value="오전 2부 (11:00~13:00)">오전 2부 (11:00~13:00)</option>
-                <option value="오후 1부 (13:00~15:00)">오후 1부 (13:00~15:00)</option>
-                <option value="오후 2부 (15:00~17:00)">오후 2부 (15:00~17:00)</option>
-                <option value="저녁 1부 (17:00~19:00)">저녁 1부 (17:00~19:00)</option>
-                <option value="저녁 2부 (19:00~21:00)">저녁 2부 (19:00~21:00)</option>
-              </>
-            )}
-          </select>
+        {/* 밀양 아리랑 풀장 세부 시간대 복수 선택 */}
+        <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2.5">
+          <label className="flex items-center space-x-2 text-xs font-bold text-white cursor-pointer">
+            <input
+              type="checkbox"
+              checked={canMiryang}
+              onChange={(e) => setCanMiryang(e.target.checked)}
+              className="accent-cyan-500 w-4 h-4"
+            />
+            <span>밀양 아리랑 풀장 (복수 선택 가능)</span>
+          </label>
+          {canMiryang && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+              {[
+                { key: 't0', label: '조조부 (06:00~09:00)' },
+                { key: 't1', label: '오전 1부 (09:00~11:00)' },
+                { key: 't2', label: '오전 2부 (11:00~13:00)' },
+                { key: 't3', label: '오후 1부 (13:00~15:00)' },
+                { key: 't4', label: '오후 2부 (15:00~17:00)' },
+                { key: 't5', label: '저녁 1부 (17:00~19:00)' },
+                { key: 't6', label: '저녁 2부 (19:00~21:00)' },
+              ].map((t) => (
+                <label key={t.key} className={`flex items-center space-x-2 text-xs p-2.5 rounded-lg border cursor-pointer ${miryangSlots[t.key] ? 'bg-cyan-950/60 border-cyan-500 text-cyan-200' : 'bg-slate-900 border-slate-800 text-slate-400'}`}>
+                  <input
+                    type="checkbox"
+                    checked={miryangSlots[t.key]}
+                    onChange={(e) => setMiryangSlots({ ...miryangSlots, [t.key]: e.target.checked })}
+                    className="accent-cyan-500 w-4 h-4"
+                  />
+                  <span>{t.label}</span>
+                </label>
+              ))}
+            </div>
+          )}
         </div>
 
         <button
           type="submit"
           disabled={submitting}
-          className="w-full py-3.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 rounded-xl text-white font-extrabold transition shadow-lg mt-2 cursor-pointer"
+          className="w-full py-4 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 rounded-xl text-white font-extrabold transition shadow-lg mt-2 cursor-pointer"
         >
-          {submitting ? '매칭 조건 확인 중...' : '🎯 맞춤 담당 강사 매칭하기'}
+          🎯 맞춤 담당 강사 매칭하기
         </button>
       </form>
+
+      {/* 잠수 다이버 로딩 애니메이션 모달 */}
+      {submitting && (
+        <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center p-4">
+          <div className="relative w-28 h-28 mb-4">
+            {/* CSS 애니메이션 다이버 SVG */}
+            <div className="w-full h-full animate-bounce flex items-center justify-center text-5xl">
+              🥽
+            </div>
+            <div className="absolute top-0 right-2 w-3 h-3 bg-cyan-400 rounded-full animate-ping opacity-75" />
+            <div className="absolute top-4 right-6 w-2 h-2 bg-blue-300 rounded-full animate-pulse" />
+          </div>
+          <h3 className="text-base sm:text-lg font-bold text-cyan-400 text-center animate-pulse">
+            🫧 블루피스 전담 잠수 다이버가<br />맞춤형 담당 강사님을 찾는 중입니다...
+          </h3>
+          <p className="text-xs text-slate-400 mt-2">입력하신 요일과 풀장 조건을 실시간으로 분석하고 있습니다.</p>
+        </div>
+      )}
 
       {/* 매칭 실패 시 */}
       {noMatchFound && (
@@ -348,15 +455,6 @@ function InquiryFormContent() {
 export default function InquiryPage() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-6 font-sans">
-      <header className="text-center mb-6 pt-4">
-        <span className="text-[11px] font-semibold px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-          BLUE PEACE MATCHING SYSTEM
-        </span>
-        <h1 className="text-xl sm:text-2xl font-extrabold mt-3 text-white">
-          🌊 수강생 매칭 & 문의
-        </h1>
-      </header>
-
       <Suspense fallback={<div className="text-center text-slate-400 text-sm py-10">매칭 페이지 로딩 중...</div>}>
         <InquiryFormContent />
       </Suspense>
