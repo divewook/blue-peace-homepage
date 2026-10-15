@@ -18,6 +18,7 @@ export default function MarketingSummary({ customers }: { customers: CustomerAtt
   const groups = [
     { title: '유입 경로', rows: topCounts(customers, 'traffic_source', '직접 방문') },
     { title: '검색 키워드', rows: topCounts(customers.filter(c => c.traffic_term), 'traffic_term', '미제공') },
+    { title: '캠페인', rows: topCounts(customers.filter(c => c.traffic_campaign), 'traffic_campaign', '없음') },
     { title: '접속 기기', rows: topCounts(customers, 'device_type', '확인 불가') },
   ];
 
@@ -28,7 +29,7 @@ export default function MarketingSummary({ customers }: { customers: CustomerAtt
         <h2 className="mt-1 text-lg font-bold text-slate-950">고객 유입 분석</h2>
         <p className="mt-1 text-xs leading-5 text-slate-500">현재 선택한 기간의 신청 완료 고객 기준입니다. 검색 서비스가 검색어를 숨기면 ‘미제공’으로 표시됩니다.</p>
       </div>
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {groups.map(group => (
           <div key={group.title} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <h3 className="text-sm font-bold text-slate-900">{group.title}</h3>

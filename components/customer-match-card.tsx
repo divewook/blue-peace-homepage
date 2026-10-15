@@ -13,6 +13,7 @@ type CustomerMatch = {
   traffic_medium?: string;
   traffic_campaign?: string;
   traffic_term?: string;
+  traffic_content?: string;
   landing_url?: string;
   referrer_url?: string;
   device_type?: string;
@@ -21,6 +22,14 @@ type CustomerMatch = {
 function safeHost(url?: string) {
   if (!url) return '';
   try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; }
+}
+
+function safeLanding(url?: string) {
+  if (!url) return '';
+  try {
+    const parsed = new URL(url);
+    return `${parsed.hostname.replace(/^www\./, '')}${parsed.pathname}`;
+  } catch { return ''; }
 }
 
 export default function CustomerMatchCard({ customer, showAttribution = false }: { customer: CustomerMatch; showAttribution?: boolean }) {
@@ -72,10 +81,10 @@ export default function CustomerMatchCard({ customer, showAttribution = false }:
           <div className="mt-2 grid gap-x-5 gap-y-1 text-xs text-slate-700 sm:grid-cols-2">
             <p><span className="font-bold">유입:</span> {sourceDetail}</p>
             <p><span className="font-bold">검색어:</span> {customer.traffic_term || '검색어 미제공'}</p>
-            <p><span className="font-bold">캠페인:</span> {customer.traffic_campaign || '없음'}</p>
+            <p><span className="font-bold">캠페인:</span> {[customer.traffic_campaign, customer.traffic_content].filter(Boolean).join(' · ') || '없음'}</p>
             <p><span className="font-bold">기기:</span> {customer.device_type || '확인 불가'}</p>
             <p><span className="font-bold">이전 사이트:</span> {safeHost(customer.referrer_url) || '직접 방문/미제공'}</p>
-            <p><span className="font-bold">첫 방문:</span> {customer.landing_url ? safeHost(customer.landing_url) : '확인 불가'}</p>
+            <p><span className="font-bold">첫 방문 페이지:</span> {safeLanding(customer.landing_url) || '확인 불가'}</p>
           </div>
         </div>
       )}

@@ -28,6 +28,7 @@ interface CustomerLead {
   traffic_medium?: string;
   traffic_campaign?: string;
   traffic_term?: string;
+  traffic_content?: string;
   landing_url?: string;
   referrer_url?: string;
   device_type?: string;
