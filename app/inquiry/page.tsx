@@ -52,38 +52,62 @@ const courseLevelOptions: { [key: string]: string[] } = {
   '스페셜 교육': ['응급처치 및 CPR 교육', '응급처치 CPR 강사 과정', '수중 사진 촬영 교육'],
 };
 
-// 상욱님이 요청하신 정확한 금액 단가표 반영
+// 과정별 정확한 비용 단가표 반영
 const coursePriceTable: { [key: string]: string } = {
-  '체험 과정': '5만원 (입장료/장비 별도)',
+  // 프리다이빙
+  '프리다이빙:체험 과정': '5만원 (입장료/장비 별도)',
   '1레벨 (프리다이버)': '15만원 (교육비+발급비 포함)',
   '2레벨 (오픈워터)': '35만원 (교육비+발급비 포함)',
   '3레벨 (어드밴스드)': '55만원 (교육비+발급비 포함 / 무제한 트레이닝)',
   '4레벨 (마스터)': '85만원 (교육비+발급비 포함 / 무제한 트레이닝)',
   '1+2레벨 패키지': '40만원 (교육비+발급비 포함 / 패키지 할인)',
   '3+4레벨 패키지': '130만원 (교육비+발급비 포함 / 패키지 할인)',
+  
+  // 머메이드 다이빙
+  '머메이드 다이빙:체험 과정': '10만원 (입장료/장비 별도)',
   '베이직 머메이드': '35만원 (교육비+발급비 포함)',
   '머메이드': '45만원 (교육비+발급비 포함)',
   '오션 머메이드': '55만원 (교육비+발급비 포함)',
   '베이직+머메이드 패키지': '70만원 (교육비+발급비 포함 / 패키지 할인)',
   '머메이드+오션 패키지': '90만원 (교육비+발급비 포함 / 패키지 할인)',
+
+  // 유스 프리다이빙
+  '유스 프리다이빙:체험 과정': '10만원 (입장료/장비 별도)',
   '1레벨 (돌핀)': '35만원 (교육비+발급비 포함)',
   '2레벨 (오르카)': '45만원 (교육비+발급비 포함)',
   '3레벨 (샤크)': '55만원 (교육비+발급비 포함)',
   '돌핀+오르카 패키지': '70만원 (교육비+발급비 포함 / 패키지 할인)',
   '오르카+샤크 패키지': '90만원 (교육비+발급비 포함 / 패키지 할인)',
+
+  // 수중레저안전요원
   '수중레저안전요원': '35만원 (교육비+발급비 포함)',
   '마스터 안전요원': '55만원 (교육비+발급비 포함)',
+
+  // 스쿠버다이빙
+  '스쿠버다이빙:체험 과정': '10만원 (입장료/장비 별도)',
   '오픈워터': '50만원 (교육비+발급비 포함)',
   '어드벤처': '50만원 (교육비+발급비 포함)',
   '어드밴스드': '60만원 (교육비+발급비 포함)',
   '오픈워터+어드밴스드 패키지': '100만원 (교육비+발급비 포함 / 패키지 할인)',
+
+  // 스페셜 교육
   '응급처치 및 CPR 교육': '15만원 (국제 자격 발급비 포함)',
   '수중 사진 촬영 교육': '15만원 (촬영 테크닉 레슨)',
+
+  // 강사 과정
   '강사 과정': '별도 상담 문의',
   '머메이드 강사 과정': '별도 상담 문의',
   '유스 강사 과정': '별도 상담 문의',
   '안전요원 강사 과정': '별도 상담 문의',
   '응급처치 CPR 강사 과정': '별도 상담 문의',
+};
+
+// 금액 키 조회 헬퍼 (체험 과정은 코스별로 금액이 다르므로 조합 키 지원)
+const getPriceText = (courseName: string, levelName: string) => {
+  if (levelName === '체험 과정') {
+    return coursePriceTable[`${courseName}:${levelName}`] || '10만원 (입장료/장비 별도)';
+  }
+  return coursePriceTable[levelName] || '상담 시 안내';
 };
 
 function InquiryFormContent() {
@@ -336,7 +360,7 @@ function InquiryFormContent() {
           <div className="flex justify-between items-center mb-2">
             <label className="block text-xs font-bold text-cyan-700">2. [{course}] 세부 과정 선택</label>
             <span className="text-[11px] font-extrabold text-cyan-800 bg-cyan-100 px-2.5 py-0.5 rounded-full">
-              💰 {coursePriceTable[detailLevel] || '상담 시 안내'}
+              💰 {getPriceText(course, detailLevel)}
             </span>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
@@ -355,8 +379,10 @@ function InquiryFormContent() {
               </button>
             ))}
           </div>
-          <p className="text-[11px] text-slate-500 mt-2.5 leading-relaxed">
-            ※ 체험 과정을 제외한 모든 과정은 <b>교육비+발급비 포함</b>이며, 지역별 풀장 입장료와 장비 렌탈료는 별도입니다.
+          
+          {/* 가독성이 좋아진 안내 문구 */}
+          <p className="text-[11px] text-slate-500 mt-3 leading-relaxed border-t border-slate-200 pt-2">
+            ※ 체험 과정을 제외한 모든 과정은 교육비+발급비 포함이며, 지역별 풀장 입장료와 장비 렌탈료는 별도입니다.
           </p>
         </div>
 
@@ -477,9 +503,9 @@ function InquiryFormContent() {
             <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2 text-xs sm:text-sm text-slate-700">
               <p><span className="font-bold text-slate-900">신청자:</span> {name} 님 ({phone})</p>
               <p><span className="font-bold text-slate-900">선택 과정:</span> {course} - {detailLevel}</p>
-              <p><span className="font-bold text-cyan-700">안내 비용:</span> <span className="font-extrabold text-cyan-800">{coursePriceTable[detailLevel] || '상담 시 안내'}</span></p>
-              <p className="text-[11px] text-slate-500 pt-1 leading-relaxed">
-                ※ 체험 과정 제외 교육비+발급비 포함 / 풀장 입장료·장비렌탈료는 별도입니다.
+              <p><span className="font-bold text-cyan-700">안내 비용:</span> <span className="font-extrabold text-cyan-800">{getPriceText(course, detailLevel)}</span></p>
+              <p className="text-[11px] text-slate-500 pt-1 leading-relaxed border-t border-slate-200 mt-2 pt-2">
+                ※ 체험 과정을 제외한 모든 과정은 교육비+발급비 포함이며, 지역별 풀장 입장료와 장비 렌탈료는 별도입니다.
               </p>
             </div>
 
@@ -503,7 +529,7 @@ function InquiryFormContent() {
 
       {/* 잠수 다이버 3~4.5초 무작위 로딩 애니메이션 모달 */}
       {submitting && (
-        <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex flex-col items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-md flex flex-col items-center justify-center p-4">
           <div className="relative w-28 h-28 mb-4">
             <div className="w-full h-full animate-bounce flex items-center justify-center text-5xl">
               🥽
