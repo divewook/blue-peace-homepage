@@ -12,6 +12,7 @@ interface Instructor {
 
 interface CustomerLead {
   id: string;
+  matched_instructor_id: string | null;
   name: string;
   phone: string;
   course: string;
@@ -93,7 +94,7 @@ export default function AdminDashboard() {
 
   // 강사별 통계 집계
   const instructorStats = instructors.map(ins => {
-    const count = filteredCustomers.filter(c => c.matched_instructor === ins.name).length;
+    const count = filteredCustomers.filter(c => c.matched_instructor_id === ins.id || (!c.matched_instructor_id && c.matched_instructor === ins.name)).length;
     return { name: ins.name, count };
   });
 

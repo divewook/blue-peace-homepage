@@ -566,7 +566,7 @@ export default function InstructorPortal() {
   if (view === 'admin_dashboard') {
     const filteredAllCustomers = allCustomers.filter(c => filterByPeriod(c.created_at));
     const instructorStats = allInstructors.map(ins => {
-      const count = filteredAllCustomers.filter(c => c.matched_instructor === ins.name).length;
+      const count = filteredAllCustomers.filter(c => c.matched_instructor_id === ins.id || (!c.matched_instructor_id && c.matched_instructor === ins.name)).length;
       return { name: ins.name, count };
     });
 
