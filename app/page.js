@@ -165,7 +165,7 @@ export default function HomePage() {
             <span className="text-cyan-600 font-black text-lg sm:text-xl tracking-wider">BLUE PEACE</span>
           </Link>
           
-          <nav className="flex min-w-0 flex-1 items-center justify-end gap-4 sm:gap-6 text-xs sm:text-sm font-semibold text-slate-600 overflow-x-auto no-scrollbar whitespace-nowrap py-2">
+          <nav className="flex min-w-0 flex-1 items-center justify-start gap-4 sm:justify-end sm:gap-6 text-xs sm:text-sm font-semibold text-slate-600 overflow-x-auto no-scrollbar whitespace-nowrap py-2">
             <a href="#courses" className="hover:text-cyan-600 transition shrink-0">교육과정</a>
             <a href="#instructors" className="hover:text-cyan-600 transition shrink-0">맞춤강사진</a>
             <a href="#faq" className="hover:text-cyan-600 transition shrink-0">FAQ</a>
