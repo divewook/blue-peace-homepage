@@ -5,6 +5,7 @@ import CustomerMatchCard from '../../../components/customer-match-card';
 import ExpandableText from '../../../components/expandable-text';
 import MarketingSummary from '../../../components/marketing-summary';
 import Pass9AvailabilityModal from '../../../components/pass9-availability-modal';
+import DeepstationAvailabilityModal from '../../../components/deepstation-availability-modal';
 
 const poolTimeOptions = {
   passnine: [
@@ -75,6 +76,7 @@ export default function InstructorPortal() {
   const [poolDays, setPoolDays] = useState<Record<string, Record<string, boolean>>>({ passnine: emptyPoolDays(), miryang: emptyPoolDays() });
   const [selectedSpecialCourses, setSelectedSpecialCourses] = useState<string[]>([]);
   const [showPass9Availability, setShowPass9Availability] = useState(false);
+  const [showDeepstationAvailability, setShowDeepstationAvailability] = useState(false);
 
   const handlePhoneInput = (val: string, setter: (v: string) => void) => {
     const raw = val.replace(/[^0-9]/g, '').slice(0, 11);
@@ -724,6 +726,7 @@ export default function InstructorPortal() {
             </div>
             <div className="flex flex-wrap gap-2">
               <button type="button" onClick={() => setShowPass9Availability(true)} className="px-4 py-2.5 rounded-xl bg-white text-slate-900 hover:bg-cyan-50 text-sm font-bold cursor-pointer">패스나인 예약 현황 확인</button>
+              <button type="button" onClick={() => setShowDeepstationAvailability(true)} className="px-4 py-2.5 rounded-xl bg-indigo-100 text-indigo-950 hover:bg-indigo-200 text-sm font-bold cursor-pointer">딥스테이션 딥탱크 부이 예약 현황</button>
               <button onClick={() => setView('profile_setup')} className="px-4 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-sm font-bold cursor-pointer">프로필 · 수업 수정</button>
               <button onClick={handleLogout} className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-semibold cursor-pointer">로그아웃</button>
             </div>
@@ -811,6 +814,7 @@ export default function InstructorPortal() {
         </div>
 
         {showPass9Availability && <Pass9AvailabilityModal onClose={() => setShowPass9Availability(false)} />}
+        {showDeepstationAvailability && <DeepstationAvailabilityModal onClose={() => setShowDeepstationAvailability(false)} />}
       </div>
     </div>
   );
