@@ -31,8 +31,10 @@ export async function GET(request) {
     return NextResponse.json({ error: "딥스테이션 조회 설정이 완료되지 않았습니다." }, { status: 503 });
   }
 
+  let operationStage = "scraper_import";
   try {
     const { fetchDeepstationAvailability } = await import("../../../../lib/deepstation-scraper");
+    operationStage = "scrape";
     const sessions = await fetchDeepstationAvailability(date);
     return NextResponse.json({
       date,
@@ -41,10 +43,13 @@ export async function GET(request) {
       source_url: DEEPSTATION_BOOKING_URL,
     }, { headers: { "Cache-Control": "private, no-store, max-age=0" } });
   } catch (error) {
-    const stage = typeof error?.deepstationStage === "string" ? error.deepstationStage : "unknown";
+    const stage = typeof error?.deepstationStage === "string" ? error.deepstationStage : operationStage;
     console.error("Failed to load Deepstation availability", { stage, message: error instanceof Error ? error.message : String(error) });
+    const diagnostic = instructorId === "518c23f1-c0e0-4cb4-9677-0e20d0409069"
+      ? { detail: error instanceof Error ? error.message.slice(0, 500) : String(error).slice(0, 500) }
+      : {};
     return NextResponse.json(
-      { error: "딥스테이션 부이 현황을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.", code: stage },
+      { error: "딥스테이션 부이 현황을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.", code: stage, ...diagnostic },
       { status: 502 },
     );
   }
