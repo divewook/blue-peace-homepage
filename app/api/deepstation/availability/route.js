@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getInstructorSessionId } from "../../../../lib/instructor-session";
+import { hasAdminSession } from "../../../../lib/admin-session";
 import { DEEPSTATION_BOOKING_URL } from "../../../../lib/deepstation-availability";
 
 export const maxDuration = 60;
@@ -19,8 +19,7 @@ function isAllowedDate(date) {
 }
 
 export async function GET(request) {
-  const instructorId = await getInstructorSessionId();
-  if (!instructorId) return NextResponse.json({ error: "강사 로그인이 필요합니다." }, { status: 401 });
+  if (!await hasAdminSession()) return NextResponse.json({ error: "관리자 로그인이 필요합니다." }, { status: 401 });
 
   const date = new URL(request.url).searchParams.get("date") || "";
   if (!isAllowedDate(date)) {
@@ -45,11 +44,8 @@ export async function GET(request) {
   } catch (error) {
     const stage = typeof error?.deepstationStage === "string" ? error.deepstationStage : operationStage;
     console.error("Failed to load Deepstation availability", { stage, message: error instanceof Error ? error.message : String(error) });
-    const diagnostic = instructorId === "518c23f1-c0e0-4cb4-9677-0e20d0409069"
-      ? { detail: error instanceof Error ? error.message.slice(0, 500) : String(error).slice(0, 500) }
-      : {};
     return NextResponse.json(
-      { error: "딥스테이션 부이 현황을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.", code: stage, ...diagnostic },
+      { error: "딥스테이션 부이 현황을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.", code: stage },
       { status: 502 },
     );
   }

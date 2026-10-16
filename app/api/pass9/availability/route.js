@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getInstructorSessionId } from "../../../../lib/instructor-session";
+import { hasAdminSession } from "../../../../lib/admin-session";
 import { PASS9_BOOKING_URL, parsePass9Availability } from "../../../../lib/pass9-availability";
 
 const NAVER_GRAPHQL_URL = "https://m.booking.naver.com/graphql";
@@ -41,8 +41,7 @@ function isAllowedDate(date) {
 }
 
 export async function GET(request) {
-  const instructorId = await getInstructorSessionId();
-  if (!instructorId) return NextResponse.json({ error: "강사 로그인이 필요합니다." }, { status: 401 });
+  if (!await hasAdminSession()) return NextResponse.json({ error: "관리자 로그인이 필요합니다." }, { status: 401 });
 
   const date = new URL(request.url).searchParams.get("date") || "";
   if (!isAllowedDate(date)) {

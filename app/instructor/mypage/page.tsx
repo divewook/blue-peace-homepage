@@ -610,6 +610,16 @@ export default function InstructorPortal() {
             </button>
           </div>
 
+          <section className="rounded-3xl border border-indigo-200 bg-gradient-to-br from-indigo-950 to-slate-900 p-5 text-white shadow-lg sm:p-6" aria-labelledby="pool-availability-tools">
+            <p className="text-xs font-bold tracking-widest text-indigo-200">POOL AVAILABILITY · ADMIN TEST</p>
+            <h2 id="pool-availability-tools" className="mt-1 text-xl font-black">풀장 예약 현황 점검</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-300">전체 풀장 연동이 완료되기 전까지 관리자 페이지에서만 조회하고 확인할 수 있습니다.</p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <button type="button" onClick={() => setShowPass9Availability(true)} className="min-h-12 rounded-2xl bg-white px-4 py-3 text-sm font-bold text-slate-950 hover:bg-cyan-50">패스나인 예약 현황 확인</button>
+              <button type="button" onClick={() => setShowDeepstationAvailability(true)} className="min-h-12 rounded-2xl bg-indigo-100 px-4 py-3 text-sm font-bold text-indigo-950 hover:bg-indigo-200">딥스테이션 딥탱크 부이 예약 현황</button>
+            </div>
+          </section>
+
           <div className="bg-white border border-slate-200 p-6 rounded-3xl shadow-sm space-y-4">
             <h2 className="text-lg font-bold text-slate-900">👥 소속 강사 계정 관리 및 승인</h2>
             <div className="overflow-x-auto">
@@ -679,6 +689,9 @@ export default function InstructorPortal() {
               </div>
             </div>
           </div>
+
+          {showPass9Availability && <Pass9AvailabilityModal onClose={() => setShowPass9Availability(false)} />}
+          {showDeepstationAvailability && <DeepstationAvailabilityModal onClose={() => setShowDeepstationAvailability(false)} />}
         </div>
       </div>
     );
@@ -725,8 +738,6 @@ export default function InstructorPortal() {
               />
             </div>
             <div className="flex flex-wrap gap-2">
-              <button type="button" onClick={() => setShowPass9Availability(true)} className="px-4 py-2.5 rounded-xl bg-white text-slate-900 hover:bg-cyan-50 text-sm font-bold cursor-pointer">패스나인 예약 현황 확인</button>
-              <button type="button" onClick={() => setShowDeepstationAvailability(true)} className="px-4 py-2.5 rounded-xl bg-indigo-100 text-indigo-950 hover:bg-indigo-200 text-sm font-bold cursor-pointer">딥스테이션 딥탱크 부이 예약 현황</button>
               <button onClick={() => setView('profile_setup')} className="px-4 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-sm font-bold cursor-pointer">프로필 · 수업 수정</button>
               <button onClick={handleLogout} className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-semibold cursor-pointer">로그아웃</button>
             </div>
@@ -813,8 +824,6 @@ export default function InstructorPortal() {
           </div>
         </div>
 
-        {showPass9Availability && <Pass9AvailabilityModal onClose={() => setShowPass9Availability(false)} />}
-        {showDeepstationAvailability && <DeepstationAvailabilityModal onClose={() => setShowDeepstationAvailability(false)} />}
       </div>
     </div>
   );
