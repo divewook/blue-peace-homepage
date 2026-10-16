@@ -23,6 +23,13 @@ const poolTimeOptions = {
   ],
 };
 
+const dayOptions = [
+  { key: 'mon', label: '월' }, { key: 'tue', label: '화' }, { key: 'wed', label: '수' },
+  { key: 'thu', label: '목' }, { key: 'fri', label: '금' }, { key: 'sat', label: '토' },
+  { key: 'sun', label: '일' }, { key: 'holiday', label: '공휴일' },
+];
+const emptyPoolDays = () => Object.fromEntries(dayOptions.map(day => [day.key, false]));
+
 const courseLevelMap: { [key: string]: string[] } = {
   '프리다이빙': ['교육 불가', '체험 과정', '1레벨 (프리다이버)', '2레벨 (오픈워터)', '3레벨 (어드밴스드)', '4레벨 (마스터)', '강사 과정'],
   '머메이드 다이빙': ['교육 불가', '체험 과정', '1레벨 (베이직 머메이드)', '2레벨 (머메이드)', '3레벨 (오션 머메이드)', '머메이드 강사 과정'],
@@ -64,7 +71,8 @@ export default function InstructorPortal() {
   });
   const [selectedPools, setSelectedPools] = useState<{ [key: string]: boolean }>({});
   const [selectedTimes, setSelectedTimes] = useState<{ [key: string]: boolean }>({});
-  const [selectedDays, setSelectedDays] = useState<{ [key: string]: boolean }>({});
+  const [poolDays, setPoolDays] = useState<Record<string, Record<string, boolean>>>({ passnine: emptyPoolDays(), miryang: emptyPoolDays() });
+  const [selectedSpecialCourses, setSelectedSpecialCourses] = useState<string[]>([]);
 
   const handlePhoneInput = (val: string, setter: (v: string) => void) => {
     const raw = val.replace(/[^0-9]/g, '').slice(0, 11);
@@ -114,9 +122,13 @@ export default function InstructorPortal() {
     setCurrentInstructor(data);
     setProfileImg(data.profile_image || '');
     setBio(data.bio || '');
+    const savedSpecialCourses = data.course_levels?.['스페셜 교육'];
+    setSelectedSpecialCourses(Array.isArray(savedSpecialCourses)
+      ? savedSpecialCourses.filter((value: unknown) => typeof value === 'string' && value !== '교육 불가')
+      : typeof savedSpecialCourses === 'string' && savedSpecialCourses !== '교육 불가' ? [savedSpecialCourses] : []);
     setMaxLevels(Object.fromEntries(Object.entries(courseLevelMap).map(([course, levels]) => [
       course,
-      data.course_levels?.[course] || (
+      (course !== '스페셜 교육' && typeof data.course_levels?.[course] === 'string' ? data.course_levels[course] : null) || (
         course === '프리다이빙' ? levels[data.max_freediving_level || 0] :
         course === '머메이드 다이빙' ? levels[data.max_mermaid_level || 0] :
         course === '유스 프리다이빙' ? levels[data.max_youth_level || 0] :
@@ -130,15 +142,9 @@ export default function InstructorPortal() {
       passnine: !!data.can_passnine,
       miryang: !!data.can_miryang,
     });
-    setSelectedDays({
-      mon: !!data.available_mon,
-      tue: !!data.available_tue,
-      wed: !!data.available_wed,
-      thu: !!data.available_thu,
-      fri: !!data.available_fri,
-      sat: !!data.available_sat,
-      sun: !!data.available_sun,
-    });
+    setPoolDays(Object.fromEntries(['passnine', 'miryang'].map(pool => [pool,
+      Object.fromEntries(dayOptions.map(day => [day.key, !!data[`${pool}_day_${day.key}`]]))
+    ])));
 
     if (!data.profile_image) {
       setView('profile_setup');
@@ -295,27 +301,41 @@ export default function InstructorPortal() {
       alert('프로필 사진은 필수입니다.');
       return;
     }
+    const activePools = ['passnine', 'miryang'].filter(pool => selectedPools[pool]);
+    if (!activePools.length) {
+      alert('수업 가능한 풀장을 하나 이상 선택해 주세요.');
+      return;
+    }
+    const incompletePool = activePools.find(pool => !Object.values(poolDays[pool] || {}).some(Boolean)
+      || !poolTimeOptions[pool as keyof typeof poolTimeOptions].some(time => selectedTimes[time.key]));
+    if (incompletePool) {
+      alert(`${incompletePool === 'passnine' ? '칠곡 패스나인' : '밀양 아리랑'} 풀장의 가능 요일과 시간대를 각각 하나 이상 선택해 주세요.`);
+      return;
+    }
+
+    const legacyDayAvailability = Object.fromEntries(dayOptions.filter(day => day.key !== 'holiday').map(day => [
+      `available_${day.key}`,
+      activePools.some(pool => poolDays[pool]?.[day.key]),
+    ]));
 
     const updateData = {
       profile_image: profileImg,
       bio,
-      course_levels: maxLevels,
+      course_levels: { ...maxLevels, '스페셜 교육': selectedSpecialCourses },
       max_freediving_level: Math.max(0, courseLevelMap['프리다이빙'].indexOf(maxLevels['프리다이빙'])),
       max_mermaid_level: Math.max(0, courseLevelMap['머메이드 다이빙'].indexOf(maxLevels['머메이드 다이빙'])),
       max_youth_level: Math.max(0, courseLevelMap['유스 프리다이빙'].indexOf(maxLevels['유스 프리다이빙'])),
       can_safety_guard: maxLevels['수중레저안전요원'] !== '교육 불가',
       can_scuba: maxLevels['스쿠버다이빙'] !== '교육 불가',
-      can_special: maxLevels['스페셜 교육'] !== '교육 불가',
+      can_special: selectedSpecialCourses.length > 0,
       ...Object.fromEntries(Object.values(poolTimeOptions).flat().map(({ key }) => [key, !!selectedPools[key.startsWith('passnine') ? 'passnine' : 'miryang'] && !!selectedTimes[key]])),
       can_passnine: !!selectedPools['passnine'],
       can_miryang: !!selectedPools['miryang'],
-      available_mon: !!selectedDays['mon'],
-      available_tue: !!selectedDays['tue'],
-      available_wed: !!selectedDays['wed'],
-      available_thu: !!selectedDays['thu'],
-      available_fri: !!selectedDays['fri'],
-      available_sat: !!selectedDays['sat'],
-      available_sun: !!selectedDays['sun'],
+      ...legacyDayAvailability,
+      ...Object.fromEntries(['passnine', 'miryang'].flatMap(pool => dayOptions.map(day => [
+        `${pool}_day_${day.key}`,
+        !!selectedPools[pool] && !!poolDays[pool]?.[day.key],
+      ]))),
     };
 
     const response = await fetch('/api/instructor/profile', {
@@ -459,15 +479,18 @@ export default function InstructorPortal() {
               {Object.entries(courseLevelMap).map(([courseName, levels]) => (
                 <div key={courseName} className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
                   <p className="font-bold text-cyan-800">{courseName}</p>
+                  {courseName === '스페셜 교육' && <p className="text-xs leading-5 text-slate-500">교육 가능한 항목을 모두 선택해 주세요.</p>}
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {levels.map(lvl => {
+                    {(courseName === '스페셜 교육' ? levels.filter(level => level !== '교육 불가') : levels).map(lvl => {
                       const currentVal = maxLevels[courseName] || '교육 불가';
-                      const isSelected = currentVal === lvl;
+                      const isSelected = courseName === '스페셜 교육' ? selectedSpecialCourses.includes(lvl) : currentVal === lvl;
                       return (
                         <button
                           key={lvl}
                           type="button"
-                          onClick={() => setMaxLevels({ ...maxLevels, [courseName]: lvl })}
+                          onClick={() => courseName === '스페셜 교육'
+                            ? setSelectedSpecialCourses(previous => previous.includes(lvl) ? previous.filter(value => value !== lvl) : [...previous, lvl])
+                            : setMaxLevels({ ...maxLevels, [courseName]: lvl })}
                           className={`min-h-12 py-3 px-2 rounded-xl text-xs leading-5 font-bold border transition cursor-pointer ${
                             isSelected ? 'bg-cyan-600 text-white border-cyan-500 shadow-xs' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
                           }`}
@@ -481,34 +504,11 @@ export default function InstructorPortal() {
               ))}
             </div>
 
-            <div className="border-t border-slate-100 pt-4 space-y-2">
-              <label className="block font-bold text-slate-900 text-sm">📅 수업 가능 요일 선택 (복수 선택)</label>
-              <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
-                {[
-                  { key: 'mon', label: '월' },
-                  { key: 'tue', label: '화' },
-                  { key: 'wed', label: '수' },
-                  { key: 'thu', label: '목' },
-                  { key: 'fri', label: '금' },
-                  { key: 'sat', label: '토' },
-                  { key: 'sun', label: '일' },
-                ].map(d => (
-                  <button
-                    key={d.key}
-                    type="button"
-                    onClick={() => setSelectedDays({ ...selectedDays, [d.key]: !selectedDays[d.key] })}
-                    className={`min-h-11 rounded-xl text-sm font-bold border transition cursor-pointer ${
-                      selectedDays[d.key] ? 'bg-cyan-600 text-white border-cyan-500' : 'bg-slate-50 text-slate-700 border-slate-200'
-                    }`}
-                  >
-                    {d.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
             <div className="border-t border-slate-100 pt-4 space-y-4">
-              <label className="block font-bold text-slate-900 text-sm">🌊 수업 가능 풀장 및 시간대 선택</label>
+              <div>
+                <label className="block font-bold text-slate-900 text-sm">🌊 풀장별 수업 가능 요일 · 시간대</label>
+                <p className="mt-1 text-xs leading-5 text-slate-500">풀장마다 가능한 요일과 시간대를 따로 선택해 주세요. 공휴일도 선택할 수 있습니다.</p>
+              </div>
               
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
                 <label className="flex min-h-12 items-center gap-3 rounded-xl p-2 text-sm font-bold text-slate-900 cursor-pointer">
@@ -516,13 +516,24 @@ export default function InstructorPortal() {
                   <span>칠곡 패스나인 풀장</span>
                 </label>
                 {selectedPools['passnine'] && (
-                  <div className="grid grid-cols-1 gap-2 pt-1 min-[430px]:grid-cols-2">
+                  <div className="space-y-4 pt-1">
+                    <div>
+                      <p className="mb-2 text-xs font-bold text-slate-600">수업 가능 요일</p>
+                      <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">
+                        {dayOptions.map(day => <button key={day.key} type="button" onClick={() => setPoolDays(previous => ({ ...previous, passnine: { ...previous.passnine, [day.key]: !previous.passnine?.[day.key] } }))} className={`min-h-11 rounded-xl border text-sm font-bold ${poolDays.passnine?.[day.key] ? 'border-cyan-500 bg-cyan-600 text-white' : 'border-slate-200 bg-white text-slate-600'}`}>{day.label}</button>)}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="mb-2 text-xs font-bold text-slate-600">수업 가능 시간대</p>
+                      <div className="grid grid-cols-1 gap-2 min-[430px]:grid-cols-2">
                     {poolTimeOptions.passnine.map(t => (
                       <label key={t.key} className={`flex min-h-12 items-center gap-3 p-3 text-sm leading-5 rounded-xl border cursor-pointer ${selectedTimes[t.key] ? 'bg-cyan-50 border-cyan-500 font-bold text-cyan-900' : 'bg-white border-slate-200'}`}>
                         <input type="checkbox" checked={selectedTimes[t.key] || false} onChange={(e) => setSelectedTimes({ ...selectedTimes, [t.key]: e.target.checked })} className="accent-cyan-600 w-5 h-5 shrink-0" />
                         <span>{t.label}</span>
                       </label>
                     ))}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -533,13 +544,24 @@ export default function InstructorPortal() {
                   <span>밀양 아리랑 풀장</span>
                 </label>
                 {selectedPools['miryang'] && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                  <div className="space-y-4 pt-1">
+                    <div>
+                      <p className="mb-2 text-xs font-bold text-slate-600">수업 가능 요일</p>
+                      <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">
+                        {dayOptions.map(day => <button key={day.key} type="button" onClick={() => setPoolDays(previous => ({ ...previous, miryang: { ...previous.miryang, [day.key]: !previous.miryang?.[day.key] } }))} className={`min-h-11 rounded-xl border text-sm font-bold ${poolDays.miryang?.[day.key] ? 'border-cyan-500 bg-cyan-600 text-white' : 'border-slate-200 bg-white text-slate-600'}`}>{day.label}</button>)}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="mb-2 text-xs font-bold text-slate-600">수업 가능 시간대</p>
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     {poolTimeOptions.miryang.map(t => (
                       <label key={t.key} className={`flex min-h-12 items-center gap-3 p-3 text-sm leading-5 rounded-xl border cursor-pointer ${selectedTimes[t.key] ? 'bg-cyan-50 border-cyan-500 font-bold text-cyan-900' : 'bg-white border-slate-200'}`}>
                         <input type="checkbox" checked={selectedTimes[t.key] || false} onChange={(e) => setSelectedTimes({ ...selectedTimes, [t.key]: e.target.checked })} className="accent-cyan-600 w-5 h-5 shrink-0" />
                         <span>{t.label}</span>
                       </label>
                     ))}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -660,12 +682,6 @@ export default function InstructorPortal() {
 
   // --- [뷰 5] 강사 페이지 (Instructor Dashboard) ---
   const myFilteredCustomers = customers.filter(c => filterByPeriod(c.created_at));
-  const days = [
-    { key: 'mon', label: '월' }, { key: 'tue', label: '화' }, { key: 'wed', label: '수' },
-    { key: 'thu', label: '목' }, { key: 'fri', label: '금' }, { key: 'sat', label: '토' },
-    { key: 'sun', label: '일' },
-  ];
-  const activeDays = days.filter(day => currentInstructor?.[`available_${day.key}`]);
   const savedLevels = currentInstructor?.course_levels || {};
   const availableCourses = Object.entries(courseLevelMap)
     .map(([name, levels]) => {
@@ -676,9 +692,10 @@ export default function InstructorPortal() {
         : name === '스쿠버다이빙' && currentInstructor?.can_scuba ? '교육 가능'
         : name === '스페셜 교육' && currentInstructor?.can_special ? '교육 가능'
         : '교육 불가';
-      return { name, level: savedLevels[name] || legacyLevel || '교육 불가' };
+      const savedLevel = savedLevels[name];
+      return { name, level: Array.isArray(savedLevel) ? savedLevel : savedLevel || legacyLevel || '교육 불가' };
     })
-    .filter(course => course.level !== '교육 불가');
+    .filter(course => Array.isArray(course.level) ? course.level.length > 0 : course.level !== '교육 불가');
   const availablePools = [
     { key: 'passnine', name: '칠곡 패스나인 풀장', times: poolTimeOptions.passnine },
     { key: 'miryang', name: '밀양 아리랑 풀장', times: poolTimeOptions.miryang },
@@ -727,30 +744,29 @@ export default function InstructorPortal() {
                   {availableCourses.map(course => (
                     <div key={course.name} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                       <p className="text-sm font-bold text-slate-900">{course.name}</p>
-                      <p className="mt-1 text-sm leading-6 text-cyan-800 break-keep">{course.level}</p>
+                      <p className="mt-1 text-sm leading-6 text-cyan-800 break-keep">{Array.isArray(course.level) ? course.level.join(' · ') : course.level}</p>
                     </div>
                   ))}
                 </div>
               ) : <p className="text-sm text-slate-600">설정된 교육 가능 코스가 없습니다. 프로필에서 코스를 선택해 주세요.</p>}
             </div>
-            <div className="rounded-3xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm">
-              <h3 className="text-base font-bold mb-4">수업 가능 요일</h3>
-              <div className="grid grid-cols-7 gap-1.5">
-                {days.map(day => (
-                  <span key={day.key} className={`flex items-center justify-center min-h-10 rounded-xl text-sm font-bold ${currentInstructor?.[`available_${day.key}`] ? 'bg-cyan-600 text-white' : 'bg-slate-100 text-slate-400'}`}>{day.label}</span>
-                ))}
-              </div>
-              <p className="mt-4 text-sm text-slate-600">{activeDays.length ? `수업 가능: ${activeDays.map(day => day.label).join(' · ')}` : '설정된 요일이 없습니다.'}</p>
-            </div>
-            <div className="rounded-3xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm">
-              <h3 className="text-base font-bold mb-4">풀장 · 시간대</h3>
+            <div className="rounded-3xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm lg:col-span-2">
+              <h3 className="text-base font-bold mb-4">풀장별 수업 가능 일정</h3>
               {availablePools.length ? (
                 <div className="space-y-4">
                   {availablePools.map(pool => {
                     const times = pool.times.filter(time => currentInstructor?.[time.key]);
+                    const poolDaysForDisplay = dayOptions.filter(day => currentInstructor?.[`${pool.key}_day_${day.key}`]);
                     return (
-                      <div key={pool.key} className="border-l-4 border-cyan-500 pl-3">
+                      <div key={pool.key} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                         <p className="text-sm font-bold">{pool.name}</p>
+                        <div className="mt-3">
+                          <p className="text-xs font-bold text-slate-500">가능 요일</p>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {poolDaysForDisplay.length ? poolDaysForDisplay.map(day => <span key={day.key} className="rounded-lg bg-cyan-600 px-2.5 py-1.5 text-xs font-bold text-white">{day.label}</span>) : <span className="text-sm text-slate-600">선택한 요일이 없습니다.</span>}
+                          </div>
+                        </div>
+                        <p className="mt-3 text-xs font-bold text-slate-500">가능 시간대</p>
                         <div className="mt-2 flex flex-wrap gap-2">
                           {times.length ? times.map(time => <span key={time.key} className="rounded-lg bg-cyan-50 px-2.5 py-1.5 text-xs font-semibold text-cyan-900">{time.label}</span>)
                             : <span className="text-sm text-slate-600">선택한 시간대가 없습니다.</span>}

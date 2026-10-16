@@ -7,6 +7,9 @@ type CustomerMatch = {
   time_slot?: string;
   preferred_days?: string[];
   preferred_schedule?: Record<string, string[]>;
+  preferred_pool_options?: Record<string, { days?: string[]; times?: string[] }>;
+  youth_participant_count?: number | null;
+  youth_ages?: string | null;
   matched_instructor?: string;
   created_at: string;
   traffic_source?: string;
@@ -37,6 +40,9 @@ export default function CustomerMatchCard({ customer, showAttribution = false }:
   const schedule = customer.preferred_schedule && Object.keys(customer.preferred_schedule).length
     ? customer.preferred_schedule
     : { [customer.pool]: customer.time_slot ? [customer.time_slot] : [] };
+  const poolOptions = customer.preferred_pool_options && Object.keys(customer.preferred_pool_options).length
+    ? customer.preferred_pool_options
+    : Object.fromEntries(Object.entries(schedule).map(([poolName, times]) => [poolName, { days, times }]));
   const sourceDetail = [customer.traffic_source || '직접 방문', customer.traffic_medium].filter(Boolean).join(' · ');
 
   return (
@@ -58,18 +64,26 @@ export default function CustomerMatchCard({ customer, showAttribution = false }:
           <dd className="mt-1 font-semibold leading-6 text-slate-900">{customer.course}</dd>
         </div>
         <div className="rounded-xl bg-white p-3 border border-slate-200">
-          <dt className="text-xs font-bold text-slate-500">희망 수업 요일</dt>
+          <dt className="text-xs font-bold text-slate-500">희망 요일 전체</dt>
           <dd className="mt-1 font-semibold text-slate-900">{days.length ? days.join(' · ') : '요일 정보 없음'}</dd>
         </div>
       </dl>
 
+      {customer.youth_participant_count && (
+        <div className="mt-3 rounded-xl border border-cyan-200 bg-cyan-50 p-3">
+          <p className="text-xs font-bold text-cyan-800">유스 수강생 정보</p>
+          <p className="mt-1 font-semibold text-slate-900">{customer.youth_participant_count}명 · 연령 {customer.youth_ages || '미입력'}</p>
+        </div>
+      )}
+
       <div className="mt-3 rounded-xl bg-white p-3 border border-slate-200">
-        <p className="text-xs font-bold text-slate-500">희망 풀장 · 시간대</p>
+        <p className="text-xs font-bold text-slate-500">희망 풀장별 요일 · 시간대</p>
         <div className="mt-2 space-y-2">
-          {Object.entries(schedule).map(([poolName, times]) => (
-            <div key={poolName} className="flex flex-col gap-1 sm:flex-row sm:gap-3">
-              <span className="shrink-0 font-bold text-slate-900">{poolName}</span>
-              <span className="leading-6 text-slate-700">{times.length ? times.join(' · ') : '시간대 정보 없음'}</span>
+          {Object.entries(poolOptions).map(([poolName, option]) => (
+            <div key={poolName} className="rounded-lg bg-slate-50 p-3">
+              <span className="font-bold text-slate-900">{poolName}</span>
+              <p className="mt-1 leading-6 text-slate-700"><span className="font-semibold">요일:</span> {option.days?.length ? option.days.join(' · ') : '정보 없음'}</p>
+              <p className="leading-6 text-slate-700"><span className="font-semibold">시간:</span> {option.times?.length ? option.times.join(' · ') : '정보 없음'}</p>
             </div>
           ))}
         </div>

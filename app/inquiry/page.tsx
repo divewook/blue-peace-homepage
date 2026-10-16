@@ -5,12 +5,14 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { getMarketingAttribution } from '../../components/marketing-attribution';
 import ExpandableText from '../../components/expandable-text';
 import DivingMatcherAnimation from '../../components/diving-matcher-animation';
+import { canInstructorTeachCourse } from '../../lib/instructor-fields';
 
 
-const dayLabels: Record<string, string> = {
-  available_mon: '월', available_tue: '화', available_wed: '수', available_thu: '목',
-  available_fri: '금', available_sat: '토', available_sun: '일',
-};
+const dayOptions = [
+  { key: 'mon', label: '월' }, { key: 'tue', label: '화' }, { key: 'wed', label: '수' },
+  { key: 'thu', label: '목' }, { key: 'fri', label: '금' }, { key: 'sat', label: '토' },
+  { key: 'sun', label: '일' }, { key: 'holiday', label: '공휴일' },
+];
 const passnineTimeLabels: Record<string, string> = {
   t1: '1부 (09:00~11:30)', t2: '2부 (12:30~15:00)',
   t3: '3부 (16:00~18:30)', t4: '4부 (19:30~22:00)',
@@ -48,7 +50,12 @@ interface Instructor {
   miryang_t4: boolean;
   miryang_t5: boolean;
   miryang_t6: boolean;
+  course_levels?: Record<string, string | string[]>;
+  [key: string]: unknown;
 }
+
+type DaySelection = Record<string, boolean>;
+const emptyDays = (): DaySelection => Object.fromEntries(dayOptions.map(day => [day.key, false]));
 
 const courseLevelOptions: { [key: string]: string[] } = {
   '프리다이빙': ['체험 과정', '1레벨 (프리다이버)', '2레벨 (오픈워터)', '3레벨 (어드밴스드)', '4레벨 (마스터)', '강사 과정', '1+2레벨 패키지', '3+4레벨 패키지'],
@@ -129,15 +136,8 @@ function InquiryFormContent() {
   const [course, setCourse] = useState(() => getInitialCourse(initialCourseParam));
   const [detailLevel, setDetailLevel] = useState(courseLevelOptions['프리다이빙'][0]);
 
-  const [selectedDays, setSelectedDays] = useState<{ [key: string]: boolean }>({
-    available_mon: true,
-    available_tue: false,
-    available_wed: false,
-    available_thu: false,
-    available_fri: false,
-    available_sat: false,
-    available_sun: false,
-  });
+  const [passnineDays, setPassnineDays] = useState<DaySelection>(() => ({ ...emptyDays(), mon: true }));
+  const [miryangDays, setMiryangDays] = useState<DaySelection>(() => emptyDays());
 
   const [canPassnine, setCanPassnine] = useState(true);
   const [passnineSlots, setPassnineSlots] = useState<{ [key: string]: boolean }>({
@@ -157,6 +157,8 @@ function InquiryFormContent() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showResultModal, setShowResultModal] = useState(false);
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const [youthParticipantCount, setYouthParticipantCount] = useState('');
+  const [youthAges, setYouthAges] = useState('');
 
   useEffect(() => {
     if (initialCourseParam) {
@@ -182,10 +184,6 @@ function InquiryFormContent() {
     setPhone(formatted);
   };
 
-  const toggleDay = (key: string) => {
-    setSelectedDays(prev => ({ ...prev, [key]: !prev[key] }));
-  };
-
   const handleOpenConfirmModal = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !phone) {
@@ -194,6 +192,23 @@ function InquiryFormContent() {
     }
     if (!privacyAccepted) {
       alert('개인정보 수집 및 이용에 동의해 주세요.');
+      return;
+    }
+    const selectedPools = [
+      { enabled: canPassnine, name: '칠곡 패스나인', days: passnineDays, slots: passnineSlots },
+      { enabled: canMiryang, name: '밀양 아리랑', days: miryangDays, slots: miryangSlots },
+    ];
+    if (!selectedPools.some(pool => pool.enabled)) {
+      alert('희망 풀장을 하나 이상 선택해 주세요.');
+      return;
+    }
+    const incompletePool = selectedPools.find(pool => pool.enabled && (!Object.values(pool.days).some(Boolean) || !Object.values(pool.slots).some(Boolean)));
+    if (incompletePool) {
+      alert(`${incompletePool.name} 풀장의 희망 요일과 시간대를 각각 하나 이상 선택해 주세요.`);
+      return;
+    }
+    if (course === '유스 프리다이빙' && (!/^\d+$/.test(youthParticipantCount) || Number(youthParticipantCount) < 1 || Number(youthParticipantCount) > 20 || !youthAges.trim())) {
+      alert('유스 수강 인원(1~20명)과 각 수강생의 연령을 입력해 주세요.');
       return;
     }
     setShowConfirmModal(true);
@@ -224,28 +239,29 @@ function InquiryFormContent() {
       }
 
       const qualifiedInstructors = instructors.filter((ins: Instructor) => {
-        const dayMatch = Object.keys(selectedDays).some(dayKey => selectedDays[dayKey] && ins[dayKey as keyof Instructor]);
-        if (!dayMatch) return false;
+        if (!canInstructorTeachCourse(ins, course, detailLevel)) return false;
 
         let passnineMatch = false;
         if (canPassnine && ins.can_passnine) {
-          if ((passnineSlots.t1 && ins.passnine_t1) ||
+          const dayMatch = dayOptions.some(day => passnineDays[day.key] && ins[`passnine_day_${day.key}`] === true);
+          if (dayMatch && ((passnineSlots.t1 && ins.passnine_t1) ||
               (passnineSlots.t2 && ins.passnine_t2) ||
               (passnineSlots.t3 && ins.passnine_t3) ||
-              (passnineSlots.t4 && ins.passnine_t4)) {
+              (passnineSlots.t4 && ins.passnine_t4))) {
             passnineMatch = true;
           }
         }
 
         let miryangMatch = false;
         if (canMiryang && ins.can_miryang) {
-          if ((miryangSlots.t0 && ins.miryang_t0) ||
+          const dayMatch = dayOptions.some(day => miryangDays[day.key] && ins[`miryang_day_${day.key}`] === true);
+          if (dayMatch && ((miryangSlots.t0 && ins.miryang_t0) ||
               (miryangSlots.t1 && ins.miryang_t1) ||
               (miryangSlots.t2 && ins.miryang_t2) ||
               (miryangSlots.t3 && ins.miryang_t3) ||
               (miryangSlots.t4 && ins.miryang_t4) ||
               (miryangSlots.t5 && ins.miryang_t5) ||
-              (miryangSlots.t6 && ins.miryang_t6)) {
+              (miryangSlots.t6 && ins.miryang_t6))) {
             miryangMatch = true;
           }
         }
@@ -259,9 +275,11 @@ function InquiryFormContent() {
       } else {
         const randomIndex = Math.floor(Math.random() * qualifiedInstructors.length);
         const selected = qualifiedInstructors[randomIndex];
-        const preferredDays = Object.entries(selectedDays)
-          .filter(([, selectedDay]) => selectedDay)
-          .map(([day]) => dayLabels[day]);
+        const selectedDayLabels = (days: DaySelection) => dayOptions.filter(day => days[day.key]).map(day => day.label);
+        const preferredDays = [...new Set([
+          ...(canPassnine ? selectedDayLabels(passnineDays) : []),
+          ...(canMiryang ? selectedDayLabels(miryangDays) : []),
+        ])];
         const preferredSchedule = {
           ...(canPassnine ? {
             '칠곡 패스나인': Object.entries(passnineSlots)
@@ -274,6 +292,10 @@ function InquiryFormContent() {
               .map(([slot]) => miryangTimeLabels[slot]),
           } : {}),
         };
+        const preferredPoolOptions = {
+          ...(canPassnine ? { '칠곡 패스나인': { days: selectedDayLabels(passnineDays), times: preferredSchedule['칠곡 패스나인'] } } : {}),
+          ...(canMiryang ? { '밀양 아리랑': { days: selectedDayLabels(miryangDays), times: preferredSchedule['밀양 아리랑'] } } : {}),
+        };
         const response = await fetch('/api/matches', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -282,9 +304,12 @@ function InquiryFormContent() {
             phone,
             course: `${course} (${detailLevel})`,
             pool: canPassnine && canMiryang ? '패스나인/밀양' : canPassnine ? '칠곡 패스나인' : '밀양 아리랑',
-            time_slot: [...preferredDays, ...Object.values(preferredSchedule).flat()].join(' · '),
+            time_slot: Object.entries(preferredPoolOptions).map(([poolName, option]) => `${poolName}: ${option.days.join('·')} / ${option.times.join('·')}`).join(' | '),
             preferred_days: preferredDays,
             preferred_schedule: preferredSchedule,
+            preferred_pool_options: preferredPoolOptions,
+            youth_participant_count: course === '유스 프리다이빙' ? Number(youthParticipantCount) : null,
+            youth_ages: course === '유스 프리다이빙' ? youthAges.trim() : null,
             attribution: getMarketingAttribution(),
             instructor_id: selected.id,
           }),
@@ -395,35 +420,26 @@ function InquiryFormContent() {
           </p>
         </div>
 
-        <div>
-          <label className="block text-xs font-semibold text-slate-600 mb-2">3. 희망 수업 요일 (복수 선택 가능)</label>
-          <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
-            {[
-              { key: 'available_mon', label: '월' },
-              { key: 'available_tue', label: '화' },
-              { key: 'available_wed', label: '수' },
-              { key: 'available_thu', label: '목' },
-              { key: 'available_fri', label: '금' },
-              { key: 'available_sat', label: '토' },
-              { key: 'available_sun', label: '일' },
-            ].map((d) => (
-              <button
-                key={d.key}
-                type="button"
-                onClick={() => toggleDay(d.key)}
-                className={`min-h-11 rounded-xl text-sm font-bold border transition cursor-pointer ${
-                  selectedDays[d.key]
-                    ? 'bg-cyan-600 border-cyan-500 text-white shadow-sm'
-                    : 'bg-slate-50 border-slate-200 text-slate-600'
-                }`}
-              >
-                {d.label}
-              </button>
-            ))}
+        {course === '유스 프리다이빙' && (
+          <div className="rounded-2xl border border-cyan-200 bg-cyan-50 p-4">
+            <p className="text-sm font-bold text-cyan-900">유스 수강생 정보</p>
+            <p className="mt-1 text-xs leading-5 text-cyan-800">강사가 상담 전에 인원과 연령을 확인할 수 있도록 입력해 주세요.</p>
+            <div className="mt-3 grid gap-3 sm:grid-cols-[120px_1fr]">
+              <label className="text-xs font-bold text-slate-700">수강 인원
+                <input type="number" inputMode="numeric" min="1" max="20" value={youthParticipantCount} onChange={event => setYouthParticipantCount(event.target.value)} placeholder="예: 2" className="mt-1 w-full rounded-xl border border-cyan-200 bg-white px-3 py-3 text-base" required />
+              </label>
+              <label className="text-xs font-bold text-slate-700">수강생 연령
+                <input type="text" value={youthAges} onChange={event => setYouthAges(event.target.value.slice(0, 200))} placeholder="예: 8세 1명, 11세 1명" className="mt-1 w-full rounded-xl border border-cyan-200 bg-white px-3 py-3 text-base" required />
+              </label>
+            </div>
           </div>
+        )}
+
+        <div>
+          <p className="text-sm font-bold text-slate-900">3. 희망 풀장별 요일 · 시간대</p>
+          <p className="mt-1 text-xs leading-5 text-slate-500">각 풀장에서 가능한 일정을 따로 선택해 주세요. 공휴일 수업도 선택할 수 있습니다.</p>
         </div>
 
-        {/* 칠곡 패스나인 풀장 세부 시간대 (정확한 시간대 적용) */}
         <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2.5">
           <label className="flex min-h-12 items-center gap-3 rounded-xl p-2 text-sm font-bold leading-6 text-slate-900 cursor-pointer">
             <input
@@ -432,10 +448,19 @@ function InquiryFormContent() {
               onChange={(e) => setCanPassnine(e.target.checked)}
               className="accent-cyan-600 w-5 h-5 shrink-0"
             />
-            <span>칠곡 패스나인 풀장 (시간대 복수 선택 가능)</span>
+            <span>칠곡 패스나인 풀장</span>
           </label>
           {canPassnine && (
-            <div className="grid grid-cols-1 gap-2 pt-1 min-[430px]:grid-cols-2">
+            <div className="space-y-4 pt-1">
+              <div>
+                <p className="mb-2 text-xs font-bold text-slate-600">희망 요일</p>
+                <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">
+                  {dayOptions.map(day => <button key={day.key} type="button" onClick={() => setPassnineDays(previous => ({ ...previous, [day.key]: !previous[day.key] }))} className={`min-h-11 rounded-xl border text-sm font-bold ${passnineDays[day.key] ? 'border-cyan-500 bg-cyan-600 text-white' : 'border-slate-200 bg-white text-slate-600'}`}>{day.label}</button>)}
+                </div>
+              </div>
+              <div>
+                <p className="mb-2 text-xs font-bold text-slate-600">희망 시간대</p>
+                <div className="grid grid-cols-1 gap-2 min-[430px]:grid-cols-2">
               {[
                 { key: 't1', label: '1부 (09:00~11:30)' },
                 { key: 't2', label: '2부 (12:30~15:00)' },
@@ -452,6 +477,8 @@ function InquiryFormContent() {
                   <span>{t.label}</span>
                 </label>
               ))}
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -465,10 +492,19 @@ function InquiryFormContent() {
               onChange={(e) => setCanMiryang(e.target.checked)}
               className="accent-cyan-600 w-5 h-5 shrink-0"
             />
-            <span>밀양 아리랑 풀장 (시간대 복수 선택 가능)</span>
+            <span>밀양 아리랑 풀장</span>
           </label>
           {canMiryang && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+            <div className="space-y-4 pt-1">
+              <div>
+                <p className="mb-2 text-xs font-bold text-slate-600">희망 요일</p>
+                <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">
+                  {dayOptions.map(day => <button key={day.key} type="button" onClick={() => setMiryangDays(previous => ({ ...previous, [day.key]: !previous[day.key] }))} className={`min-h-11 rounded-xl border text-sm font-bold ${miryangDays[day.key] ? 'border-cyan-500 bg-cyan-600 text-white' : 'border-slate-200 bg-white text-slate-600'}`}>{day.label}</button>)}
+                </div>
+              </div>
+              <div>
+                <p className="mb-2 text-xs font-bold text-slate-600">희망 시간대</p>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {[
                 { key: 't0', label: '오전부 (08:00~10:00) ※주말만' },
                 { key: 't1', label: '1부 (10:00~12:00)' },
@@ -488,6 +524,8 @@ function InquiryFormContent() {
                   <span>{t.label}</span>
                 </label>
               ))}
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -551,6 +589,9 @@ function InquiryFormContent() {
             <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2 text-xs sm:text-sm text-slate-700">
               <p><span className="font-bold text-slate-900">신청자:</span> {name} 님 ({phone})</p>
               <p><span className="font-bold text-slate-900">선택 과정:</span> {course} - {detailLevel}</p>
+              {course === '유스 프리다이빙' && <p><span className="font-bold text-slate-900">유스 정보:</span> {youthParticipantCount}명 · {youthAges}</p>}
+              {canPassnine && <p><span className="font-bold text-slate-900">칠곡 패스나인:</span> {dayOptions.filter(day => passnineDays[day.key]).map(day => day.label).join(' · ')} / {Object.entries(passnineSlots).filter(([, selected]) => selected).map(([slot]) => passnineTimeLabels[slot]).join(' · ')}</p>}
+              {canMiryang && <p><span className="font-bold text-slate-900">밀양 아리랑:</span> {dayOptions.filter(day => miryangDays[day.key]).map(day => day.label).join(' · ')} / {Object.entries(miryangSlots).filter(([, selected]) => selected).map(([slot]) => miryangTimeLabels[slot]).join(' · ')}</p>}
               <p><span className="font-bold text-cyan-700">안내 비용:</span> <span className="font-extrabold text-cyan-800">{getPriceText(course, detailLevel)}</span></p>
               <p className="text-[11px] text-slate-500 pt-1 leading-relaxed border-t border-slate-200 mt-2 pt-2">
                 ※ 체험 과정을 제외한 모든 과정은 교육비+발급비 포함이며, 지역별 풀장 입장료와 장비 렌탈료는 별도입니다.
