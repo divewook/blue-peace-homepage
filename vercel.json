@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "app/api/deepstation/availability/route.js": {
+      "maxDuration": 60,
+      "regions": ["icn1"]
+    }
+  }
+}

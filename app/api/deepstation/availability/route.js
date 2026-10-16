@@ -41,9 +41,10 @@ export async function GET(request) {
       source_url: DEEPSTATION_BOOKING_URL,
     }, { headers: { "Cache-Control": "private, no-store, max-age=0" } });
   } catch (error) {
-    console.error("Failed to load Deepstation availability", error instanceof Error ? error.message : error);
+    const stage = typeof error?.deepstationStage === "string" ? error.deepstationStage : "unknown";
+    console.error("Failed to load Deepstation availability", { stage, message: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
-      { error: "딥스테이션 부이 현황을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요." },
+      { error: "딥스테이션 부이 현황을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.", code: stage },
       { status: 502 },
     );
   }
