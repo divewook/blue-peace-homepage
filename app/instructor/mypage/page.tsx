@@ -9,6 +9,43 @@ import DeepstationAvailabilityModal from '../../../components/deepstation-availa
 import ParadiveAvailabilityModal from '../../../components/paradive-availability-modal';
 import MarinaAvailabilityModal from '../../../components/marina-availability-modal';
 
+type StatPeriod = '1d' | '1w' | '1m' | '6m' | '1y' | 'custom';
+const statPeriodOptions: Array<{ key: Exclude<StatPeriod, 'custom'>; label: string }> = [
+  { key: '1d', label: '1일(오늘)' }, { key: '1w', label: '1주일' }, { key: '1m', label: '1개월' },
+  { key: '6m', label: '6개월' }, { key: '1y', label: '1년' },
+];
+
+function koreaDateString(value = new Date()) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(value);
+}
+
+function shiftDate(date: string, { days = 0, months = 0, years = 0 }: { days?: number; months?: number; years?: number }) {
+  const value = new Date(`${date}T00:00:00Z`);
+  const originalDay = value.getUTCDate();
+  value.setUTCDate(1);
+  value.setUTCFullYear(value.getUTCFullYear() + years);
+  value.setUTCMonth(value.getUTCMonth() + months);
+  const lastDay = new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth() + 1, 0)).getUTCDate();
+  value.setUTCDate(Math.min(originalDay, lastDay));
+  value.setUTCDate(value.getUTCDate() + days);
+  return value.toISOString().slice(0, 10);
+}
+
+function statDateRange(period: StatPeriod, customStart: string, customEnd: string) {
+  const today = koreaDateString();
+  if (period === 'custom') return [customStart, customEnd].sort();
+  const startDates: Record<Exclude<StatPeriod, 'custom'>, string> = {
+    '1d': today,
+    '1w': shiftDate(today, { days: -6 }),
+    '1m': shiftDate(today, { months: -1 }),
+    '6m': shiftDate(today, { months: -6 }),
+    '1y': shiftDate(today, { years: -1 }),
+  };
+  return [startDates[period], today];
+}
+
 const poolTimeOptions = {
   passnine: [
     { key: 'passnine_t1', label: '1부 · 09:00–11:30' },
@@ -59,7 +96,9 @@ export default function InstructorPortal() {
   const [allInstructors, setAllInstructors] = useState<any[]>([]);
   const [allCustomers, setAllCustomers] = useState<any[]>([]);
   const [deletingInstructorId, setDeletingInstructorId] = useState<string | null>(null);
-  const [statPeriod, setStatPeriod] = useState<'1d' | '1w' | '1m' | '6m' | '1y'>('1m');
+  const [statPeriod, setStatPeriod] = useState<StatPeriod>('1m');
+  const [customStartDate, setCustomStartDate] = useState(() => shiftDate(koreaDateString(), { months: -1 }));
+  const [customEndDate, setCustomEndDate] = useState(koreaDateString);
 
   // 프로필 설정 상태값
   const [profileImg, setProfileImg] = useState('');
@@ -174,6 +213,7 @@ export default function InstructorPortal() {
     setCustomers([]);
     setAllInstructors([]);
     setAllCustomers([]);
+    setStatPeriod('1m');
     setView('login');
   };
 
@@ -363,15 +403,11 @@ export default function InstructorPortal() {
   };
 
   const filterByPeriod = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffDays = (now.getTime() - date.getTime()) / (1000 * 3600 * 24);
-    if (statPeriod === '1d') return diffDays <= 1;
-    if (statPeriod === '1w') return diffDays <= 7;
-    if (statPeriod === '1m') return diffDays <= 30;
-    if (statPeriod === '6m') return diffDays <= 180;
-    if (statPeriod === '1y') return diffDays <= 365;
-    return true;
+    const parsed = new Date(dateString);
+    if (Number.isNaN(parsed.getTime())) return false;
+    const customerDate = koreaDateString(parsed);
+    const [startDate, endDate] = statDateRange(statPeriod, customStartDate, customEndDate);
+    return customerDate >= startDate && customerDate <= endDate;
   };
 
   // --- [뷰 1] 로그인 화면 ---
@@ -596,6 +632,7 @@ export default function InstructorPortal() {
   // --- [뷰 4] 관리자 페이지 (Admin Dashboard) ---
   if (view === 'admin_dashboard') {
     const filteredAllCustomers = allCustomers.filter(c => filterByPeriod(c.created_at));
+    const [rangeStart, rangeEnd] = statDateRange(statPeriod, customStartDate, customEndDate);
     const instructorStats = allInstructors.map(ins => {
       const count = filteredAllCustomers.filter(c => c.matched_instructor_id === ins.id || (!c.matched_instructor_id && c.matched_instructor === ins.name)).length;
       return { name: ins.name, count };
@@ -664,15 +701,37 @@ export default function InstructorPortal() {
           </div>
 
           <div className="bg-white border border-slate-200 p-6 rounded-3xl shadow-sm space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-4">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 border-b border-slate-100 pb-4">
               <h2 className="text-lg font-bold text-slate-900">📊 강사별 매칭 통계</h2>
-              <div className="flex gap-1 bg-slate-100 p-1 rounded-xl text-xs font-bold">
-                {[{ key: '1d', label: '1일' }, { key: '1w', label: '1주일' }, { key: '1m', label: '1개월' }, { key: '6m', label: '6개월' }, { key: '1y', label: '1년' }].map(p => (
-                  <button key={p.key} onClick={() => setStatPeriod(p.key as any)} className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${statPeriod === p.key ? 'bg-white text-cyan-700 shadow-xs' : 'text-slate-500'}`}>
+              <div className="flex max-w-full flex-wrap gap-1 bg-slate-100 p-1 rounded-xl text-xs font-bold">
+                {statPeriodOptions.map(p => (
+                  <button key={p.key} type="button" onClick={() => setStatPeriod(p.key)} className={`min-h-10 px-3 py-1.5 rounded-lg transition cursor-pointer ${statPeriod === p.key ? 'bg-white text-cyan-700 shadow-xs' : 'text-slate-500'}`}>
                     {p.label}
                   </button>
                 ))}
               </div>
+            </div>
+
+            <div className={`rounded-2xl border p-4 ${statPeriod === 'custom' ? 'border-cyan-300 bg-cyan-50' : 'border-slate-200 bg-slate-50'}`}>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                <label className="flex-1 text-xs font-bold text-slate-600">
+                  시작일
+                  <input type="date" value={customStartDate} max={koreaDateString()} onChange={event => setCustomStartDate(event.target.value)} className="mt-1 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-base text-slate-900" />
+                </label>
+                <label className="flex-1 text-xs font-bold text-slate-600">
+                  종료일
+                  <input type="date" value={customEndDate} max={koreaDateString()} onChange={event => setCustomEndDate(event.target.value)} className="mt-1 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-base text-slate-900" />
+                </label>
+                <button type="button" onClick={() => setStatPeriod('custom')} disabled={!customStartDate || !customEndDate} className="min-h-12 rounded-xl bg-slate-900 px-5 text-sm font-bold text-white disabled:opacity-40">설정 기간 적용</button>
+              </div>
+              <p className="mt-2 text-xs leading-5 text-slate-500">
+                {statPeriod === 'custom' ? `${rangeStart.replaceAll('-', '. ')}부터 ${rangeEnd.replaceAll('-', '. ')}까지의 매칭을 표시합니다.` : '시작일과 종료일을 선택하면 원하는 기간만 따로 확인할 수 있습니다.'}
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-1 rounded-2xl bg-slate-900 px-4 py-3 text-white sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs font-semibold text-slate-300">조회 기간 <span className="ml-1 text-sm font-bold text-white">{rangeStart.replaceAll('-', '. ')} ~ {rangeEnd.replaceAll('-', '. ')}</span></p>
+              <p className="text-sm font-bold text-cyan-300">전체 {filteredAllCustomers.length}건</p>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -809,10 +868,10 @@ export default function InstructorPortal() {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-4">
             <h2 className="text-lg font-bold text-slate-900 leading-snug break-keep">매칭된 수강생 · 신청 내역 <span className="text-cyan-700">({myFilteredCustomers.length}건)</span></h2>
             <div className="flex flex-wrap gap-1 bg-slate-100 p-1 rounded-xl text-sm font-semibold">
-              {[{ key: '1d', label: '1일' }, { key: '1w', label: '1주일' }, { key: '1m', label: '1개월' }, { key: '6m', label: '6개월' }, { key: '1y', label: '1년' }].map(p => (
+              {statPeriodOptions.map(p => (
                 <button
                   key={p.key}
-                  onClick={() => setStatPeriod(p.key as any)}
+                  onClick={() => setStatPeriod(p.key)}
                   className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${statPeriod === p.key ? 'bg-white text-cyan-700 shadow-xs' : 'text-slate-500'}`}
                 >
                   {p.label}
