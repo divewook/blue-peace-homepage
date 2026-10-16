@@ -41,6 +41,9 @@ export default function AdminDashboard() {
   const [instructors, setInstructors] = useState<Instructor[]>([]);
   const [customers, setCustomers] = useState<CustomerLead[]>([]);
   const [statPeriod, setStatPeriod] = useState<'1d' | '1w' | '1m' | '6m' | '1y'>('1m');
+  const [selectedInstructorId, setSelectedInstructorId] = useState<string | null>(null);
+  const [visibleCustomerCount, setVisibleCustomerCount] = useState(5);
+  const [modalVisibleCount, setModalVisibleCount] = useState(10);
 
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -105,11 +108,30 @@ export default function AdminDashboard() {
 
   const filteredCustomers = customers.filter(c => filterByPeriod(c.created_at));
 
+  const matchesInstructor = (customer: CustomerLead, instructor: Instructor) =>
+    customer.matched_instructor_id === instructor.id
+    || (!customer.matched_instructor_id && customer.matched_instructor === instructor.name);
+
   // 강사별 통계 집계
   const instructorStats = instructors.map(ins => {
-    const count = filteredCustomers.filter(c => c.matched_instructor_id === ins.id || (!c.matched_instructor_id && c.matched_instructor === ins.name)).length;
-    return { name: ins.name, count };
+    const count = filteredCustomers.filter(customer => matchesInstructor(customer, ins)).length;
+    return { id: ins.id, name: ins.name, count };
   });
+  const selectedInstructor = instructors.find(instructor => instructor.id === selectedInstructorId);
+  const selectedInstructorCustomers = selectedInstructor
+    ? filteredCustomers.filter(customer => matchesInstructor(customer, selectedInstructor))
+    : [];
+
+  const changePeriod = (period: typeof statPeriod) => {
+    setStatPeriod(period);
+    setVisibleCustomerCount(5);
+    setModalVisibleCount(10);
+  };
+
+  const openInstructorDetails = (id: string) => {
+    setSelectedInstructorId(id);
+    setModalVisibleCount(10);
+  };
 
   if (!isAdminLoggedIn) {
     return (
@@ -205,7 +227,7 @@ export default function AdminDashboard() {
               ].map(p => (
                 <button
                   key={p.key}
-                  onClick={() => setStatPeriod(p.key as any)}
+                  onClick={() => changePeriod(p.key as typeof statPeriod)}
                   className={`px-3 py-1.5 rounded-lg transition ${statPeriod === p.key ? 'bg-white text-cyan-700 shadow-xs' : 'text-slate-500'}`}
                 >
                   {p.label}
@@ -216,10 +238,17 @@ export default function AdminDashboard() {
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {instructorStats.map(stat => (
-              <div key={stat.name} className="bg-slate-50 p-4 rounded-2xl border border-slate-200 text-center">
+              <button
+                type="button"
+                key={stat.id}
+                onClick={() => openInstructorDetails(stat.id)}
+                className="group min-h-28 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-center transition hover:border-cyan-400 hover:bg-cyan-50 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2"
+                aria-label={`${stat.name} 강사 매칭 ${stat.count}건 세부 내역 보기`}
+              >
                 <p className="text-xs text-slate-500 font-bold">{stat.name} 강사</p>
                 <p className="text-2xl font-black text-cyan-600 mt-1">{stat.count}건</p>
-              </div>
+                <p className="mt-2 text-xs font-bold text-cyan-700">세부 내역 보기 <span aria-hidden="true" className="inline-block transition group-hover:translate-x-0.5">→</span></p>
+              </button>
             ))}
           </div>
 
@@ -229,15 +258,81 @@ export default function AdminDashboard() {
           <div className="pt-4 border-t border-slate-100">
             <h3 className="text-base font-bold text-slate-900 mb-3">📋 고객 매칭 세부 신청 내역 ({filteredCustomers.length}건)</h3>
             <div className="space-y-3">
-              {filteredCustomers.map(cus => (
+              {filteredCustomers.slice(0, visibleCustomerCount).map(cus => (
                 <CustomerMatchCard key={cus.id} customer={cus} showAttribution />
               ))}
             </div>
+            {filteredCustomers.length > visibleCustomerCount && (
+              <button
+                type="button"
+                onClick={() => setVisibleCustomerCount(count => count + 5)}
+                className="mt-4 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm font-bold text-slate-700 hover:bg-slate-50"
+              >
+                최근 고객 5건 더 보기 ({filteredCustomers.length - visibleCustomerCount}건 남음)
+              </button>
+            )}
+            {filteredCustomers.length > 5 && visibleCustomerCount >= filteredCustomers.length && (
+              <button
+                type="button"
+                onClick={() => setVisibleCustomerCount(5)}
+                className="mt-4 min-h-11 w-full rounded-xl px-4 text-sm font-bold text-slate-500 hover:bg-slate-50"
+              >
+                최근 5건만 보기
+              </button>
+            )}
           </div>
 
         </div>
 
       </div>
+
+      {selectedInstructor && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="instructor-match-title"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-3 backdrop-blur-sm sm:p-6"
+          onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedInstructorId(null); }}
+        >
+          <div className="flex max-h-[calc(100dvh-1.5rem)] w-full max-w-3xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl sm:max-h-[calc(100dvh-3rem)]">
+            <div className="flex items-start justify-between gap-4 border-b border-slate-200 p-5 sm:p-6">
+              <div>
+                <p className="text-xs font-bold tracking-widest text-cyan-700">MATCH DETAILS</p>
+                <h2 id="instructor-match-title" className="mt-1 text-xl font-black text-slate-950">{selectedInstructor.name} 강사 매칭 세부 내역</h2>
+                <p className="mt-1 text-sm text-slate-600">선택한 기간 기준 총 {selectedInstructorCustomers.length}건입니다.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedInstructorId(null)}
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-100 text-lg font-bold text-slate-600 hover:bg-slate-200"
+                aria-label="세부 내역 닫기"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="overflow-y-auto p-4 sm:p-6">
+              {selectedInstructorCustomers.length ? (
+                <div className="space-y-3">
+                  {selectedInstructorCustomers.slice(0, modalVisibleCount).map(customer => (
+                    <CustomerMatchCard key={customer.id} customer={customer} showAttribution />
+                  ))}
+                  {selectedInstructorCustomers.length > modalVisibleCount && (
+                    <button
+                      type="button"
+                      onClick={() => setModalVisibleCount(count => count + 10)}
+                      className="min-h-11 w-full rounded-xl border border-cyan-200 bg-cyan-50 px-4 text-sm font-bold text-cyan-800 hover:bg-cyan-100"
+                    >
+                      10건 더 보기 ({selectedInstructorCustomers.length - modalVisibleCount}건 남음)
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="rounded-2xl bg-slate-50 p-8 text-center text-sm text-slate-500">선택한 기간에 매칭된 고객이 없습니다.</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

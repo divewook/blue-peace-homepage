@@ -76,9 +76,12 @@ export default function CustomerMatchCard({ customer, showAttribution = false }:
       </div>
 
       {showAttribution && (
-        <div className="mt-3 rounded-xl border border-indigo-200 bg-indigo-50 p-3">
-          <p className="text-xs font-bold text-indigo-900">마케팅 유입 정보</p>
-          <div className="mt-2 grid gap-x-5 gap-y-1 text-xs text-slate-700 sm:grid-cols-2">
+        <details className="group mt-3 rounded-xl border border-indigo-200 bg-indigo-50 p-3">
+          <summary className="flex min-h-8 cursor-pointer list-none items-center justify-between gap-3 text-xs font-bold text-indigo-900">
+            <span>마케팅 유입 정보</span>
+            <span aria-hidden="true" className="transition group-open:rotate-180">⌄</span>
+          </summary>
+          <div className="mt-3 grid gap-x-5 gap-y-1 border-t border-indigo-200 pt-3 text-xs text-slate-700 sm:grid-cols-2">
             <p><span className="font-bold">유입:</span> {sourceDetail}</p>
             <p><span className="font-bold">검색어:</span> {customer.traffic_term || '검색어 미제공'}</p>
             <p><span className="font-bold">캠페인:</span> {[customer.traffic_campaign, customer.traffic_content].filter(Boolean).join(' · ') || '없음'}</p>
@@ -86,7 +89,7 @@ export default function CustomerMatchCard({ customer, showAttribution = false }:
             <p><span className="font-bold">이전 사이트:</span> {safeHost(customer.referrer_url) || '직접 방문/미제공'}</p>
             <p><span className="font-bold">첫 방문 페이지:</span> {safeLanding(customer.landing_url) || '확인 불가'}</p>
           </div>
-        </div>
+        </details>
       )}
     </article>
   );
