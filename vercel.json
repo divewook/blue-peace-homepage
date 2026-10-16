@@ -8,6 +8,10 @@
     "app/api/paradive/availability/route.js": {
       "maxDuration": 60,
       "regions": ["icn1"]
+    },
+    "app/api/marina/availability/route.js": {
+      "maxDuration": 60,
+      "regions": ["icn1"]
     }
   }
 }

@@ -9,6 +9,10 @@ const nextConfig = {
       './node_modules/@sparticuz/chromium/bin/**/*',
       './node_modules/playwright-core/**/*',
     ],
+    '/api/marina/availability': [
+      './node_modules/@sparticuz/chromium/bin/**/*',
+      './node_modules/playwright-core/**/*',
+    ],
   },
 };
 

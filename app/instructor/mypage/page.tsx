@@ -7,6 +7,7 @@ import MarketingSummary from '../../../components/marketing-summary';
 import Pass9AvailabilityModal from '../../../components/pass9-availability-modal';
 import DeepstationAvailabilityModal from '../../../components/deepstation-availability-modal';
 import ParadiveAvailabilityModal from '../../../components/paradive-availability-modal';
+import MarinaAvailabilityModal from '../../../components/marina-availability-modal';
 
 const poolTimeOptions = {
   passnine: [
@@ -79,6 +80,7 @@ export default function InstructorPortal() {
   const [showPass9Availability, setShowPass9Availability] = useState(false);
   const [showDeepstationAvailability, setShowDeepstationAvailability] = useState(false);
   const [showParadiveAvailability, setShowParadiveAvailability] = useState(false);
+  const [showMarinaAvailability, setShowMarinaAvailability] = useState(false);
 
   const handlePhoneInput = (val: string, setter: (v: string) => void) => {
     const raw = val.replace(/[^0-9]/g, '').slice(0, 11);
@@ -616,10 +618,11 @@ export default function InstructorPortal() {
             <p className="text-xs font-bold tracking-widest text-indigo-200">POOL AVAILABILITY · ADMIN TEST</p>
             <h2 id="pool-availability-tools" className="mt-1 text-xl font-black">풀장 예약 현황 점검</h2>
             <p className="mt-2 text-sm leading-6 text-slate-300">전체 풀장 연동이 완료되기 전까지 관리자 페이지에서만 조회하고 확인할 수 있습니다.</p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <button type="button" onClick={() => setShowPass9Availability(true)} className="min-h-12 rounded-2xl bg-white px-4 py-3 text-sm font-bold text-slate-950 hover:bg-cyan-50">패스나인 예약 현황 확인</button>
               <button type="button" onClick={() => setShowDeepstationAvailability(true)} className="min-h-12 rounded-2xl bg-indigo-100 px-4 py-3 text-sm font-bold text-indigo-950 hover:bg-indigo-200">딥스테이션 딥탱크 부이 예약 현황</button>
               <button type="button" onClick={() => setShowParadiveAvailability(true)} className="min-h-12 rounded-2xl bg-cyan-100 px-4 py-3 text-sm font-bold text-cyan-950 hover:bg-cyan-200">파라다이브 딥탱크 부이 예약 현황</button>
+              <button type="button" onClick={() => setShowMarinaAvailability(true)} className="min-h-12 rounded-2xl bg-emerald-100 px-4 py-3 text-sm font-bold text-emerald-950 hover:bg-emerald-200">북항마리나 예약 현황</button>
             </div>
           </section>
 
@@ -696,6 +699,7 @@ export default function InstructorPortal() {
           {showPass9Availability && <Pass9AvailabilityModal onClose={() => setShowPass9Availability(false)} />}
           {showDeepstationAvailability && <DeepstationAvailabilityModal onClose={() => setShowDeepstationAvailability(false)} />}
           {showParadiveAvailability && <ParadiveAvailabilityModal onClose={() => setShowParadiveAvailability(false)} />}
+          {showMarinaAvailability && <MarinaAvailabilityModal onClose={() => setShowMarinaAvailability(false)} />}
         </div>
       </div>
     );
