@@ -3,6 +3,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { getMarketingAttribution } from '../../components/marketing-attribution';
+import ExpandableText from '../../components/expandable-text';
 
 
 const dayLabels: Record<string, string> = {
@@ -309,7 +310,7 @@ function InquiryFormContent() {
       
       <h2 className="text-xl sm:text-2xl font-black text-slate-900 mb-6 text-center">🌊 수강생 맞춤 강사 매칭 신청</h2>
 
-      <form onSubmit={handleOpenConfirmModal} className="space-y-5">
+      <form id="match-request-form" onSubmit={handleOpenConfirmModal} className="space-y-6">
         
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
@@ -319,7 +320,8 @@ function InquiryFormContent() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="성함을 입력하세요"
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none"
+              autoComplete="name"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-base text-slate-900 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-100"
               required
             />
           </div>
@@ -327,12 +329,14 @@ function InquiryFormContent() {
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1">연락처</label>
             <input
-              type="text"
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
               value={phone}
               onChange={handlePhoneChange}
               placeholder="010-0000-0000"
               maxLength={13}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-base text-slate-900 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-100"
               required
             />
           </div>
@@ -340,7 +344,7 @@ function InquiryFormContent() {
 
         <div>
           <label className="block text-xs font-semibold text-slate-600 mb-2">1. 희망 교육 코스 분야</label>
-          <div className="grid grid-cols-3 gap-1.5">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {[
               '프리다이빙', '머메이드 다이빙', '유스 프리다이빙',
               '수중레저안전요원', '스쿠버다이빙', '스페셜 교육'
@@ -349,7 +353,7 @@ function InquiryFormContent() {
                 key={c}
                 type="button"
                 onClick={() => handleCourseChange(c)}
-                className={`py-2.5 px-1 rounded-xl text-[11px] sm:text-xs font-bold border transition cursor-pointer ${
+                className={`min-h-12 px-3 py-3 rounded-xl text-sm font-bold leading-5 border transition cursor-pointer ${
                   course === c
                     ? 'bg-cyan-600 border-cyan-500 text-white shadow-sm'
                     : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
@@ -362,19 +366,19 @@ function InquiryFormContent() {
         </div>
 
         <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
-          <div className="flex justify-between items-center mb-2">
+          <div className="mb-3 flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
             <label className="block text-xs font-bold text-cyan-700">2. [{course}] 세부 과정 선택</label>
-            <span className="text-[11px] font-extrabold text-cyan-800 bg-cyan-100 px-2.5 py-0.5 rounded-full">
+            <span className="text-xs font-extrabold text-cyan-800 bg-cyan-100 px-3 py-1.5 rounded-full leading-5">
               💰 {getPriceText(course, detailLevel)}
             </span>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {courseLevelOptions[course]?.map((lvl) => (
               <button
                 key={lvl}
                 type="button"
                 onClick={() => setDetailLevel(lvl)}
-                className={`py-2.5 px-2 rounded-xl text-xs font-medium border transition cursor-pointer ${
+                className={`min-h-12 py-3 px-3 rounded-xl text-sm leading-5 font-medium border transition cursor-pointer ${
                   detailLevel === lvl
                     ? 'bg-cyan-600 border-cyan-500 text-white font-bold shadow-sm'
                     : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
@@ -385,14 +389,14 @@ function InquiryFormContent() {
             ))}
           </div>
           
-          <p className="text-[11px] text-slate-500 mt-3 leading-relaxed border-t border-slate-200 pt-2">
+          <p className="text-xs text-slate-500 mt-4 leading-6 border-t border-slate-200 pt-3">
             ※ 체험 과정을 제외한 모든 과정은 교육비+발급비 포함이며, 지역별 풀장 입장료와 장비 렌탈료는 별도입니다.
           </p>
         </div>
 
         <div>
           <label className="block text-xs font-semibold text-slate-600 mb-2">3. 희망 수업 요일 (복수 선택 가능)</label>
-          <div className="grid grid-cols-7 gap-1">
+          <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
             {[
               { key: 'available_mon', label: '월' },
               { key: 'available_tue', label: '화' },
@@ -406,7 +410,7 @@ function InquiryFormContent() {
                 key={d.key}
                 type="button"
                 onClick={() => toggleDay(d.key)}
-                className={`py-2 rounded-xl text-xs font-bold border transition cursor-pointer ${
+                className={`min-h-11 rounded-xl text-sm font-bold border transition cursor-pointer ${
                   selectedDays[d.key]
                     ? 'bg-cyan-600 border-cyan-500 text-white shadow-sm'
                     : 'bg-slate-50 border-slate-200 text-slate-600'
@@ -420,29 +424,29 @@ function InquiryFormContent() {
 
         {/* 칠곡 패스나인 풀장 세부 시간대 (정확한 시간대 적용) */}
         <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2.5">
-          <label className="flex items-center space-x-2 text-xs font-bold text-slate-900 cursor-pointer">
+          <label className="flex min-h-12 items-center gap-3 rounded-xl p-2 text-sm font-bold leading-6 text-slate-900 cursor-pointer">
             <input
               type="checkbox"
               checked={canPassnine}
               onChange={(e) => setCanPassnine(e.target.checked)}
-              className="accent-cyan-600 w-4 h-4"
+              className="accent-cyan-600 w-5 h-5 shrink-0"
             />
             <span>칠곡 패스나인 풀장 (시간대 복수 선택 가능)</span>
           </label>
           {canPassnine && (
-            <div className="grid grid-cols-2 gap-2 pt-1">
+            <div className="grid grid-cols-1 gap-2 pt-1 min-[430px]:grid-cols-2">
               {[
                 { key: 't1', label: '1부 (09:00~11:30)' },
                 { key: 't2', label: '2부 (12:30~15:00)' },
                 { key: 't3', label: '3부 (16:00~18:30)' },
                 { key: 't4', label: '4부 (19:30~22:00)' },
               ].map((t) => (
-                <label key={t.key} className={`flex items-center space-x-2 text-xs p-2.5 rounded-xl border cursor-pointer ${passnineSlots[t.key] ? 'bg-cyan-50 border-cyan-500 text-cyan-900 font-bold' : 'bg-white border-slate-200 text-slate-600'}`}>
+                <label key={t.key} className={`flex min-h-12 items-center gap-3 text-sm leading-5 p-3 rounded-xl border cursor-pointer ${passnineSlots[t.key] ? 'bg-cyan-50 border-cyan-500 text-cyan-900 font-bold' : 'bg-white border-slate-200 text-slate-600'}`}>
                   <input
                     type="checkbox"
                     checked={passnineSlots[t.key]}
                     onChange={(e) => setPassnineSlots({ ...passnineSlots, [t.key]: e.target.checked })}
-                    className="accent-cyan-600 w-4 h-4"
+                    className="accent-cyan-600 w-5 h-5 shrink-0"
                   />
                   <span>{t.label}</span>
                 </label>
@@ -453,12 +457,12 @@ function InquiryFormContent() {
 
         {/* 밀양 아리랑 풀장 세부 시간대 (정확한 시간대 적용) */}
         <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2.5">
-          <label className="flex items-center space-x-2 text-xs font-bold text-slate-900 cursor-pointer">
+          <label className="flex min-h-12 items-center gap-3 rounded-xl p-2 text-sm font-bold leading-6 text-slate-900 cursor-pointer">
             <input
               type="checkbox"
               checked={canMiryang}
               onChange={(e) => setCanMiryang(e.target.checked)}
-              className="accent-cyan-600 w-4 h-4"
+              className="accent-cyan-600 w-5 h-5 shrink-0"
             />
             <span>밀양 아리랑 풀장 (시간대 복수 선택 가능)</span>
           </label>
@@ -473,12 +477,12 @@ function InquiryFormContent() {
                 { key: 't5', label: '5부 (18:00~20:00)' },
                 { key: 't6', label: '6부 (20:00~22:00)' },
               ].map((t) => (
-                <label key={t.key} className={`flex items-center space-x-2 text-xs p-2.5 rounded-xl border cursor-pointer ${miryangSlots[t.key] ? 'bg-cyan-50 border-cyan-500 text-cyan-900 font-bold' : 'bg-white border-slate-200 text-slate-600'}`}>
+                <label key={t.key} className={`flex min-h-12 items-center gap-3 text-sm leading-5 p-3 rounded-xl border cursor-pointer ${miryangSlots[t.key] ? 'bg-cyan-50 border-cyan-500 text-cyan-900 font-bold' : 'bg-white border-slate-200 text-slate-600'}`}>
                   <input
                     type="checkbox"
                     checked={miryangSlots[t.key]}
                     onChange={(e) => setMiryangSlots({ ...miryangSlots, [t.key]: e.target.checked })}
-                    className="accent-cyan-600 w-4 h-4"
+                    className="accent-cyan-600 w-5 h-5 shrink-0"
                   />
                   <span>{t.label}</span>
                 </label>
@@ -497,12 +501,12 @@ function InquiryFormContent() {
           </div>
         </div>
 
-        <label className="flex items-start gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs leading-5 text-slate-600 cursor-pointer">
+        <label className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-600 cursor-pointer">
           <input
             type="checkbox"
             checked={privacyAccepted}
             onChange={(event) => setPrivacyAccepted(event.target.checked)}
-            className="mt-0.5 h-4 w-4 accent-cyan-600"
+            className="mt-0.5 h-5 w-5 shrink-0 accent-cyan-600"
             required
           />
           <span><strong className="text-slate-800">개인정보 수집 및 이용 동의 (필수)</strong><br />강사 매칭과 상담, 서비스 분석을 위해 이름·연락처·신청 조건·유입 경로 정보가 저장됩니다.</span>
@@ -510,7 +514,7 @@ function InquiryFormContent() {
 
         <button
           type="submit"
-          className="w-full py-4 bg-cyan-600 hover:bg-cyan-500 rounded-2xl text-white font-extrabold transition shadow-lg shadow-cyan-600/20 mt-2 cursor-pointer"
+          className="hidden md:block w-full min-h-14 py-4 bg-cyan-600 hover:bg-cyan-500 rounded-2xl text-white text-base font-extrabold transition shadow-lg shadow-cyan-600/20 mt-2 cursor-pointer"
         >
           🎯 선택 옵션 및 예상 금액 확인 후 매칭하기
         </button>
@@ -524,9 +528,21 @@ function InquiryFormContent() {
         </button>
       </form>
 
+      {!showConfirmModal && !submitting && !showResultModal && (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-cyan-100 bg-white/95 px-4 pt-3 shadow-[0_-8px_24px_rgba(15,23,42,0.14)] backdrop-blur md:hidden" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
+          <button
+            type="submit"
+            form="match-request-form"
+            className="mx-auto flex min-h-12 w-full max-w-xl items-center justify-center rounded-2xl bg-cyan-600 px-4 text-base font-extrabold text-white shadow-lg shadow-cyan-600/20"
+          >
+            선택 내용 확인하고 매칭하기
+          </button>
+        </div>
+      )}
+
       {showConfirmModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white border border-cyan-200 p-6 sm:p-7 rounded-3xl space-y-4 shadow-2xl max-w-md w-full relative">
+          <div className="max-h-[calc(100dvh-2rem)] overflow-y-auto bg-white border border-cyan-200 p-5 sm:p-7 rounded-3xl space-y-4 shadow-2xl max-w-md w-full relative">
             <h3 className="text-lg font-black text-slate-900 text-center border-b border-slate-100 pb-3">
               📋 매칭 신청 옵션 최종 확인
             </h3>
@@ -573,7 +589,7 @@ function InquiryFormContent() {
 
       {showResultModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white border border-cyan-200 p-6 sm:p-8 rounded-3xl text-center space-y-4 shadow-2xl max-w-md w-full relative animate-in fade-in zoom-in duration-300">
+          <div className="max-h-[calc(100dvh-2rem)] overflow-y-auto bg-white border border-cyan-200 p-5 sm:p-8 rounded-3xl text-center space-y-4 shadow-2xl max-w-md w-full relative animate-in fade-in zoom-in duration-300">
             
             <button
               onClick={handleCloseAndGoHome}
@@ -600,9 +616,13 @@ function InquiryFormContent() {
                       className="w-20 h-20 rounded-full mx-auto object-cover border-2 border-cyan-500 shadow-md"
                     />
                   )}
-                  <p className="text-xs sm:text-sm text-slate-600 font-medium">
-                    {matchedInstructor.bio || '친절하고 안전하게 교육을 진행해 드립니다.'}
-                  </p>
+                  <ExpandableText
+                    text={matchedInstructor.bio || '친절하고 안전하게 교육을 진행해 드립니다.'}
+                    collapsedLines={3}
+                    threshold={70}
+                    className="whitespace-pre-wrap text-sm font-medium leading-6 text-slate-600"
+                    buttonClassName="bg-white text-cyan-700 border border-cyan-200"
+                  />
 
                   <div className="pt-2 grid grid-cols-2 gap-2">
                     <a
@@ -669,7 +689,7 @@ function InquiryFormContent() {
 
 export default function InquiryPage() {
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 p-4 sm:p-8 font-sans flex items-center justify-center">
+    <div className="min-h-screen bg-slate-50 text-slate-800 px-3 pb-28 pt-4 sm:p-8 font-sans flex items-start sm:items-center justify-center">
       <Suspense fallback={<div className="text-center text-slate-500 text-sm py-10">매칭 페이지 로딩 중...</div>}>
         <InquiryFormContent />
       </Suspense>

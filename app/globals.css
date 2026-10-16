@@ -11,11 +11,32 @@ body {
   font-family: "Pretendard Variable", Pretendard, "Apple SD Gothic Neo", "Malgun Gothic", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  line-height: 1.65;
 }
 
 section[id] { scroll-margin-top: 24px; }
 button, a { -webkit-tap-highlight-color: transparent; }
 ::selection { background: #b9ddd5; color: #14333e; }
+
+input, select, textarea, button {
+  font: inherit;
+}
+
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+    line-height: 1.5;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]),
+  select {
+    min-height: 48px;
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }

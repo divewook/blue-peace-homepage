@@ -40,7 +40,7 @@ export default function CustomerMatchCard({ customer, showAttribution = false }:
   const sourceDetail = [customer.traffic_source || '직접 방문', customer.traffic_medium].filter(Boolean).join(' · ');
 
   return (
-    <article className="rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5 text-sm">
+    <article className="rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5 text-sm leading-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">

@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import CustomerMatchCard from '../../../components/customer-match-card';
+import ExpandableText from '../../../components/expandable-text';
 import MarketingSummary from '../../../components/marketing-summary';
 
 const poolTimeOptions = {
@@ -357,11 +358,11 @@ export default function InstructorPortal() {
           <form onSubmit={handleLogin} className="space-y-4 text-left">
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1">아이디</label>
-              <input type="text" value={loginId} onChange={(e) => setLoginId(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none" required />
+              <input type="text" value={loginId} onChange={(e) => setLoginId(e.target.value)} autoComplete="username" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-base focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-100" required />
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1">비밀번호</label>
-              <input type="password" value={loginPw} onChange={(e) => setLoginPw(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none" required />
+              <input type="password" value={loginPw} onChange={(e) => setLoginPw(e.target.value)} autoComplete="current-password" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-base focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-100" required />
             </div>
             <button type="submit" className="w-full py-3.5 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl text-sm transition cursor-pointer">
               로그인하기
@@ -387,19 +388,19 @@ export default function InstructorPortal() {
           <form onSubmit={handleSignup} className="space-y-4 text-left text-xs">
             <div>
               <label className="block font-semibold text-slate-600 mb-1">성함</label>
-              <input type="text" value={signupName} onChange={(e) => setSignupName(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5" required />
+              <input type="text" value={signupName} onChange={(e) => setSignupName(e.target.value)} autoComplete="name" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-base" required />
             </div>
             <div>
               <label className="block font-semibold text-slate-600 mb-1">아이디 (영문, 숫자 조합)</label>
-              <input type="text" value={signupId} onChange={(e) => setSignupId(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5" required />
+              <input type="text" value={signupId} onChange={(e) => setSignupId(e.target.value)} autoComplete="username" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-base" required />
             </div>
             <div>
               <label className="block font-semibold text-slate-600 mb-1">비밀번호 (8~13자리, 영문/숫자/특수문자)</label>
-              <input type="password" value={signupPw} onChange={(e) => setSignupPw(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5" required />
+              <input type="password" value={signupPw} onChange={(e) => setSignupPw(e.target.value)} autoComplete="new-password" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-base" required />
             </div>
             <div>
               <label className="block font-semibold text-slate-600 mb-1">연락처 (자동 하이픈)</label>
-              <input type="text" value={signupPhone} onChange={(e) => handlePhoneInput(e.target.value, setSignupPhone)} placeholder="010-0000-0000" maxLength={13} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5" required />
+              <input type="tel" inputMode="tel" autoComplete="tel" value={signupPhone} onChange={(e) => handlePhoneInput(e.target.value, setSignupPhone)} placeholder="010-0000-0000" maxLength={13} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-base" required />
             </div>
             <button type="submit" className="w-full py-3.5 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl text-xs transition cursor-pointer">
               회원가입 신청
@@ -417,7 +418,7 @@ export default function InstructorPortal() {
   if (view === 'profile_setup') {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-sans py-10">
-        <div className="bg-white border border-slate-200 p-8 rounded-3xl shadow-xl max-w-2xl w-full space-y-6">
+        <div className="bg-white border border-slate-200 p-5 sm:p-8 rounded-3xl shadow-xl max-w-2xl w-full space-y-6">
           <div className="text-center">
             <span className="text-xs font-bold px-3 py-1 bg-cyan-100 text-cyan-800 rounded-full">PROFILE SETTING</span>
             <h1 className="text-xl font-black text-slate-900 mt-2">프로필 및 수업 설정</h1>
@@ -447,7 +448,7 @@ export default function InstructorPortal() {
                 onChange={(e) => { if (e.target.value.length <= 300) setBio(e.target.value); }}
                 rows={3}
                 maxLength={300}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-base leading-7"
                 placeholder="인사말 작성 (최대 300자)"
               />
               <p className="text-[10px] text-cyan-700 mt-1">※ 이 강사 소개란은 신규 교육생에게 노출됩니다.</p>
@@ -458,7 +459,7 @@ export default function InstructorPortal() {
               {Object.entries(courseLevelMap).map(([courseName, levels]) => (
                 <div key={courseName} className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
                   <p className="font-bold text-cyan-800">{courseName}</p>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {levels.map(lvl => {
                       const currentVal = maxLevels[courseName] || '교육 불가';
                       const isSelected = currentVal === lvl;
@@ -467,7 +468,7 @@ export default function InstructorPortal() {
                           key={lvl}
                           type="button"
                           onClick={() => setMaxLevels({ ...maxLevels, [courseName]: lvl })}
-                          className={`py-2.5 px-2 rounded-xl text-[11px] font-bold border transition cursor-pointer ${
+                          className={`min-h-12 py-3 px-2 rounded-xl text-xs leading-5 font-bold border transition cursor-pointer ${
                             isSelected ? 'bg-cyan-600 text-white border-cyan-500 shadow-xs' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
                           }`}
                         >
@@ -482,7 +483,7 @@ export default function InstructorPortal() {
 
             <div className="border-t border-slate-100 pt-4 space-y-2">
               <label className="block font-bold text-slate-900 text-sm">📅 수업 가능 요일 선택 (복수 선택)</label>
-              <div className="grid grid-cols-7 gap-1">
+              <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
                 {[
                   { key: 'mon', label: '월' },
                   { key: 'tue', label: '화' },
@@ -496,7 +497,7 @@ export default function InstructorPortal() {
                     key={d.key}
                     type="button"
                     onClick={() => setSelectedDays({ ...selectedDays, [d.key]: !selectedDays[d.key] })}
-                    className={`py-2 rounded-xl font-bold border transition cursor-pointer ${
+                    className={`min-h-11 rounded-xl text-sm font-bold border transition cursor-pointer ${
                       selectedDays[d.key] ? 'bg-cyan-600 text-white border-cyan-500' : 'bg-slate-50 text-slate-700 border-slate-200'
                     }`}
                   >
@@ -510,15 +511,15 @@ export default function InstructorPortal() {
               <label className="block font-bold text-slate-900 text-sm">🌊 수업 가능 풀장 및 시간대 선택</label>
               
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
-                <label className="flex items-center space-x-2 font-bold text-slate-900 cursor-pointer">
-                  <input type="checkbox" checked={selectedPools['passnine'] || false} onChange={(e) => setSelectedPools({ ...selectedPools, passnine: e.target.checked })} className="accent-cyan-600 w-4 h-4" />
+                <label className="flex min-h-12 items-center gap-3 rounded-xl p-2 text-sm font-bold text-slate-900 cursor-pointer">
+                  <input type="checkbox" checked={selectedPools['passnine'] || false} onChange={(e) => setSelectedPools({ ...selectedPools, passnine: e.target.checked })} className="accent-cyan-600 w-5 h-5 shrink-0" />
                   <span>칠곡 패스나인 풀장</span>
                 </label>
                 {selectedPools['passnine'] && (
-                  <div className="grid grid-cols-2 gap-2 pt-1">
+                  <div className="grid grid-cols-1 gap-2 pt-1 min-[430px]:grid-cols-2">
                     {poolTimeOptions.passnine.map(t => (
-                      <label key={t.key} className={`flex items-center space-x-2 p-2.5 rounded-xl border cursor-pointer ${selectedTimes[t.key] ? 'bg-cyan-50 border-cyan-500 font-bold text-cyan-900' : 'bg-white border-slate-200'}`}>
-                        <input type="checkbox" checked={selectedTimes[t.key] || false} onChange={(e) => setSelectedTimes({ ...selectedTimes, [t.key]: e.target.checked })} className="accent-cyan-600" />
+                      <label key={t.key} className={`flex min-h-12 items-center gap-3 p-3 text-sm leading-5 rounded-xl border cursor-pointer ${selectedTimes[t.key] ? 'bg-cyan-50 border-cyan-500 font-bold text-cyan-900' : 'bg-white border-slate-200'}`}>
+                        <input type="checkbox" checked={selectedTimes[t.key] || false} onChange={(e) => setSelectedTimes({ ...selectedTimes, [t.key]: e.target.checked })} className="accent-cyan-600 w-5 h-5 shrink-0" />
                         <span>{t.label}</span>
                       </label>
                     ))}
@@ -527,15 +528,15 @@ export default function InstructorPortal() {
               </div>
 
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
-                <label className="flex items-center space-x-2 font-bold text-slate-900 cursor-pointer">
-                  <input type="checkbox" checked={selectedPools['miryang'] || false} onChange={(e) => setSelectedPools({ ...selectedPools, miryang: e.target.checked })} className="accent-cyan-600 w-4 h-4" />
+                <label className="flex min-h-12 items-center gap-3 rounded-xl p-2 text-sm font-bold text-slate-900 cursor-pointer">
+                  <input type="checkbox" checked={selectedPools['miryang'] || false} onChange={(e) => setSelectedPools({ ...selectedPools, miryang: e.target.checked })} className="accent-cyan-600 w-5 h-5 shrink-0" />
                   <span>밀양 아리랑 풀장</span>
                 </label>
                 {selectedPools['miryang'] && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
                     {poolTimeOptions.miryang.map(t => (
-                      <label key={t.key} className={`flex items-center space-x-2 p-2.5 rounded-xl border cursor-pointer ${selectedTimes[t.key] ? 'bg-cyan-50 border-cyan-500 font-bold text-cyan-900' : 'bg-white border-slate-200'}`}>
-                        <input type="checkbox" checked={selectedTimes[t.key] || false} onChange={(e) => setSelectedTimes({ ...selectedTimes, [t.key]: e.target.checked })} className="accent-cyan-600" />
+                      <label key={t.key} className={`flex min-h-12 items-center gap-3 p-3 text-sm leading-5 rounded-xl border cursor-pointer ${selectedTimes[t.key] ? 'bg-cyan-50 border-cyan-500 font-bold text-cyan-900' : 'bg-white border-slate-200'}`}>
+                        <input type="checkbox" checked={selectedTimes[t.key] || false} onChange={(e) => setSelectedTimes({ ...selectedTimes, [t.key]: e.target.checked })} className="accent-cyan-600 w-5 h-5 shrink-0" />
                         <span>{t.label}</span>
                       </label>
                     ))}
@@ -694,7 +695,13 @@ export default function InstructorPortal() {
             <div className="min-w-0 flex-1">
               <p className="text-xs font-bold tracking-widest text-cyan-300">BLUE PEACE · INSTRUCTOR</p>
               <h1 className="mt-2 text-2xl sm:text-3xl font-bold leading-snug break-keep">{currentInstructor?.name} 강사님</h1>
-              <p className="mt-2 text-sm leading-6 text-slate-200 whitespace-pre-wrap break-words">{bio || '소개글을 작성하면 이곳에 표시됩니다.'}</p>
+              <ExpandableText
+                text={bio || '소개글을 작성하면 이곳에 표시됩니다.'}
+                collapsedLines={3}
+                threshold={90}
+                className="mt-2 whitespace-pre-wrap text-sm leading-7 text-slate-200"
+                buttonClassName="bg-white/10 text-cyan-200 border border-white/20"
+              />
             </div>
             <div className="flex flex-wrap gap-2">
               <button onClick={() => setView('profile_setup')} className="px-4 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-sm font-bold cursor-pointer">프로필 · 수업 수정</button>

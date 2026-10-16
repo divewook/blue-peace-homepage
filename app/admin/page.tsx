@@ -122,7 +122,8 @@ export default function AdminDashboard() {
               value={adminPw}
               onChange={(e) => setAdminPw(e.target.value)}
               placeholder="관리자 비밀번호 입력"
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none"
+              autoComplete="current-password"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-base focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-100"
               required
             />
             <button type="submit" className="w-full py-3 bg-slate-900 text-white font-bold rounded-xl text-xs">

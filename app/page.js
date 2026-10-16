@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
+import ExpandableText from "../components/expandable-text";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -155,7 +156,7 @@ export default function HomePage() {
   const visibleInstructors = showAllInstructors ? instructors : instructors.slice(0, 4);
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-800 font-sans">
+    <main className="min-h-screen bg-slate-50 pb-24 text-slate-800 font-sans md:pb-0">
       
       {/* 모바일 화면에 완벽 반응하는 고급 GNB 헤더 */}
       <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-sm px-4 sm:px-8 py-3.5">
@@ -164,7 +165,7 @@ export default function HomePage() {
             <span className="text-cyan-600 font-black text-lg sm:text-xl tracking-wider">BLUE PEACE</span>
           </Link>
           
-          <nav className="flex items-center gap-3 sm:gap-6 text-xs sm:text-sm font-semibold text-slate-600 overflow-x-auto no-scrollbar whitespace-nowrap py-1">
+          <nav className="flex min-w-0 flex-1 items-center justify-end gap-4 sm:gap-6 text-xs sm:text-sm font-semibold text-slate-600 overflow-x-auto no-scrollbar whitespace-nowrap py-2">
             <a href="#courses" className="hover:text-cyan-600 transition shrink-0">교육과정</a>
             <a href="#instructors" className="hover:text-cyan-600 transition shrink-0">맞춤강사진</a>
             <a href="#faq" className="hover:text-cyan-600 transition shrink-0">FAQ</a>
@@ -184,11 +185,11 @@ export default function HomePage() {
           <span className="text-xs font-bold px-3.5 py-1.5 bg-cyan-100 text-cyan-800 border border-cyan-200 rounded-full inline-block mb-3">
             ✨ 대구·경북 최대 다이빙 전문 센터
           </span>
-          <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-slate-900 leading-tight">
+          <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-slate-900 leading-[1.35]">
             블루피스와 함께<br />
             <span className="text-cyan-600">당신만의 깊은 바다</span>를 경험하세요.
           </h1>
-          <p className="text-xs sm:text-sm text-slate-600 mt-4 leading-relaxed font-medium">
+          <p className="text-sm text-slate-600 mt-4 leading-7 font-medium">
             수영을 못해도, 물 공포증이 있어도 괜찮습니다.<br />
             1:1 맞춤 강사 매칭으로 안전하고 완벽한 교육을 지원합니다.
           </p>
@@ -196,7 +197,7 @@ export default function HomePage() {
           <div className="mt-8 flex justify-center lg:justify-start">
             <Link
               href="/inquiry?course=freediving"
-              className="px-7 py-4 bg-cyan-600 hover:bg-cyan-500 text-white font-extrabold rounded-2xl text-xs sm:text-sm transition shadow-lg shadow-cyan-600/25 flex items-center gap-2"
+              className="min-h-12 px-7 py-4 bg-cyan-600 hover:bg-cyan-500 text-white font-extrabold rounded-2xl text-sm transition shadow-lg shadow-cyan-600/25 flex items-center gap-2"
             >
               <span>🚀 맞춤 강사 상담 신청하기</span>
               <ArrowIcon />
@@ -278,10 +279,10 @@ export default function HomePage() {
             가장 완벽히 부합하는 강사님을 100% 공정하게 맞춤 매칭합니다.
           </p>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5 mt-10">
+          <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5 mt-10">
             {visibleInstructors.map((ins) => (
-              <div key={ins.id} className="bg-slate-50 border border-slate-200 rounded-2xl p-5 text-center hover:border-cyan-400 transition-all duration-300 shadow-sm group">
-                <div className="w-20 h-20 mx-auto rounded-2xl bg-slate-200 overflow-hidden border border-slate-300 mb-3 flex items-center justify-center group-hover:scale-105 transition-transform shadow-inner">
+              <div key={ins.id} className="bg-slate-50 border border-slate-200 rounded-2xl p-5 text-left sm:text-center hover:border-cyan-400 transition-all duration-300 shadow-sm group">
+                <div className="w-20 h-20 sm:mx-auto rounded-2xl bg-slate-200 overflow-hidden border border-slate-300 mb-3 flex items-center justify-center group-hover:scale-105 transition-transform shadow-inner">
                   {ins.profile_image ? (
                     <img src={ins.profile_image} alt={ins.name} className="w-full h-full object-cover" />
                   ) : (
@@ -290,9 +291,13 @@ export default function HomePage() {
                 </div>
                 <h3 className="text-sm font-bold text-slate-900">{ins.name} 강사</h3>
                 <p className="text-[11px] text-cyan-600 font-semibold mt-0.5">블루피스 공식 강사</p>
-                <p className="text-[11px] text-slate-500 line-clamp-2 mt-2 leading-relaxed">
-                  {ins.bio || '안전하고 즐거운 강습을 약속드립니다.'}
-                </p>
+                <ExpandableText
+                  text={ins.bio || '안전하고 즐거운 강습을 약속드립니다.'}
+                  collapsedLines={3}
+                  threshold={62}
+                  className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600"
+                  buttonClassName="bg-white text-cyan-700 border border-cyan-200"
+                />
               </div>
             ))}
           </div>
@@ -466,6 +471,15 @@ export default function HomePage() {
         <p>사업자등록번호: {business.registration} | 주소: {centerAddress}</p>
         <p className="mt-3 text-[10px] text-slate-400">© BLUE PEACE. All rights reserved.</p>
       </footer>
+
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-cyan-100 bg-white/95 px-4 pt-3 shadow-[0_-8px_24px_rgba(15,23,42,0.12)] backdrop-blur md:hidden" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
+        <Link
+          href="/inquiry?course=freediving"
+          className="mx-auto flex min-h-12 max-w-md items-center justify-center rounded-2xl bg-cyan-600 px-5 text-base font-extrabold text-white shadow-lg shadow-cyan-600/20"
+        >
+          지금 맞춤 강사 신청하기
+        </Link>
+      </div>
 
     </main>
   );
