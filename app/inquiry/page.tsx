@@ -4,6 +4,7 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { getMarketingAttribution } from '../../components/marketing-attribution';
 import ExpandableText from '../../components/expandable-text';
+import DivingMatcherAnimation from '../../components/diving-matcher-animation';
 
 
 const dayLabels: Record<string, string> = {
@@ -207,7 +208,7 @@ function InquiryFormContent() {
     setSubmissionError('');
     setShowResultModal(false);
 
-    const randomDelay = Math.floor(Math.random() * 1500) + 3000;
+    const randomDelay = Math.floor(Math.random() * 2001) + 3000;
 
     setTimeout(async () => {
       try {
@@ -576,14 +577,16 @@ function InquiryFormContent() {
 
       {submitting && (
         <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-md flex flex-col items-center justify-center p-4">
-          <div className="relative w-28 h-28 mb-4">
-            <div className="w-full h-full animate-bounce flex items-center justify-center text-5xl">
-              🥽
-            </div>
-          </div>
-          <h3 className="text-base sm:text-lg font-bold text-white text-center animate-pulse">
-            🫧 블루피스 전담 잠수 다이버가<br />맞춤형 담당 강사님을 찾는 중입니다...
+          <DivingMatcherAnimation />
+          <h3 className="mt-6 max-w-sm text-center text-lg font-black leading-8 text-white sm:text-xl">
+            블루피스 꼬마 다이버가 물속을 탐험하며<br />딱 맞는 강사님을 찾고 있어요!
           </h3>
+          <p className="mt-3 max-w-xs text-center text-sm leading-6 text-cyan-100">조금만 기다려 주세요.<br />곧 반가운 강사님과 수면 위로 올라올게요 🫧</p>
+          <div className="mt-5 flex gap-2" aria-hidden="true">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-cyan-300" />
+            <span className="h-2 w-2 animate-pulse rounded-full bg-cyan-300 [animation-delay:200ms]" />
+            <span className="h-2 w-2 animate-pulse rounded-full bg-cyan-300 [animation-delay:400ms]" />
+          </div>
         </div>
       )}
 

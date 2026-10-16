@@ -1,5 +1,6 @@
 import { after, NextResponse } from "next/server";
 import { createAdminSupabase } from "../../../lib/admin-supabase";
+import { hasCompleteInstructorProfile, instructorPublicFields } from "../../../lib/instructor-fields";
 import { sendKakaoAlimtalk } from "../../../lib/kakao-alimtalk";
 
 export const runtime = "nodejs";
@@ -33,9 +34,11 @@ export async function POST(request) {
   try {
     const supabase = createAdminSupabase();
     const { data: instructor, error: instructorError } = await supabase.from("instructors")
-      .select("id,name,phone,is_approved").eq("id", instructor_id).maybeSingle();
+      .select(`${instructorPublicFields},phone,is_approved`).eq("id", instructor_id).maybeSingle();
     if (instructorError) throw instructorError;
-    if (!instructor?.is_approved) return NextResponse.json({ error: "선택한 강사를 찾을 수 없습니다. 다시 매칭해 주세요." }, { status: 409 });
+    if (!instructor?.is_approved || !hasCompleteInstructorProfile(instructor)) {
+      return NextResponse.json({ error: "선택한 강사를 찾을 수 없습니다. 다시 매칭해 주세요." }, { status: 409 });
+    }
     const attribution = body.attribution && typeof body.attribution === "object" ? body.attribution : {};
     const { data, error } = await supabase.from("customers").insert({
       name: name.trim(), phone: phone.trim(), course: course.trim(), pool: pool.trim(),
