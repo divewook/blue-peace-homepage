@@ -724,6 +724,8 @@ export default function InstructorPortal() {
   const overdueWork = customers.filter(c => workPriority(c) === 0).length;
   const contactWork = customers.filter(c => workPriority(c) === 1).length;
   const upcomingLessons = customers.filter(c => !!c.next_lesson).length;
+  const nearestLesson = customers.filter(c => !!c.next_lesson)
+    .sort((a,b) => `${a.next_lesson.lesson_date} ${a.next_lesson.start_time}`.localeCompare(`${b.next_lesson.lesson_date} ${b.next_lesson.start_time}`))[0];
   const showWorkGroup = (group: 'overdue'|'contact'|'lessons') => {
     setStatPeriod('all');setWorkFilter(group);
     requestAnimationFrame(() => document.getElementById('applications-heading')?.scrollIntoView({behavior:'smooth'}));
@@ -778,6 +780,10 @@ export default function InstructorPortal() {
           <button type="button" aria-pressed={workFilter==='contact'} onClick={() => showWorkGroup('contact')} className="min-h-20 rounded-xl border border-cyan-200 bg-white p-2 text-center text-sm font-semibold">연락·상태<br/><strong className="text-xl">{contactWork}</strong>건</button>
           <button type="button" aria-pressed={workFilter==='lessons'} onClick={() => showWorkGroup('lessons')} className="min-h-20 rounded-xl border border-emerald-200 bg-white p-2 text-center text-sm font-semibold">예정 수업<br/><strong className="text-xl">{upcomingLessons}</strong>건</button>
         </section>}
+        {nearestLesson && !customersLoading && !customersError && <p className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm leading-6 text-emerald-950 break-keep">
+          <strong>가장 가까운 확정 수업</strong> · {nearestLesson.next_lesson.lesson_date} {nearestLesson.next_lesson.start_time.slice(0,5)} · {nearestLesson.name} 님
+          <span className="block text-emerald-900">사이트에 등록된 일정입니다. 풀장 예약·결제 완료 여부는 별도로 확인해 주세요.</span>
+        </p>}
 
         <section aria-labelledby="applications-heading" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
           <div className="border-b border-slate-100 pb-4">

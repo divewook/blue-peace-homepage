@@ -10,6 +10,19 @@ type Work = Record<string, any>;
 const emptyLesson = { status:'proposed', lesson_date:'', start_time:'', end_time:'', pool_id:'passnine', customer_agreed:false,
   operation_checked:false, operation_evidence:'', exception_agreed:false, exception_reason:'', travel_checked:false, travel_reason:'', change_reason:'' };
 const dateTime = (value?: string) => value ? new Date(value).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}) : '기록 없음';
+function eventChanges(event:Work) {
+  if(event.action==='assignment_changed') return '담당 강사가 변경됐습니다. 기존 수업 일정도 확인해 주세요.';
+  const before=event.before_data||{};
+  const after=event.after_data||{};
+  const status=event.action==='workflow_updated'
+    ? (after.status&&before.status!==after.status?`상담 상태: ${consultationStatuses[after.status as keyof typeof consultationStatuses]||'미기록'}`:'')
+    : (after.status&&before.status!==after.status?`수업 상태: ${after.status==='confirmed'?'확정':after.status==='cancelled'?'취소':'제안 중'}`:'');
+  const when=event.action==='workflow_updated'
+    ? (after.task_title!==before.task_title?`다음 할 일: ${after.task_title||'없음'}`:'')
+    : (after.lesson_date?`수업: ${after.lesson_date} ${String(after.start_time||'').slice(0,5)}–${String(after.end_time||'').slice(0,5)}`:'');
+  const note=event.action==='workflow_updated'&&after.internal_note!==before.internal_note?'내부 메모 변경':'';
+  return [status,when,note].filter(Boolean).join(' · ')||'상담 정보 변경';
+}
 
 export default function CustomerWorkPanel({customerId,onChanged}:{customerId:string;onChanged?:()=>void}) {
   const [data,setData]=useState<Work|null>(null);
@@ -112,7 +125,7 @@ export default function CustomerWorkPanel({customerId,onChanged}:{customerId:str
           {editingLesson?.status==='confirmed'&&<label className="block">변경·취소 사유<input value={lesson.change_reason||''} onChange={e=>update('change_reason',e.target.value)} maxLength={500} className="mt-1 min-h-12 w-full rounded-lg border p-2 text-base"/></label>}
           <div className="flex flex-wrap gap-2"><button type="button" disabled={busy||editingLesson?.status==='cancelled'} onClick={saveLesson} className="min-h-12 rounded-xl bg-cyan-800 px-4 font-bold text-white disabled:opacity-50">{lesson.status==='confirmed'?'고객 합의 확인 후 확정':lesson.status==='cancelled'?'수업 취소 저장':'수업 제안 저장'}</button>{editingLesson&&<button type="button" onClick={()=>{setEditingLesson(null);setLesson(emptyLesson)}} className="min-h-12 rounded-xl border px-4">새 수업 입력</button>}</div>
         </section>
-        <details className="border-t pt-4"><summary className="min-h-11 cursor-pointer font-semibold">변경 이력 {data.events.length}건</summary><ol className="mt-2 space-y-2">{data.events.map((event:Work)=><li key={event.id} className="rounded-lg bg-slate-50 p-2 text-sm">{dateTime(event.created_at)} · {event.actor_type==='admin'?'관리자':'강사'} · {event.action}</li>)}</ol></details>
+        <details className="border-t pt-4"><summary className="min-h-11 cursor-pointer font-semibold">변경 이력 {data.events.length}건</summary><ol className="mt-2 space-y-2">{data.events.map((event:Work)=><li key={event.id} className="rounded-lg bg-slate-50 p-3 text-sm leading-6"><strong>{dateTime(event.created_at)} · {event.actor_type==='admin'?'관리자':event.actor_type==='system'?'시스템':'강사'}</strong><p>{eventChanges(event)}</p></li>)}</ol></details>
       </>}
     </div>}
   </div>;
