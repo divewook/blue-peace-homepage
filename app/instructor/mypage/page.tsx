@@ -1,17 +1,21 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import CustomerMatchCard from '../../../components/customer-match-card';
-import ExpandableText from '../../../components/expandable-text';
+import { hasCompleteInstructorProfile } from '../../../lib/instructor-fields';
 import MarketingSummary from '../../../components/marketing-summary';
 import Pass9AvailabilityModal from '../../../components/pass9-availability-modal';
 import DeepstationAvailabilityModal from '../../../components/deepstation-availability-modal';
 import ParadiveAvailabilityModal from '../../../components/paradive-availability-modal';
 import MarinaAvailabilityModal from '../../../components/marina-availability-modal';
 
-type StatPeriod = '1d' | '1w' | '1m' | '6m' | '1y' | 'custom';
+type StatPeriod = 'all' | '1d' | '1w' | '1m' | '6m' | '1y' | 'custom';
 const statPeriodOptions: Array<{ key: Exclude<StatPeriod, 'custom'>; label: string }> = [
   { key: '1d', label: '1일(오늘)' }, { key: '1w', label: '1주일' }, { key: '1m', label: '1개월' },
+  { key: '6m', label: '6개월' }, { key: '1y', label: '1년' },
+];
+const instructorPeriodOptions: Array<{ key: StatPeriod; label: string }> = [
+  { key: 'all', label: '전체' }, { key: '1w', label: '1주' }, { key: '1m', label: '1개월' },
   { key: '6m', label: '6개월' }, { key: '1y', label: '1년' },
 ];
 
@@ -36,14 +40,14 @@ function shiftDate(date: string, { days = 0, months = 0, years = 0 }: { days?: n
 function statDateRange(period: StatPeriod, customStart: string, customEnd: string) {
   const today = koreaDateString();
   if (period === 'custom') return [customStart, customEnd].sort();
-  const startDates: Record<Exclude<StatPeriod, 'custom'>, string> = {
+  const startDates: Record<Exclude<StatPeriod, 'custom' | 'all'>, string> = {
     '1d': today,
     '1w': shiftDate(today, { days: -6 }),
     '1m': shiftDate(today, { months: -1 }),
     '6m': shiftDate(today, { months: -6 }),
     '1y': shiftDate(today, { years: -1 }),
   };
-  return [startDates[period], today];
+  return [period === 'all' ? '' : startDates[period], today];
 }
 
 const poolTimeOptions = {
@@ -93,6 +97,8 @@ export default function InstructorPortal() {
 
   const [currentInstructor, setCurrentInstructor] = useState<any>(null);
   const [customers, setCustomers] = useState<any[]>([]);
+  const [customersLoading, setCustomersLoading] = useState(false);
+  const [customersError, setCustomersError] = useState('');
   const [allInstructors, setAllInstructors] = useState<any[]>([]);
   const [allCustomers, setAllCustomers] = useState<any[]>([]);
   const [deletingInstructorId, setDeletingInstructorId] = useState<string | null>(null);
@@ -120,6 +126,18 @@ export default function InstructorPortal() {
   const [showDeepstationAvailability, setShowDeepstationAvailability] = useState(false);
   const [showParadiveAvailability, setShowParadiveAvailability] = useState(false);
   const [showMarinaAvailability, setShowMarinaAvailability] = useState(false);
+  const [profileSection, setProfileSection] = useState<'public' | 'courses' | 'schedule'>('public');
+  const [profileDirty, setProfileDirty] = useState(false);
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileSaveError, setProfileSaveError] = useState('');
+  const [dashboardNotice, setDashboardNotice] = useState('');
+
+  useEffect(() => {
+    if (view !== 'profile_setup' || !profileDirty) return;
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [view, profileDirty]);
 
   const handlePhoneInput = (val: string, setter: (v: string) => void) => {
     const raw = val.replace(/[^0-9]/g, '').slice(0, 11);
@@ -145,6 +163,7 @@ export default function InstructorPortal() {
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || '관리자 로그인에 실패했습니다.');
         setLoginPw('');
+        setStatPeriod('1m');
         setView('admin_dashboard');
         await fetchAdminData();
       } catch (error) {
@@ -194,8 +213,11 @@ export default function InstructorPortal() {
     ])));
 
     if (!data.profile_image) {
+      setProfileSection('public');
+      setProfileDirty(false);
       setView('profile_setup');
     } else {
+      setStatPeriod('all');
       setView('instructor_dashboard');
       fetchMyCustomers();
     }
@@ -288,14 +310,32 @@ export default function InstructorPortal() {
   };
 
   const fetchMyCustomers = async () => {
+    setCustomersLoading(true);
+    setCustomersError('');
     try {
       const response = await fetch('/api/instructor/customers', { cache: 'no-store' });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || '매칭 내역을 불러오지 못했습니다.');
       setCustomers(result.customers || []);
     } catch (error) {
-      alert(error instanceof Error ? error.message : '매칭 내역을 불러오지 못했습니다.');
+      setCustomersError(error instanceof Error ? error.message : '매칭 내역을 불러오지 못했습니다.');
+    } finally {
+      setCustomersLoading(false);
     }
+  };
+
+  const openProfileSection = (section: 'public' | 'courses' | 'schedule') => {
+    setProfileSection(section);
+    setProfileDirty(false);
+    setProfileSaveError('');
+    setView('profile_setup');
+  };
+
+  const leaveProfileSetup = () => {
+    if (profileDirty && !window.confirm('저장하지 않은 변경이 있습니다. 변경을 버리고 나갈까요?')) return;
+    setProfileDirty(false);
+    setProfileSaveError('');
+    setView('instructor_dashboard');
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -386,6 +426,8 @@ export default function InstructorPortal() {
       ]))),
     };
 
+    setProfileSaving(true);
+    setProfileSaveError('');
     const response = await fetch('/api/instructor/profile', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -393,16 +435,19 @@ export default function InstructorPortal() {
     }).catch(() => null);
     const result = await response?.json().catch(() => ({}));
     if (!response?.ok) {
-      alert('저장 오류: ' + (result?.error || '잠시 후 다시 시도해 주세요.'));
+      setProfileSaveError(result?.error || '잠시 후 다시 시도해 주세요.');
     } else {
-      alert('✅ 프로필 및 수업 설정이 성공적으로 저장되었습니다!');
       setCurrentInstructor(result.instructor || { ...currentInstructor, ...updateData });
+      setProfileDirty(false);
+      setDashboardNotice('설정이 저장되었습니다. 기존의 다른 설정도 그대로 유지되었습니다.');
       setView('instructor_dashboard');
       fetchMyCustomers();
     }
+    setProfileSaving(false);
   };
 
   const filterByPeriod = (dateString: string) => {
+    if (statPeriod === 'all') return true;
     const parsed = new Date(dateString);
     if (Number.isNaN(parsed.getTime())) return false;
     const customerDate = koreaDateString(parsed);
@@ -489,11 +534,17 @@ export default function InstructorPortal() {
             <p className="text-xs text-slate-500 mt-1">수업 가능한 코스와 레벨, 풀장 및 시간대를 설정해 주세요.</p>
           </div>
 
-          <form onSubmit={handleSaveProfile} className="space-y-6 text-xs">
-            <div>
+          <div className="grid grid-cols-3 gap-2" role="tablist" aria-label="설정 영역">
+            {([['public', '공개 프로필'], ['courses', '교육 설정'], ['schedule', '일정 설정']] as const).map(([key, label]) => (
+              <button key={key} type="button" role="tab" aria-selected={profileSection === key} onClick={() => setProfileSection(key)} className={`min-h-12 rounded-xl border px-2 text-sm font-bold ${profileSection === key ? 'border-cyan-600 bg-cyan-50 text-cyan-900' : 'border-slate-200 bg-white text-slate-600'}`}>{profileSection === key ? '✓ ' : ''}{label}</button>
+            ))}
+          </div>
+
+          <form onSubmit={handleSaveProfile} onChangeCapture={() => setProfileDirty(true)} className="space-y-6 text-sm">
+            {profileSection === 'public' && <><div>
               <label className="block font-bold text-slate-700 mb-1">프로필 사진 첨부 (필수)</label>
               <input type="file" accept="image/*" onChange={handleImageUpload} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2" />
-              <p className="text-[10px] text-amber-600 mt-1">원본 20MB 이하 · 저장할 때 화면용 크기로 자동 조정됩니다.</p>
+              <p className="mt-1 text-sm leading-6 text-amber-700">원본 20MB 이하 · 기존 사진은 다시 첨부하지 않아도 유지됩니다.</p>
               {isProcessingImage && <p className="text-xs text-cyan-700 mt-2" role="status">사진을 처리하는 중입니다…</p>}
               {profileImg && (
                 <div className="mt-2 w-20 h-20 rounded-xl overflow-hidden border border-slate-200">
@@ -505,7 +556,7 @@ export default function InstructorPortal() {
             <div>
               <div className="flex justify-between items-center mb-1">
                 <label className="block font-bold text-slate-700">강사 소개 및 인사말</label>
-                <span className="text-[10px] text-slate-400">{bio.length} / 300자</span>
+                <span className="text-sm text-slate-500">{bio.length} / 300자</span>
               </div>
               <textarea
                 value={bio}
@@ -515,10 +566,10 @@ export default function InstructorPortal() {
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-base leading-7"
                 placeholder="인사말 작성 (최대 300자)"
               />
-              <p className="text-[10px] text-cyan-700 mt-1">※ 이 강사 소개란은 신규 교육생에게 노출됩니다.</p>
-            </div>
+              <p className="mt-1 text-sm leading-6 text-cyan-800">이 소개는 홈페이지의 강사 소개에 표시됩니다.</p>
+            </div></>}
 
-            <div className="space-y-4 border-t border-slate-100 pt-4">
+            {profileSection === 'courses' && <div className="space-y-4">
               <label className="block font-bold text-slate-900 text-sm">🏊‍♂️ 수업 가능 코스 및 최고 교육 가능 레벨 선택</label>
               {Object.entries(courseLevelMap).map(([courseName, levels]) => (
                 <div key={courseName} className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
@@ -532,23 +583,24 @@ export default function InstructorPortal() {
                         <button
                           key={lvl}
                           type="button"
-                          onClick={() => courseName === '스페셜 교육'
+                          aria-pressed={isSelected}
+                          onClick={() => { setProfileDirty(true); courseName === '스페셜 교육'
                             ? setSelectedSpecialCourses(previous => previous.includes(lvl) ? previous.filter(value => value !== lvl) : [...previous, lvl])
-                            : setMaxLevels({ ...maxLevels, [courseName]: lvl })}
+                            : setMaxLevels({ ...maxLevels, [courseName]: lvl }); }}
                           className={`min-h-12 py-3 px-2 rounded-xl text-xs leading-5 font-bold border transition cursor-pointer ${
                             isSelected ? 'bg-cyan-600 text-white border-cyan-500 shadow-xs' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
                           }`}
                         >
-                          {lvl}
+                          {isSelected ? '✓ ' : ''}{lvl}
                         </button>
                       );
                     })}
                   </div>
                 </div>
               ))}
-            </div>
+            </div>}
 
-            <div className="border-t border-slate-100 pt-4 space-y-4">
+            {profileSection === 'schedule' && <div className="space-y-4">
               <div>
                 <label className="block font-bold text-slate-900 text-sm">🌊 풀장별 수업 가능 요일 · 시간대</label>
                 <p className="mt-1 text-xs leading-5 text-slate-500">풀장마다 가능한 요일과 시간대를 따로 선택해 주세요. 공휴일도 선택할 수 있습니다.</p>
@@ -564,7 +616,7 @@ export default function InstructorPortal() {
                     <div>
                       <p className="mb-2 text-xs font-bold text-slate-600">수업 가능 요일</p>
                       <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">
-                        {dayOptions.map(day => <button key={day.key} type="button" onClick={() => setPoolDays(previous => ({ ...previous, passnine: { ...previous.passnine, [day.key]: !previous.passnine?.[day.key] } }))} className={`min-h-11 rounded-xl border text-sm font-bold ${poolDays.passnine?.[day.key] ? 'border-cyan-500 bg-cyan-600 text-white' : 'border-slate-200 bg-white text-slate-600'}`}>{day.label}</button>)}
+                        {dayOptions.map(day => <button key={day.key} type="button" aria-pressed={!!poolDays.passnine?.[day.key]} onClick={() => { setProfileDirty(true); setPoolDays(previous => ({ ...previous, passnine: { ...previous.passnine, [day.key]: !previous.passnine?.[day.key] } })); }} className={`min-h-11 rounded-xl border text-sm font-bold ${poolDays.passnine?.[day.key] ? 'border-cyan-500 bg-cyan-600 text-white' : 'border-slate-200 bg-white text-slate-600'}`}>{poolDays.passnine?.[day.key] ? '✓ ' : ''}{day.label}</button>)}
                       </div>
                     </div>
                     <div>
@@ -592,7 +644,7 @@ export default function InstructorPortal() {
                     <div>
                       <p className="mb-2 text-xs font-bold text-slate-600">수업 가능 요일</p>
                       <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">
-                        {dayOptions.map(day => <button key={day.key} type="button" onClick={() => setPoolDays(previous => ({ ...previous, miryang: { ...previous.miryang, [day.key]: !previous.miryang?.[day.key] } }))} className={`min-h-11 rounded-xl border text-sm font-bold ${poolDays.miryang?.[day.key] ? 'border-cyan-500 bg-cyan-600 text-white' : 'border-slate-200 bg-white text-slate-600'}`}>{day.label}</button>)}
+                        {dayOptions.map(day => <button key={day.key} type="button" aria-pressed={!!poolDays.miryang?.[day.key]} onClick={() => { setProfileDirty(true); setPoolDays(previous => ({ ...previous, miryang: { ...previous.miryang, [day.key]: !previous.miryang?.[day.key] } })); }} className={`min-h-11 rounded-xl border text-sm font-bold ${poolDays.miryang?.[day.key] ? 'border-cyan-500 bg-cyan-600 text-white' : 'border-slate-200 bg-white text-slate-600'}`}>{poolDays.miryang?.[day.key] ? '✓ ' : ''}{day.label}</button>)}
                       </div>
                     </div>
                     <div>
@@ -613,14 +665,16 @@ export default function InstructorPortal() {
               <div className="bg-slate-100 p-4 rounded-2xl border border-slate-300 opacity-60">
                 <span className="font-bold text-slate-500 line-through">대구 두류풀장 (현재 공사 중 - 선택 불가)</span>
               </div>
-            </div>
+            </div>}
+
+            {profileSaveError && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-6 text-red-800">저장하지 못했습니다. {profileSaveError}</div>}
 
             <div className="grid grid-cols-2 gap-2 pt-2">
-              <button type="button" onClick={() => setView('instructor_dashboard')} className="py-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl text-sm cursor-pointer">
+              <button type="button" onClick={leaveProfileSetup} className="min-h-12 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl text-sm cursor-pointer">
                 취소
               </button>
-              <button type="submit" disabled={isProcessingImage} className="py-4 disabled:opacity-50 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-2xl text-sm cursor-pointer shadow-md">
-                설정 저장하기 🚀
+              <button type="submit" disabled={isProcessingImage || profileSaving} className="min-h-12 disabled:opacity-50 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-2xl text-sm cursor-pointer shadow-md">
+                {profileSaving ? '저장 중…' : '설정 저장하기'}
               </button>
             </div>
           </form>
@@ -785,114 +839,77 @@ export default function InstructorPortal() {
     { key: 'miryang', name: '밀양 아리랑 풀장', times: poolTimeOptions.miryang },
   ].filter(pool => currentInstructor?.[`can_${pool.key}`]);
 
+  const profileComplete = hasCompleteInstructorProfile(currentInstructor);
+  const approved = currentInstructor?.is_approved === true;
+  const publicAndMatchBaseReady = approved && profileComplete;
+
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 px-4 py-6 sm:px-8 sm:py-10 font-sans">
-      <div className="max-w-5xl mx-auto space-y-6">
-        <header className="rounded-3xl bg-slate-900 p-5 sm:p-8 text-white shadow-lg">
-          <div className="flex flex-col sm:flex-row sm:items-start gap-5">
-            <div className="w-20 h-20 shrink-0 rounded-2xl overflow-hidden bg-slate-700 border border-white/20">
-              {profileImg && <img src={profileImg} alt={`${currentInstructor?.name} 강사 프로필`} className="w-full h-full object-cover" />}
+    <div className="min-h-screen bg-slate-50 px-4 py-5 text-slate-900 sm:px-8 sm:py-8 font-sans">
+      <div className="mx-auto max-w-5xl space-y-5">
+        <header className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+          <div className="flex items-center gap-3">
+            <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-slate-200">
+              {profileImg && <img src={profileImg} alt={`${currentInstructor?.name} 강사 프로필`} className="h-full w-full object-cover" />}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-bold tracking-widest text-cyan-300">BLUE PEACE · INSTRUCTOR</p>
-              <h1 className="mt-2 text-2xl sm:text-3xl font-bold leading-snug break-keep">{currentInstructor?.name} 강사님</h1>
-              <ExpandableText
-                text={bio || '소개글을 작성하면 이곳에 표시됩니다.'}
-                collapsedLines={3}
-                threshold={90}
-                className="mt-2 whitespace-pre-wrap text-sm leading-7 text-slate-200"
-                buttonClassName="bg-white/10 text-cyan-200 border border-white/20"
-              />
+              <p className="text-sm font-semibold text-cyan-700">강사 업무 페이지</p>
+              <h1 className="truncate text-xl font-bold">{currentInstructor?.name} 강사님</h1>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <button onClick={() => setView('profile_setup')} className="px-4 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-sm font-bold cursor-pointer">프로필 · 수업 수정</button>
-              <button onClick={handleLogout} className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-semibold cursor-pointer">로그아웃</button>
-            </div>
+            <button onClick={handleLogout} className="min-h-11 rounded-xl border border-slate-300 px-3 text-sm font-semibold text-slate-700">로그아웃</button>
           </div>
+          <div className="mt-4 flex flex-wrap gap-2 text-sm">
+            <span className={`rounded-full px-3 py-1.5 font-semibold ${approved ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-800'}`}>{approved ? '✓ 관리자 승인 완료' : '관리자 승인 대기'}</span>
+            <span className={`rounded-full px-3 py-1.5 font-semibold ${publicAndMatchBaseReady ? 'bg-cyan-50 text-cyan-900' : 'bg-slate-100 text-slate-700'}`}>{publicAndMatchBaseReady ? '✓ 홈페이지 공개 · 매칭 기본 조건 충족' : '프로필 또는 일정 설정 필요'}</span>
+          </div>
+          <p className="mt-3 break-keep text-sm leading-6 text-slate-600">개별 신청 배정은 고객이 고른 과정과 풀장·요일·시간이 모두 일치할 때 결정됩니다.</p>
         </header>
 
-        <section aria-labelledby="teaching-summary" className="space-y-4">
-          <div>
-            <p className="text-xs font-bold tracking-widest text-cyan-700">TEACHING PROFILE</p>
-            <h2 id="teaching-summary" className="mt-1 text-xl sm:text-2xl font-bold">내 수업 가능 정보</h2>
-            <p className="mt-1 text-sm text-slate-600">설정한 교육 과정과 수업 가능 일정을 한눈에 확인하세요.</p>
-          </div>
-          <div className="grid gap-4 lg:grid-cols-2">
-            <div className="rounded-3xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm lg:col-span-2">
-              <div className="flex items-center justify-between gap-3 mb-4">
-                <h3 className="text-base font-bold">교육 가능 코스</h3>
-                <span className="text-xs font-bold text-cyan-800 bg-cyan-50 rounded-full px-3 py-1">{availableCourses.length}개 과정</span>
-              </div>
-              {availableCourses.length ? (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {availableCourses.map(course => (
-                    <div key={course.name} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                      <p className="text-sm font-bold text-slate-900">{course.name}</p>
-                      <p className="mt-1 text-sm leading-6 text-cyan-800 break-keep">{Array.isArray(course.level) ? course.level.join(' · ') : course.level}</p>
-                    </div>
-                  ))}
-                </div>
-              ) : <p className="text-sm text-slate-600">설정된 교육 가능 코스가 없습니다. 프로필에서 코스를 선택해 주세요.</p>}
-            </div>
-            <div className="rounded-3xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm lg:col-span-2">
-              <h3 className="text-base font-bold mb-4">풀장별 수업 가능 일정</h3>
-              {availablePools.length ? (
-                <div className="space-y-4">
-                  {availablePools.map(pool => {
-                    const times = pool.times.filter(time => currentInstructor?.[time.key]);
-                    const poolDaysForDisplay = dayOptions.filter(day => currentInstructor?.[`${pool.key}_day_${day.key}`]);
-                    return (
-                      <div key={pool.key} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                        <p className="text-sm font-bold">{pool.name}</p>
-                        <div className="mt-3">
-                          <p className="text-xs font-bold text-slate-500">가능 요일</p>
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            {poolDaysForDisplay.length ? poolDaysForDisplay.map(day => <span key={day.key} className="rounded-lg bg-cyan-600 px-2.5 py-1.5 text-xs font-bold text-white">{day.label}</span>) : <span className="text-sm text-slate-600">선택한 요일이 없습니다.</span>}
-                          </div>
-                        </div>
-                        <p className="mt-3 text-xs font-bold text-slate-500">가능 시간대</p>
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {times.length ? times.map(time => <span key={time.key} className="rounded-lg bg-cyan-50 px-2.5 py-1.5 text-xs font-semibold text-cyan-900">{time.label}</span>)
-                            : <span className="text-sm text-slate-600">선택한 시간대가 없습니다.</span>}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : <p className="text-sm text-slate-600">설정된 풀장이 없습니다. 프로필에서 풀장과 시간대를 선택해 주세요.</p>}
-            </div>
-          </div>
-        </section>
+        {dashboardNotice && <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-6 text-emerald-900">{dashboardNotice}</div>}
 
-        <div className="bg-white border border-slate-200 p-5 sm:p-6 rounded-3xl shadow-sm space-y-4">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-4">
-            <h2 className="text-lg font-bold text-slate-900 leading-snug break-keep">매칭된 수강생 · 신청 내역 <span className="text-cyan-700">({myFilteredCustomers.length}건)</span></h2>
-            <div className="flex flex-wrap gap-1 bg-slate-100 p-1 rounded-xl text-sm font-semibold">
-              {statPeriodOptions.map(p => (
-                <button
-                  key={p.key}
-                  onClick={() => setStatPeriod(p.key)}
-                  className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${statPeriod === p.key ? 'bg-white text-cyan-700 shadow-xs' : 'text-slate-500'}`}
-                >
-                  {p.label}
-                </button>
+        <section aria-labelledby="applications-heading" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+          <div className="border-b border-slate-100 pb-4">
+            <p className="text-sm font-bold text-cyan-700">신청 업무</p>
+            <div className="mt-1 flex flex-wrap items-end justify-between gap-2">
+              <h2 id="applications-heading" className="text-xl font-bold break-keep">배정된 상담 신청</h2>
+              <p className="text-sm font-semibold text-slate-700">전체 {customers.length}건 · 현재 {myFilteredCustomers.length}건</p>
+            </div>
+            <p className="mt-2 text-sm leading-6 text-slate-600">기간은 고객의 상담 신청 접수일을 기준으로 합니다. 처음에는 오래된 미처리 신청도 빠지지 않도록 전체를 표시합니다.</p>
+            <div className="mt-4 grid grid-cols-3 gap-2 min-[430px]:flex min-[430px]:flex-wrap" aria-label="신청 기간 필터">
+              {instructorPeriodOptions.map(option => (
+                <button key={option.key} type="button" aria-pressed={statPeriod === option.key} onClick={() => setStatPeriod(option.key)} className={`min-h-11 rounded-xl border px-3 text-sm font-bold ${statPeriod === option.key ? 'border-cyan-600 bg-cyan-50 text-cyan-900' : 'border-slate-200 bg-white text-slate-600'}`}>{statPeriod === option.key ? '✓ ' : ''}{option.label}</button>
               ))}
             </div>
           </div>
-
-          <div className="space-y-3 pt-2">
-            {myFilteredCustomers.length === 0 ? (
-              <p className="text-xs text-slate-400 py-6 text-center">선택하신 기간에 매칭된 수강생이 없습니다.</p>
-            ) : (
-              myFilteredCustomers.map(cus => (
-                <CustomerMatchCard key={cus.id} customer={cus} />
-              ))
-            )}
+          <div className="pt-4">
+            {customersLoading ? <div role="status" className="rounded-xl bg-slate-50 p-6 text-center text-sm text-slate-600">신청 내역을 불러오는 중입니다…</div>
+              : customersError ? <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-5"><p className="font-bold text-red-900">신청 내역을 불러오지 못했습니다.</p><p className="mt-1 text-sm leading-6 text-red-800">{customersError}</p><button type="button" onClick={fetchMyCustomers} className="mt-3 min-h-11 rounded-xl bg-red-800 px-4 text-sm font-bold text-white">다시 불러오기</button></div>
+              : customers.length === 0 ? <div className="rounded-xl bg-slate-50 p-6 text-center"><p className="font-bold">아직 배정된 상담 신청이 없습니다.</p><p className="mt-2 text-sm leading-6 text-slate-600">신청이 배정되면 이곳에서 고객 정보와 요청 조건을 확인할 수 있습니다.</p></div>
+              : myFilteredCustomers.length === 0 ? <div className="rounded-xl bg-slate-50 p-6 text-center"><p className="font-bold">선택한 기간에 접수된 신청이 없습니다.</p><button type="button" onClick={() => setStatPeriod('all')} className="mt-3 min-h-11 rounded-xl border border-slate-300 bg-white px-4 text-sm font-bold">전체 기간 보기</button></div>
+              : <div className="space-y-3">{myFilteredCustomers.map(customer => <CustomerMatchCard key={customer.id} customer={customer} />)}</div>}
           </div>
-        </div>
+        </section>
 
+        <section aria-labelledby="settings-heading" className="space-y-3">
+          <div>
+            <p className="text-sm font-bold text-cyan-700">내 정보</p>
+            <h2 id="settings-heading" className="mt-1 text-xl font-bold">프로필과 수업 설정</h2>
+          </div>
+          <div className="grid gap-3 md:grid-cols-3">
+            <article className="rounded-2xl border border-slate-200 bg-white p-4">
+              <h3 className="font-bold">공개 프로필</h3><p className="mt-2 text-sm leading-6 text-slate-600">사진 {profileImg ? '등록됨' : '미등록'} · 소개글 {bio.trim() ? '등록됨' : '미등록'}</p>
+              <button type="button" onClick={() => openProfileSection('public')} className="mt-4 min-h-11 w-full rounded-xl border border-slate-300 text-sm font-bold">공개 프로필 편집</button>
+            </article>
+            <article className="rounded-2xl border border-slate-200 bg-white p-4">
+              <h3 className="font-bold">교육 설정</h3><p className="mt-2 text-sm leading-6 text-slate-600">교육 가능 분야 {availableCourses.length}개</p><p className="mt-1 line-clamp-2 text-sm leading-6 text-slate-500">{availableCourses.map(course => course.name).join(' · ') || '설정된 분야 없음'}</p>
+              <button type="button" onClick={() => openProfileSection('courses')} className="mt-4 min-h-11 w-full rounded-xl border border-slate-300 text-sm font-bold">교육 설정 편집</button>
+            </article>
+            <article className="rounded-2xl border border-slate-200 bg-white p-4">
+              <h3 className="font-bold">일정 설정</h3><p className="mt-2 text-sm leading-6 text-slate-600">수업 가능 풀장 {availablePools.length}곳</p><p className="mt-1 line-clamp-2 text-sm leading-6 text-slate-500">{availablePools.map(pool => pool.name).join(' · ') || '설정된 풀장 없음'}</p>
+              <button type="button" onClick={() => openProfileSection('schedule')} className="mt-4 min-h-11 w-full rounded-xl border border-slate-300 text-sm font-bold">일정 설정 편집</button>
+            </article>
+          </div>
+        </section>
       </div>
     </div>
   );
 }
-

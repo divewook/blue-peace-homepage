@@ -41,9 +41,6 @@ export async function PATCH(request) {
     return NextResponse.json({ error: "수업 가능한 풀장마다 요일과 시간대를 하나 이상 선택해 주세요." }, { status: 400 });
   }
   const profileImage = typeof body.profile_image === "string" ? body.profile_image : "";
-  if (!/^data:image\/(jpeg|png|webp);base64,/i.test(profileImage) || profileImage.length > 3_000_000) {
-    return NextResponse.json({ error: "프로필 사진을 다시 선택해 주세요." }, { status: 400 });
-  }
   const update = {
     profile_image: profileImage,
     bio: typeof body.bio === "string" ? body.bio.trim().slice(0, 1000) : "",
@@ -55,9 +52,14 @@ export async function PATCH(request) {
   try {
     const supabase = createAdminSupabase();
     const { data: account, error: accountError } = await supabase.from("instructors")
-      .select("id,is_approved").eq("id", instructorId).maybeSingle();
+      .select("id,is_approved,profile_image").eq("id", instructorId).maybeSingle();
     if (accountError) throw accountError;
     if (!account?.is_approved) return NextResponse.json({ error: "승인된 강사만 프로필을 저장할 수 있습니다." }, { status: 403 });
+    const keepsExistingImage = profileImage.length > 0 && profileImage === account.profile_image;
+    const uploadsValidImage = /^data:image\/(jpeg|png|webp);base64,/i.test(profileImage) && profileImage.length <= 3_000_000;
+    if (!keepsExistingImage && !uploadsValidImage) {
+      return NextResponse.json({ error: "프로필 사진을 다시 선택해 주세요." }, { status: 400 });
+    }
     const { data, error } = await supabase.from("instructors").update(update).eq("id", instructorId)
       .select(instructorPrivateSafeFields).single();
     if (error) throw error;
