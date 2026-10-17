@@ -5,7 +5,7 @@ import { FormEvent, Suspense, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { getMarketingAttribution } from '../../components/marketing-attribution';
 import { canInstructorTeachCourse } from '../../lib/instructor-fields';
-import { bookingDays, bookingPools, courseCatalog, getAvailableSlots, getCourse, getPool, scheduleLabel, validateScheduleAlternatives } from '../../lib/booking-options';
+import { bookingDays, bookingPools, courseCatalog, findMatchingAlternative, getAvailableSlots, getCourse, getPool, scheduleLabel, validateScheduleAlternatives } from '../../lib/booking-options';
 
 type ScheduleAlternative = { id: string; poolId: string; dayId: string; slotId: string };
 type ErrorMap = Record<string, string>;
@@ -18,14 +18,6 @@ const steps = [
 const courseParamMap: Record<string, string> = {
   freediving: 'freediving', youth: 'youth', safety: 'safety', mermaid: 'mermaid', scuba: 'scuba', special: 'special',
 };
-const dayFieldSuffix: Record<string, string> = {
-  mon: 'mon', tue: 'tue', wed: 'wed', thu: 'thu', fri: 'fri', sat: 'sat', sun: 'sun', holiday: 'holiday',
-};
-const poolInstructorFields = {
-  passnine: { enabled: 'can_passnine', dayPrefix: 'passnine_day_', timePrefix: 'passnine_' },
-  miryang: { enabled: 'can_miryang', dayPrefix: 'miryang_day_', timePrefix: 'miryang_' },
-} as const;
-
 function newSchedule(id = `schedule-${Date.now()}`): ScheduleAlternative {
   return { id, poolId: '', dayId: '', slotId: '' };
 }
@@ -34,13 +26,6 @@ function formatPhone(value: string) {
   if (raw.length <= 3) return raw;
   if (raw.length <= 7) return `${raw.slice(0, 3)}-${raw.slice(3)}`;
   return `${raw.slice(0, 3)}-${raw.slice(3, 7)}-${raw.slice(7)}`;
-}
-function instructorMatchesSchedule(instructor: PublicInstructor, option: ScheduleAlternative) {
-  const config = poolInstructorFields[option.poolId as keyof typeof poolInstructorFields];
-  if (!config) return false;
-  return instructor[config.enabled] === true
-    && instructor[`${config.dayPrefix}${dayFieldSuffix[option.dayId]}`] === true
-    && instructor[`${config.timePrefix}${option.slotId}`] === true;
 }
 function instructorCanTeachCategory(instructor: PublicInstructor, courseName: string) {
   const saved = instructor.course_levels?.[courseName];
@@ -187,7 +172,7 @@ function TestInquiryForm() {
           });
       const qualified = scheduleMode === 'flexible'
         ? courseMatched
-        : courseMatched.filter(instructor => alternatives.some(option => instructorMatchesSchedule(instructor, option)));
+        : courseMatched.filter(instructor => findMatchingAlternative(instructor, alternatives));
       const selectedInstructor = qualified.length ? qualified[Math.floor(Math.random() * qualified.length)] : null;
       const response = await fetch('/api/matches', {
         method: 'POST',
@@ -266,7 +251,7 @@ function TestInquiryForm() {
         {courseId === 'youth' && <fieldset id="field-youth" tabIndex={-1} className="mt-5 rounded-2xl border border-cyan-200 bg-cyan-50 p-4"><legend className="px-1 text-base font-black text-cyan-950">유스 수강생 정보</legend><div className="mt-2 grid gap-4 sm:grid-cols-2"><label className="text-sm font-bold text-slate-700">수강 인원<input type="number" min="1" max="20" value={youthCount} onChange={event => setYouthCount(event.target.value)} className="mt-1 min-h-12 w-full rounded-xl border border-cyan-200 bg-white px-3 text-base" /></label><label className="text-sm font-bold text-slate-700">수강생 연령<input value={youthAges} onChange={event => setYouthAges(event.target.value.slice(0, 200))} placeholder="예: 만 12세, 만 14세" className="mt-1 min-h-12 w-full rounded-xl border border-cyan-200 bg-white px-3 text-base" /></label></div>{errors.youth && <p role="alert" className="mt-2 text-sm font-bold text-rose-700">{errors.youth}</p>}</fieldset>}
       </section>}
 
-      {step === 2 && <section aria-labelledby="step-schedule-title"><h2 id="step-schedule-title" className="text-xl font-black text-slate-950">2. 실제로 가능한 일정을 알려주세요</h2><p className="mt-2 text-base leading-7 text-slate-600">각 행은 서로 다른 대안입니다. 여러 행을 입력해도 여러 수업을 예약하는 것이 아닙니다.</p>
+      {step === 2 && <section aria-labelledby="step-schedule-title"><h2 id="step-schedule-title" className="text-xl font-black text-slate-950">2. 실제로 가능한 일정을 알려주세요</h2><p className="mt-2 text-base leading-7 text-slate-600">각 행은 서로 다른 상담 가능 대안입니다. 월요일 저녁 또는 토요일 오후라면 두 행을 추가하세요. 두 요일 모두 오후·저녁이 가능하면 네 조합을 각각 추가하세요. 선택한 일정 중 가능한 시간으로 상담 후 조율하며, 수업 예약은 확정되지 않습니다.</p>
         <fieldset className="mt-5 grid gap-3 sm:grid-cols-2"><legend className="sr-only">일정 선택 방식</legend><label className={`flex cursor-pointer gap-3 rounded-2xl border p-4 ${scheduleMode === 'exact' ? 'border-cyan-600 bg-cyan-50' : 'border-slate-200'}`}><input type="radio" name="schedule-mode" checked={scheduleMode === 'exact'} onChange={() => setScheduleMode('exact')} className="mt-1 h-5 w-5 accent-cyan-700" /><span><strong className="block text-base text-slate-950">가능 일정 직접 선택</strong><span className="mt-1 block text-sm leading-6 text-slate-600">장소·요일·시간을 한 묶음으로 선택</span></span></label><label className={`flex cursor-pointer gap-3 rounded-2xl border p-4 ${scheduleMode === 'flexible' ? 'border-cyan-600 bg-cyan-50' : 'border-slate-200'}`}><input type="radio" name="schedule-mode" checked={scheduleMode === 'flexible'} onChange={() => { setScheduleMode('flexible'); setErrors(previous => ({ ...previous, schedules: '' })); }} className="mt-1 h-5 w-5 accent-cyan-700" /><span><strong className="block text-base text-slate-950">일정 협의 가능</strong><span className="mt-1 block text-sm leading-6 text-slate-600">모든 시간이 가능하다는 뜻이 아니며 상담 후 결정</span></span></label></fieldset>
         {scheduleMode === 'exact' && <div id="field-schedules" tabIndex={-1} className="mt-5 space-y-4">{alternatives.map((option, index) => { const pool = getPool(option.poolId); const availableSlots = getAvailableSlots(option.poolId, option.dayId); return <fieldset key={option.id} className="rounded-2xl border border-slate-200 p-4"><legend className="px-1 text-base font-black text-slate-950">가능 일정 {index + 1}</legend><div className="grid gap-4 sm:grid-cols-3">
           <label className="text-sm font-bold text-slate-700">풀장<select aria-label={`가능 일정 ${index + 1} 풀장`} value={option.poolId} onChange={event => updateSchedule(option.id, 'poolId', event.target.value)} className="mt-1 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-base"><option value="">선택</option>{Object.values(bookingPools).filter(poolOption => poolOption.active).map(poolOption => <option key={poolOption.id} value={poolOption.id}>{poolOption.name}</option>)}</select></label>

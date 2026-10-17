@@ -3,6 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import CustomerMatchCard from '../../../components/customer-match-card';
 import { hasCompleteInstructorProfile } from '../../../lib/instructor-fields';
+import { bookingPools, getInstructorSchedule, validateInstructorSchedule } from '../../../lib/booking-options';
+import InstructorScheduleEditor from '../../../components/instructor-schedule-editor';
 import MarketingSummary from '../../../components/marketing-summary';
 import Pass9AvailabilityModal from '../../../components/pass9-availability-modal';
 import DeepstationAvailabilityModal from '../../../components/deepstation-availability-modal';
@@ -50,31 +52,6 @@ function statDateRange(period: StatPeriod, customStart: string, customEnd: strin
   return [period === 'all' ? '' : startDates[period], today];
 }
 
-const poolTimeOptions = {
-  passnine: [
-    { key: 'passnine_t1', label: '1부 · 09:00–11:30' },
-    { key: 'passnine_t2', label: '2부 · 12:30–15:00' },
-    { key: 'passnine_t3', label: '3부 · 16:00–18:30' },
-    { key: 'passnine_t4', label: '4부 · 19:30–22:00' },
-  ],
-  miryang: [
-    { key: 'miryang_t0', label: '오전부 · 08:00–10:00 (주말)' },
-    { key: 'miryang_t1', label: '1부 · 10:00–12:00' },
-    { key: 'miryang_t2', label: '2부 · 12:00–14:00' },
-    { key: 'miryang_t3', label: '3부 · 14:00–16:00' },
-    { key: 'miryang_t4', label: '4부 · 16:00–18:00' },
-    { key: 'miryang_t5', label: '5부 · 18:00–20:00' },
-    { key: 'miryang_t6', label: '6부 · 20:00–22:00' },
-  ],
-};
-
-const dayOptions = [
-  { key: 'mon', label: '월' }, { key: 'tue', label: '화' }, { key: 'wed', label: '수' },
-  { key: 'thu', label: '목' }, { key: 'fri', label: '금' }, { key: 'sat', label: '토' },
-  { key: 'sun', label: '일' }, { key: 'holiday', label: '공휴일' },
-];
-const emptyPoolDays = () => Object.fromEntries(dayOptions.map(day => [day.key, false]));
-
 const courseLevelMap: { [key: string]: string[] } = {
   '프리다이빙': ['교육 불가', '체험 과정', '1레벨 (프리다이버)', '2레벨 (오픈워터)', '3레벨 (어드밴스드)', '4레벨 (마스터)', '강사 과정'],
   '머메이드 다이빙': ['교육 불가', '체험 과정', '1레벨 (베이직 머메이드)', '2레벨 (머메이드)', '3레벨 (오션 머메이드)', '머메이드 강사 과정'],
@@ -118,9 +95,7 @@ export default function InstructorPortal() {
     '스쿠버다이빙': '교육 불가',
     '스페셜 교육': '교육 불가',
   });
-  const [selectedPools, setSelectedPools] = useState<{ [key: string]: boolean }>({});
-  const [selectedTimes, setSelectedTimes] = useState<{ [key: string]: boolean }>({});
-  const [poolDays, setPoolDays] = useState<Record<string, Record<string, boolean>>>({ passnine: emptyPoolDays(), miryang: emptyPoolDays() });
+  const [scheduleByDay, setScheduleByDay] = useState<Record<string, Record<string, string[]>>>({ passnine: {}, miryang: {} });
   const [selectedSpecialCourses, setSelectedSpecialCourses] = useState<string[]>([]);
   const [showPass9Availability, setShowPass9Availability] = useState(false);
   const [showDeepstationAvailability, setShowDeepstationAvailability] = useState(false);
@@ -201,16 +176,7 @@ export default function InstructorPortal() {
         '교육 불가'
       ) || '교육 불가',
     ])));
-    setSelectedTimes(Object.fromEntries(
-      Object.values(poolTimeOptions).flat().map(({ key }) => [key, !!data[key]])
-    ));
-    setSelectedPools({
-      passnine: !!data.can_passnine,
-      miryang: !!data.can_miryang,
-    });
-    setPoolDays(Object.fromEntries(['passnine', 'miryang'].map(pool => [pool,
-      Object.fromEntries(dayOptions.map(day => [day.key, !!data[`${pool}_day_${day.key}`]]))
-    ])));
+    setScheduleByDay(getInstructorSchedule(data));
 
     if (!data.profile_image) {
       setProfileSection('public');
@@ -384,47 +350,29 @@ export default function InstructorPortal() {
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isProcessingImage) return;
-    if (!profileImg) {
-      alert('프로필 사진은 필수입니다.');
+    if (isProcessingImage || profileSaving) return;
+    if (profileSection === 'public' && !profileImg) {
+      setProfileSaveError('프로필 사진을 선택해 주세요.');
       return;
     }
-    const activePools = ['passnine', 'miryang'].filter(pool => selectedPools[pool]);
-    if (!activePools.length) {
-      alert('수업 가능한 풀장을 하나 이상 선택해 주세요.');
-      return;
+    if (profileSection === 'schedule') {
+      const checked = validateInstructorSchedule(scheduleByDay);
+      if (!checked.valid) { setProfileSaveError(checked.error || '요일별 시간표를 확인해 주세요.'); return; }
     }
-    const incompletePool = activePools.find(pool => !Object.values(poolDays[pool] || {}).some(Boolean)
-      || !poolTimeOptions[pool as keyof typeof poolTimeOptions].some(time => selectedTimes[time.key]));
-    if (incompletePool) {
-      alert(`${incompletePool === 'passnine' ? '칠곡 패스나인' : '밀양 아리랑'} 풀장의 가능 요일과 시간대를 각각 하나 이상 선택해 주세요.`);
-      return;
-    }
-
-    const legacyDayAvailability = Object.fromEntries(dayOptions.filter(day => day.key !== 'holiday').map(day => [
-      `available_${day.key}`,
-      activePools.some(pool => poolDays[pool]?.[day.key]),
-    ]));
-
-    const updateData = {
-      profile_image: profileImg,
-      bio,
-      course_levels: { ...maxLevels, '스페셜 교육': selectedSpecialCourses },
-      max_freediving_level: Math.max(0, courseLevelMap['프리다이빙'].indexOf(maxLevels['프리다이빙'])),
-      max_mermaid_level: Math.max(0, courseLevelMap['머메이드 다이빙'].indexOf(maxLevels['머메이드 다이빙'])),
-      max_youth_level: Math.max(0, courseLevelMap['유스 프리다이빙'].indexOf(maxLevels['유스 프리다이빙'])),
-      can_safety_guard: maxLevels['수중레저안전요원'] !== '교육 불가',
-      can_scuba: maxLevels['스쿠버다이빙'] !== '교육 불가',
-      can_special: selectedSpecialCourses.length > 0,
-      ...Object.fromEntries(Object.values(poolTimeOptions).flat().map(({ key }) => [key, !!selectedPools[key.startsWith('passnine') ? 'passnine' : 'miryang'] && !!selectedTimes[key]])),
-      can_passnine: !!selectedPools['passnine'],
-      can_miryang: !!selectedPools['miryang'],
-      ...legacyDayAvailability,
-      ...Object.fromEntries(['passnine', 'miryang'].flatMap(pool => dayOptions.map(day => [
-        `${pool}_day_${day.key}`,
-        !!selectedPools[pool] && !!poolDays[pool]?.[day.key],
-      ]))),
-    };
+    const updateData = profileSection === 'public'
+      ? { section: 'public', profile_image: profileImg, bio }
+      : profileSection === 'courses'
+        ? {
+            section: 'courses',
+            course_levels: { ...maxLevels, '스페셜 교육': selectedSpecialCourses },
+            max_freediving_level: Math.max(0, courseLevelMap['프리다이빙'].indexOf(maxLevels['프리다이빙'])),
+            max_mermaid_level: Math.max(0, courseLevelMap['머메이드 다이빙'].indexOf(maxLevels['머메이드 다이빙'])),
+            max_youth_level: Math.max(0, courseLevelMap['유스 프리다이빙'].indexOf(maxLevels['유스 프리다이빙'])),
+            can_safety_guard: maxLevels['수중레저안전요원'] !== '교육 불가',
+            can_scuba: maxLevels['스쿠버다이빙'] !== '교육 불가',
+            can_special: selectedSpecialCourses.length > 0,
+          }
+        : { section: 'schedule', schedule_by_day: scheduleByDay, schedule_revision: currentInstructor?.schedule_revision ?? 0 };
 
     setProfileSaving(true);
     setProfileSaveError('');
@@ -438,6 +386,7 @@ export default function InstructorPortal() {
       setProfileSaveError(result?.error || '잠시 후 다시 시도해 주세요.');
     } else {
       setCurrentInstructor(result.instructor || { ...currentInstructor, ...updateData });
+      if (profileSection === 'schedule' && result.instructor) setScheduleByDay(getInstructorSchedule(result.instructor));
       setProfileDirty(false);
       setDashboardNotice('설정이 저장되었습니다. 기존의 다른 설정도 그대로 유지되었습니다.');
       setView('instructor_dashboard');
@@ -600,72 +549,12 @@ export default function InstructorPortal() {
               ))}
             </div>}
 
-            {profileSection === 'schedule' && <div className="space-y-4">
-              <div>
-                <label className="block font-bold text-slate-900 text-sm">🌊 풀장별 수업 가능 요일 · 시간대</label>
-                <p className="mt-1 text-xs leading-5 text-slate-500">풀장마다 가능한 요일과 시간대를 따로 선택해 주세요. 공휴일도 선택할 수 있습니다.</p>
-              </div>
-              
-              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
-                <label className="flex min-h-12 items-center gap-3 rounded-xl p-2 text-sm font-bold text-slate-900 cursor-pointer">
-                  <input type="checkbox" checked={selectedPools['passnine'] || false} onChange={(e) => setSelectedPools({ ...selectedPools, passnine: e.target.checked })} className="accent-cyan-600 w-5 h-5 shrink-0" />
-                  <span>칠곡 패스나인 풀장</span>
-                </label>
-                {selectedPools['passnine'] && (
-                  <div className="space-y-4 pt-1">
-                    <div>
-                      <p className="mb-2 text-xs font-bold text-slate-600">수업 가능 요일</p>
-                      <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">
-                        {dayOptions.map(day => <button key={day.key} type="button" aria-pressed={!!poolDays.passnine?.[day.key]} onClick={() => { setProfileDirty(true); setPoolDays(previous => ({ ...previous, passnine: { ...previous.passnine, [day.key]: !previous.passnine?.[day.key] } })); }} className={`min-h-11 rounded-xl border text-sm font-bold ${poolDays.passnine?.[day.key] ? 'border-cyan-500 bg-cyan-600 text-white' : 'border-slate-200 bg-white text-slate-600'}`}>{poolDays.passnine?.[day.key] ? '✓ ' : ''}{day.label}</button>)}
-                      </div>
-                    </div>
-                    <div>
-                      <p className="mb-2 text-xs font-bold text-slate-600">수업 가능 시간대</p>
-                      <div className="grid grid-cols-1 gap-2 min-[430px]:grid-cols-2">
-                    {poolTimeOptions.passnine.map(t => (
-                      <label key={t.key} className={`flex min-h-12 items-center gap-3 p-3 text-sm leading-5 rounded-xl border cursor-pointer ${selectedTimes[t.key] ? 'bg-cyan-50 border-cyan-500 font-bold text-cyan-900' : 'bg-white border-slate-200'}`}>
-                        <input type="checkbox" checked={selectedTimes[t.key] || false} onChange={(e) => setSelectedTimes({ ...selectedTimes, [t.key]: e.target.checked })} className="accent-cyan-600 w-5 h-5 shrink-0" />
-                        <span>{t.label}</span>
-                      </label>
-                    ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
+            {profileSection === 'schedule' && <InstructorScheduleEditor
+              value={scheduleByDay}
+              onChange={next => { setScheduleByDay(next); setProfileDirty(true); setProfileSaveError(''); }}
+              legacy={currentInstructor?.schedule_by_day == null}
+            />}
 
-              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
-                <label className="flex min-h-12 items-center gap-3 rounded-xl p-2 text-sm font-bold text-slate-900 cursor-pointer">
-                  <input type="checkbox" checked={selectedPools['miryang'] || false} onChange={(e) => setSelectedPools({ ...selectedPools, miryang: e.target.checked })} className="accent-cyan-600 w-5 h-5 shrink-0" />
-                  <span>밀양 아리랑 풀장</span>
-                </label>
-                {selectedPools['miryang'] && (
-                  <div className="space-y-4 pt-1">
-                    <div>
-                      <p className="mb-2 text-xs font-bold text-slate-600">수업 가능 요일</p>
-                      <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">
-                        {dayOptions.map(day => <button key={day.key} type="button" aria-pressed={!!poolDays.miryang?.[day.key]} onClick={() => { setProfileDirty(true); setPoolDays(previous => ({ ...previous, miryang: { ...previous.miryang, [day.key]: !previous.miryang?.[day.key] } })); }} className={`min-h-11 rounded-xl border text-sm font-bold ${poolDays.miryang?.[day.key] ? 'border-cyan-500 bg-cyan-600 text-white' : 'border-slate-200 bg-white text-slate-600'}`}>{poolDays.miryang?.[day.key] ? '✓ ' : ''}{day.label}</button>)}
-                      </div>
-                    </div>
-                    <div>
-                      <p className="mb-2 text-xs font-bold text-slate-600">수업 가능 시간대</p>
-                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    {poolTimeOptions.miryang.map(t => (
-                      <label key={t.key} className={`flex min-h-12 items-center gap-3 p-3 text-sm leading-5 rounded-xl border cursor-pointer ${selectedTimes[t.key] ? 'bg-cyan-50 border-cyan-500 font-bold text-cyan-900' : 'bg-white border-slate-200'}`}>
-                        <input type="checkbox" checked={selectedTimes[t.key] || false} onChange={(e) => setSelectedTimes({ ...selectedTimes, [t.key]: e.target.checked })} className="accent-cyan-600 w-5 h-5 shrink-0" />
-                        <span>{t.label}</span>
-                      </label>
-                    ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="bg-slate-100 p-4 rounded-2xl border border-slate-300 opacity-60">
-                <span className="font-bold text-slate-500 line-through">대구 두류풀장 (현재 공사 중 - 선택 불가)</span>
-              </div>
-            </div>}
 
             {profileSaveError && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-6 text-red-800">저장하지 못했습니다. {profileSaveError}</div>}
 
@@ -834,10 +723,9 @@ export default function InstructorPortal() {
       return { name, level: Array.isArray(savedLevel) ? savedLevel : savedLevel || legacyLevel || '교육 불가' };
     })
     .filter(course => Array.isArray(course.level) ? course.level.length > 0 : course.level !== '교육 불가');
-  const availablePools = [
-    { key: 'passnine', name: '칠곡 패스나인 풀장', times: poolTimeOptions.passnine },
-    { key: 'miryang', name: '밀양 아리랑 풀장', times: poolTimeOptions.miryang },
-  ].filter(pool => currentInstructor?.[`can_${pool.key}`]);
+  const currentSchedule = getInstructorSchedule(currentInstructor);
+  const availablePools = [bookingPools.passnine, bookingPools.miryang].filter(pool =>
+    currentInstructor?.[`can_${pool.id}`] && Object.values(currentSchedule?.[pool.id] || {}).some((slots: unknown) => Array.isArray(slots) && slots.length));
 
   const profileComplete = hasCompleteInstructorProfile(currentInstructor);
   const approved = currentInstructor?.is_approved === true;

@@ -1,18 +1,12 @@
 import { after, NextResponse } from "next/server";
 import { createAdminSupabase } from "../../../lib/admin-supabase";
 import { canInstructorTeachCourse, hasCompleteInstructorProfile, instructorPublicFields } from "../../../lib/instructor-fields";
-import { bookingPools, getCourse, getDay, getPool, validateScheduleAlternatives } from "../../../lib/booking-options";
+import { bookingPools, findMatchingAlternative, getCourse, getDay, getPool, validateScheduleAlternatives } from "../../../lib/booking-options";
 import { sendKakaoAlimtalk } from "../../../lib/kakao-alimtalk";
 
 export const runtime = "nodejs";
 
 const requestKeyPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const dayFieldSuffix = { mon: "mon", tue: "tue", wed: "wed", thu: "thu", fri: "fri", sat: "sat", sun: "sun", holiday: "holiday" };
-const poolMatchConfig = {
-  passnine: { enabledField: "can_passnine", dayPrefix: "passnine_day_", timePrefix: "passnine_" },
-  miryang: { enabledField: "can_miryang", dayPrefix: "miryang_day_", timePrefix: "miryang_" },
-};
-
 function cleanText(value, maxLength) {
   return typeof value === "string" ? value.trim().slice(0, maxLength) : "";
 }
@@ -66,14 +60,6 @@ function alternativesToLegacy(alternatives) {
     if (!poolOptions[poolName].times.includes(time)) poolOptions[poolName].times.push(time);
   }
   return poolOptions;
-}
-
-function instructorMatchesAlternative(instructor, option) {
-  const config = poolMatchConfig[option.poolId];
-  return Boolean(config
-    && instructor?.[config.enabledField] === true
-    && instructor?.[`${config.dayPrefix}${dayFieldSuffix[option.dayId]}`] === true
-    && instructor?.[`${config.timePrefix}${option.slotId}`] === true);
 }
 
 function instructorCanTeachCategory(instructor, courseName) {
@@ -140,7 +126,7 @@ export async function POST(request) {
         ? instructorCanTeachCategory(data, requestedCourse.courseName)
         : canInstructorTeachCourse(data, requestedCourse.courseName, requestedCourse.levelName);
       if (!canTeach) return NextResponse.json({ error: "선택한 과정을 교육할 수 있는 강사를 다시 확인해 주세요." }, { status: 409 });
-      if (scheduleResult.mode === "exact" && !scheduleResult.alternatives.some(option => instructorMatchesAlternative(data, option))) {
+      if (scheduleResult.mode === "exact" && !findMatchingAlternative(data, scheduleResult.alternatives)) {
         return NextResponse.json({ error: "선택한 장소·요일·시간과 맞는 강사를 다시 확인해 주세요." }, { status: 409 });
       }
       instructor = data;
@@ -176,6 +162,7 @@ export async function POST(request) {
       schedule_alternatives: scheduleResult.alternatives,
       request_key: requestKey,
       request_status: status,
+      matched_schedule: instructor && scheduleResult.mode === "exact" ? findMatchingAlternative(instructor, scheduleResult.alternatives) : null,
       privacy_consent_version: "2026-10-17",
       privacy_consent_at: new Date().toISOString(),
       marketing_consent: body.marketing_accepted === true,

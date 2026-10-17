@@ -12,6 +12,7 @@ type CustomerMatch = {
   preferred_pool_options?: Record<string, { days?: string[]; times?: string[] }>;
   schedule_mode?: 'exact' | 'flexible';
   schedule_alternatives?: Array<{ poolId: string; dayId: string; slotId: string }>;
+  matched_schedule?: { poolId: string; dayId: string; slotId: string } | null;
   request_status?: 'matched' | 'pending_assignment';
   youth_participant_count?: number | null;
   youth_ages?: string | null;
@@ -107,6 +108,7 @@ export default function CustomerMatchCard({ customer, showAttribution = false }:
           </div>
         )}
       </div>
+      {customer.matched_schedule && <p className="mt-3 rounded-xl bg-cyan-50 p-3 text-sm font-semibold leading-6 text-cyan-900">배정 시 일치한 상담 가능 일정: {scheduleLabel(customer.matched_schedule)} · 실제 수업 예약은 상담 후 확정</p>}
 
       {showAttribution && (
         <details className="group mt-3 rounded-xl border border-indigo-200 bg-indigo-50 p-3">
