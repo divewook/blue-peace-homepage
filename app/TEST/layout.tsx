@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 export default function TestLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <>
-      <div data-test-page-banner className="fixed bottom-20 right-2 z-[100] rounded-full border border-amber-400 bg-amber-300 px-3 py-1.5 text-[11px] font-black text-amber-950 shadow-lg md:bottom-2">
+      <div data-test-page-banner className="relative z-[100] w-full border-b border-amber-400 bg-amber-300 px-3 py-2 text-center text-xs font-black text-amber-950">
         테스트 페이지 · 운영 페이지 아님 · 제출 미전송
       </div>
       {children}
