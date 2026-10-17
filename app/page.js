@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 import ExpandableText from "../components/expandable-text";
+import { courseCatalog } from "../lib/booking-options";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -64,10 +65,10 @@ const placeReviews = [
 ];
 
 const trustStats = [
-  { value: "892명+", label: "누적 교육생" },
-  { value: "맞춤 강사진", label: "공정 1:1 매칭" },
-  { value: "100%", label: "자격증 발급률" },
-  { value: "무제한 진행", label: "실습 보장" },
+  { value: "6개 분야", label: "교육 과정 상담" },
+  { value: "2개 풀장", label: "현재 일정 선택 가능" },
+  { value: "일정·장소", label: "조건 확인 후 강사 연결" },
+  { value: "상담 후", label: "예약과 비용 최종 확정" },
 ];
 
 const faqs = [
@@ -77,20 +78,13 @@ const faqs = [
   { question: "교육 시간은 얼마나 걸리나요?", answer: "과정별로 다르며, 체험 과정은 약 3시간 기준으로 진행됩니다." },
   { question: "사진과 영상도 받을 수 있나요?", answer: "네. 수업 중 촬영한 사진과 영상은 선별 및 보정 후 전달해드립니다." },
   { question: "추가 비용이 있나요?", answer: "풀장 입장료, 장비 렌탈료는 별도입니다." },
-  { question: "자격증은 어디서 발급되나요?", answer: "AIDA · PSA 국제 자격증 발급이 가능하며, 과정과 목표에 맞춰 안내해드립니다." },
-  { question: "자격증 취득까지 얼마나 걸리나요?", answer: "개인별 습득 속도에 따라 다릅니다. 자격 취득 전까지 무제한 트레이닝을 지원합니다." },
+  { question: "자격증은 어디서 발급되나요?", answer: "현재 자료에는 프리다이빙 AIDA·PSA, 유스·머메이드·수중레저안전요원 PSA, 스쿠버 PSAI로 안내되어 있습니다. 실제 발급 기관과 자격 명칭은 선택 과정 상담에서 최종 확인합니다." },
+  { question: "자격증 취득까지 얼마나 걸리나요?", answer: "개인별 습득 속도와 과정에 따라 다릅니다. 정확한 교육 횟수와 평가 기준, 추가 트레이닝 적용 범위는 상담에서 확인합니다." },
   { question: "혼자 신청해도 괜찮나요?", answer: "물론입니다. 혼자 오셔도 편하게 수업받을 수 있고, 이후 트레이닝과 커뮤니티도 함께할 수 있습니다." },
   { question: "교육 장소는 어디인가요?", answer: "이론 수업은 블루피스 센터에서, 풀장 실습은 칠곡 패스나인, 밀양 아리랑 등 일정에 맞는 풀장에서 진행됩니다." },
 ];
 
-const categories = [
-  { id: "freediving", name: "프리다이빙", association: "AIDA / PSA", intro: "처음 숨을 고르는 순간부터 더 깊은 도전까지 단계별로 배웁니다." },
-  { id: "youth", name: "유스 프리다이빙", association: "PSA", intro: "성장 단계에 맞춘 청소년 전문 프리다이빙 코스입니다." },
-  { id: "safety", name: "수중레저안전요원", association: "PSA", intro: "안전 자격 및 야간 해루질 표준 안전 교육 과정입니다." },
-  { id: "mermaid", name: "머메이드 다이빙", association: "PSA", intro: "우아한 움직임과 신비로운 표현을 익히는 머메이드 코스입니다." },
-  { id: "scuba", name: "스쿠버다이빙", association: "PSAI", intro: "장비를 착용하고 더욱 아늑하게 바닷속을 만나는 과정입니다." },
-  { id: "special", name: "스페셜 교육", association: "PSA", intro: "응급처치 CPR 교육 및 수중 사진 촬영 교육 전문 레슨입니다." },
-];
+const categories = courseCatalog;
 
 function shuffleItems(items) {
   const shuffled = [...items];
@@ -99,6 +93,17 @@ function shuffleItems(items) {
     [shuffled[index], shuffled[randomIndex]] = [shuffled[randomIndex], shuffled[index]];
   }
   return shuffled;
+}
+
+function publicInstructorCourses(instructor) {
+  return Object.entries(instructor.course_levels || {}).flatMap(([course, level]) => {
+    const values = Array.isArray(level) ? level : [level];
+    return values.filter(value => value && value !== "교육 불가").map(value => `${course} · ${value}`);
+  });
+}
+
+function publicInstructorPools(instructor) {
+  return [instructor.can_passnine && "칠곡 패스나인", instructor.can_miryang && "밀양 아리랑"].filter(Boolean);
 }
 
 function ArrowIcon() {
@@ -117,6 +122,13 @@ export default function HomePage() {
   const [showAllInstructors, setShowAllInstructors] = useState(false); // 전체 강사진 보기 토글
   const [openFaq, setOpenFaq] = useState(null);
   const [selectedPhoto, setSelectedPhoto] = useState(null);
+  const lightboxCloseRef = useRef(null);
+  const lightboxTriggerRef = useRef(null);
+
+  const closeLightbox = () => {
+    setSelectedPhoto(null);
+    window.setTimeout(() => lightboxTriggerRef.current?.focus(), 0);
+  };
 
   // DB 데이터 불러오기 및 무작위 섞기
   useEffect(() => {
@@ -130,7 +142,7 @@ export default function HomePage() {
 
       // 2. 관리자 등록 갤러리/슬라이드 사진 조회 (있을 경우 반영)
       const { data: galleryData } = await supabase.from('admin_galleries').select('image_url, is_hero');
-      
+
       if (galleryData && galleryData.length > 0) {
         const heroList = galleryData.filter(g => g.is_hero).map(g => g.image_url);
         if (heroList.length > 0) setHeroImages(shuffleItems(heroList));
@@ -147,33 +159,40 @@ export default function HomePage() {
 
   // Hero 이미지 자동 슬라이드 (5초 간격)
   useEffect(() => {
-    if (heroImages.length === 0) return;
+    if (heroImages.length === 0 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const timer = setInterval(() => setHeroIndex((i) => (i + 1) % heroImages.length), 5000);
     return () => clearInterval(timer);
   }, [heroImages]);
+
+  useEffect(() => {
+    if (!selectedPhoto) return;
+    const handleKeyDown = event => {
+      if (event.key === "Escape") closeLightbox();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    lightboxCloseRef.current?.focus();
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [selectedPhoto]);
 
   // 노출할 강사진 목록 (기본 4명 / 버튼 클릭 시 전체)
   const visibleInstructors = showAllInstructors ? instructors : instructors.slice(0, 4);
 
   return (
-    <main className="min-h-screen bg-slate-50 pb-24 text-slate-800 font-sans md:pb-0">
-      
+    <main className="min-h-screen break-keep bg-slate-50 pb-24 text-slate-800 font-sans md:pb-0">
+
       {/* 모바일 화면에 완벽 반응하는 고급 GNB 헤더 */}
       <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-sm px-4 sm:px-8 py-3.5">
         <div className="max-w-6xl mx-auto flex justify-between items-center gap-3">
           <Link href="/" className="flex items-center gap-2 shrink-0">
             <span className="text-cyan-600 font-black text-lg sm:text-xl tracking-wider">BLUE PEACE</span>
           </Link>
-          
+
           <nav className="flex min-w-0 flex-1 items-center justify-start gap-4 sm:justify-end sm:gap-6 text-xs sm:text-sm font-semibold text-slate-600 overflow-x-auto no-scrollbar whitespace-nowrap py-2">
             <a href="#courses" className="hover:text-cyan-600 transition shrink-0">교육과정</a>
             <a href="#instructors" className="hover:text-cyan-600 transition shrink-0">맞춤강사진</a>
             <a href="#faq" className="hover:text-cyan-600 transition shrink-0">FAQ</a>
-            <a href="#gallery" className="hover:text-cyan-600 transition shrink-0">갤러리</a>
-            <a href="#reviews" className="hover:text-cyan-600 transition shrink-0">후기</a>
-            <a href="#location" className="hover:text-cyan-600 transition shrink-0">오시는길</a>
             <Link href="/instructor/mypage" className="text-cyan-600 hover:text-cyan-700 font-bold shrink-0 bg-cyan-50 px-2.5 py-1 rounded-lg border border-cyan-200">
-              강사포털
+              강사 로그인
             </Link>
           </nav>
         </div>
@@ -183,23 +202,23 @@ export default function HomePage() {
       <section className="relative py-12 sm:py-20 px-4 max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
         <div className="text-center lg:text-left">
           <span className="text-xs font-bold px-3.5 py-1.5 bg-cyan-100 text-cyan-800 border border-cyan-200 rounded-full inline-block mb-3">
-            ✨ 대구·경북 최대 다이빙 전문 센터
+            대구·경북 다이빙 교육 상담
           </span>
           <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-slate-900 leading-[1.35]">
-            블루피스와 함께<br />
-            <span className="text-cyan-600">당신만의 깊은 바다</span>를 경험하세요.
+            가능한 일정에 맞춰<br />
+            <span className="text-cyan-600">다이빙 교육 강사</span>를 연결합니다.
           </h1>
-          <p className="text-sm text-slate-600 mt-4 leading-7 font-medium">
-            수영을 못해도, 물 공포증이 있어도 괜찮습니다.<br />
-            1:1 맞춤 강사 매칭으로 안전하고 완벽한 교육을 지원합니다.
-          </p>
+          <div className="mx-auto mt-4 max-w-xl space-y-2 text-base leading-7 text-slate-600 lg:mx-0">
+            <p>칠곡 패스나인과 밀양 아리랑 풀장을 중심으로 프리다이빙·유스·머메이드·스쿠버 과정을 상담합니다.</p>
+            <p>과정과 가능한 일정을 먼저 확인한 뒤, 상담과 일정 조율을 거쳐 예약을 확정합니다.</p>
+          </div>
 
           <div className="mt-8 flex justify-center lg:justify-start">
             <Link
-              href="/inquiry?course=freediving"
+              href="/inquiry"
               className="min-h-12 px-7 py-4 bg-cyan-600 hover:bg-cyan-500 text-white font-extrabold rounded-2xl text-sm transition shadow-lg shadow-cyan-600/25 flex items-center gap-2"
             >
-              <span>🚀 맞춤 강사 상담 신청하기</span>
+              <span>과정과 가능한 일정 선택하기</span>
               <ArrowIcon />
             </Link>
           </div>
@@ -237,7 +256,7 @@ export default function HomePage() {
         <div className="text-center mb-12">
           <span className="text-xs font-bold text-cyan-600 tracking-wider">BLUE PEACE COURSES</span>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">교육 과정 안내</h2>
-          <p className="text-xs text-slate-500 mt-2">희망하시는 코스를 누르시면 전담 매칭 문의 페이지로 바로 이동합니다.</p>
+          <p className="mt-3 text-base leading-7 text-slate-600">대상, 교육 내용, 확인된 가격을 먼저 비교하고 상담을 시작하세요. 상담 요청은 예약이나 결제 확정이 아닙니다.</p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -248,13 +267,24 @@ export default function HomePage() {
                   {cat.association}
                 </span>
                 <h3 className="text-xl font-bold text-slate-900 mt-3">{cat.name}</h3>
-                <p className="text-xs text-slate-600 mt-2 leading-relaxed">{cat.intro}</p>
+                <p className="mt-3 text-base leading-7 text-slate-600">{cat.summary}</p>
+                <dl className="mt-4 space-y-2 text-sm leading-6">
+                  <div><dt className="font-bold text-slate-500">추천 대상</dt><dd className="text-slate-800">{cat.audience}</dd></div>
+                  <div><dt className="font-bold text-slate-500">예상 구성</dt><dd className="text-slate-800">{cat.duration}</dd></div>
+                </dl>
+                <p className="mt-4 text-base font-black text-cyan-800">{cat.startingPrice}</p>
+                <details className="mt-4 rounded-xl border border-slate-200 p-3">
+                  <summary className="min-h-8 cursor-pointer text-sm font-bold text-slate-800">단계별 교육비·발급비 보기</summary>
+                  <ul className="mt-3 space-y-3 border-t border-slate-200 pt-3">
+                    {cat.levels.map(level => <li key={level.id} className="text-sm leading-6"><strong className="block text-slate-900">{level.name} · {level.price}</strong><span className="text-slate-600">{level.issuance}</span></li>)}
+                  </ul>
+                </details>
               </div>
 
               <div className="mt-6 pt-4 border-t border-slate-100">
                 <Link
                   href={`/inquiry?course=${cat.id}`}
-                  className="w-full py-3 bg-slate-900 hover:bg-cyan-600 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition cursor-pointer"
+                  className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-base font-bold text-white transition hover:bg-cyan-700"
                 >
                   <span>{cat.name} 문의하기</span>
                   <ArrowIcon />
@@ -272,12 +302,12 @@ export default function HomePage() {
             BLUE PEACE INSTRUCTORS
           </span>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-3">
-            🌊 블루피스 맞춤형 강사진
+            블루피스 강사진
           </h2>
-          <p className="text-xs sm:text-sm text-slate-600 mt-2 max-w-2xl mx-auto leading-relaxed font-medium">
-            블루피스는 특정 강사 지정 없이, 수강생분의 희망 일정과 장소에<br />
-            가장 완벽히 부합하는 강사님을 100% 공정하게 맞춤 매칭합니다.
-          </p>
+          <div className="mx-auto mt-3 max-w-2xl space-y-2 text-base leading-7 text-slate-600">
+            <p>현재는 특정 강사를 먼저 지정하지 않고, 선택한 과정과 일정 조건을 교육할 수 있는 강사를 확인합니다.</p>
+            <p>상담과 일정 조율을 마친 뒤 담당 강사와 예약이 확정됩니다.</p>
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5 mt-10">
             {visibleInstructors.map((ins) => (
@@ -298,6 +328,13 @@ export default function HomePage() {
                   className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600"
                   buttonClassName="bg-white text-cyan-700 border border-cyan-200"
                 />
+                <div className="mt-4 border-t border-slate-200 pt-3 text-left">
+                  <p className="text-sm font-bold text-slate-800">교육 가능 과정</p>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {publicInstructorCourses(ins).length ? publicInstructorCourses(ins).map(item => <span key={item} className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-700">{item}</span>) : <span className="text-sm text-slate-500">상담 시 확인</span>}
+                  </div>
+                  <p className="mt-3 text-sm leading-6 text-slate-700"><strong>활동 풀장:</strong> {publicInstructorPools(ins).join(' · ') || '상담 시 확인'}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -325,13 +362,13 @@ export default function HomePage() {
             <div key={idx} className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
               <button
                 onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
-                className="w-full text-left flex justify-between items-center text-xs sm:text-sm font-bold text-slate-800"
+                className="flex min-h-12 w-full items-center justify-between gap-3 text-left text-base font-bold leading-6 text-slate-800"
               >
                 <span>Q. {faq.question}</span>
                 <span className="text-cyan-600 font-bold">{openFaq === idx ? '▲' : '▼'}</span>
               </button>
               {openFaq === idx && (
-                <p className="text-xs text-slate-600 mt-3 pt-3 border-t border-slate-100 leading-relaxed font-medium">
+                <p className="mt-3 border-t border-slate-100 pt-3 text-base font-medium leading-7 text-slate-600">
                   A. {faq.answer}
                 </p>
               )}
@@ -348,16 +385,18 @@ export default function HomePage() {
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
           {galleryPhotos.map((img, idx) => (
-            <div
+            <button
+              type="button"
               key={idx}
-              onClick={() => setSelectedPhoto(img.src)}
-              className="relative h-40 sm:h-52 rounded-2xl overflow-hidden border border-slate-200 cursor-pointer group shadow-sm bg-slate-100"
+              onClick={event => { lightboxTriggerRef.current = event.currentTarget; setSelectedPhoto(img.src); }}
+              className="group relative h-40 overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 sm:h-52"
+              aria-label={`${img.alt} 확대 보기`}
             >
               <Image src={img.src} alt={img.alt} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
               <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-xs text-white font-bold backdrop-blur-xs">
                 확대 보기 ↗
               </div>
-            </div>
+            </button>
           ))}
         </div>
       </section>
@@ -369,9 +408,9 @@ export default function HomePage() {
             NAVER REVIEWS
           </span>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-3">
-            ⭐ 생생한 수강생 네이버 실제 리뷰
+            네이버 방문자 후기 요약
           </h2>
-          <p className="text-xs text-slate-500 mt-2">블루피스 네이버 플레이스에 남겨주신 수강생분들의 솔직한 후기입니다.</p>
+          <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-600">기존 홈페이지에 등록된 네이버 방문자 후기를 짧게 편집한 요약입니다. 개별 작성일과 원문 주소는 저장소에 없어 네이버 리뷰 목록에서 확인할 수 있습니다.</p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-10 text-left">
             {placeReviews.map((rev, idx) => (
@@ -381,10 +420,9 @@ export default function HomePage() {
                     <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded">
                       {rev.course}
                     </span>
-                    <span className="text-xs text-amber-500">★★★★★</span>
                   </div>
                   <h3 className="text-sm font-bold text-slate-900 mb-2">{rev.title}</h3>
-                  <p className="text-xs text-slate-600 leading-relaxed font-medium">"{rev.quote}"</p>
+                  <p className="text-sm font-medium leading-6 text-slate-600">"{rev.quote}"</p>
                 </div>
                 <p className="text-[11px] text-slate-400 mt-4 pt-3 border-t border-slate-200 text-right">
                   작성자: {rev.author} 님
@@ -414,8 +452,8 @@ export default function HomePage() {
               LOCATION
             </span>
             <h2 className="text-2xl font-bold text-slate-900 mt-3">📍 블루피스 센터 찾아오시는 길</h2>
-            
-            <div className="mt-6 space-y-4 text-xs sm:text-sm text-slate-700">
+
+            <div className="mt-6 space-y-4 text-sm leading-6 text-slate-700 sm:text-base sm:leading-7">
               <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-1 shadow-sm">
                 <p className="text-cyan-600 font-bold">🏠 센터 주소</p>
                 <p className="text-slate-900 font-semibold">{centerAddress}</p>
@@ -424,7 +462,7 @@ export default function HomePage() {
               <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-1 shadow-sm">
                 <p className="text-cyan-600 font-bold">🚗 주차 안내</p>
                 <p className="text-slate-600 leading-relaxed font-medium">
-                  센터 건물 전용 주차장 및 인근 골목 무료 주차가 상시 가능하므로 편하게 방문해 주시면 됩니다.
+                  주차 위치와 이용 가능 여부는 방문 시간에 따라 달라질 수 있으므로 상담 시 확인해 주세요.
                 </p>
               </div>
 
@@ -456,11 +494,15 @@ export default function HomePage() {
       {/* 수중 사진 큰 화면 모달 Lightbox */}
       {selectedPhoto && (
         <div
-          onClick={() => setSelectedPhoto(null)}
-          className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 cursor-pointer"
+          role="dialog"
+          aria-modal="true"
+          aria-label="수중 사진 확대 보기"
+          onMouseDown={event => { if (event.target === event.currentTarget) closeLightbox(); }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 p-4 backdrop-blur-sm"
         >
           <div className="relative max-w-4xl max-h-[85vh] w-full h-full">
             <Image src={selectedPhoto} alt="확대 사진" fill className="object-contain" />
+            <button ref={lightboxCloseRef} type="button" onClick={closeLightbox} className="absolute right-2 top-2 flex h-12 w-12 items-center justify-center rounded-full bg-white text-xl font-black text-slate-900 shadow-lg focus:outline-none focus:ring-2 focus:ring-cyan-400" aria-label="확대 사진 닫기">×</button>
           </div>
         </div>
       )}
@@ -469,15 +511,16 @@ export default function HomePage() {
       <footer className="border-t border-slate-200 bg-white py-10 px-4 text-center text-xs text-slate-500">
         <p className="font-bold text-slate-700 mb-1">{business.name} | 대표: {business.owner}</p>
         <p>사업자등록번호: {business.registration} | 주소: {centerAddress}</p>
-        <p className="mt-3 text-[10px] text-slate-400">© BLUE PEACE. All rights reserved.</p>
+        <div className="mt-4 flex flex-wrap justify-center gap-4 text-sm font-bold"><Link href="/privacy" className="text-cyan-800 underline underline-offset-4">개인정보 처리 안내</Link><Link href="/terms" className="text-cyan-800 underline underline-offset-4">이용 안내</Link></div>
+        <p className="mt-4 text-xs text-slate-400">© BLUE PEACE. All rights reserved.</p>
       </footer>
 
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-cyan-100 bg-white/95 px-4 pt-3 shadow-[0_-8px_24px_rgba(15,23,42,0.12)] backdrop-blur md:hidden" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
         <Link
-          href="/inquiry?course=freediving"
+          href="/inquiry"
           className="mx-auto flex min-h-12 max-w-md items-center justify-center rounded-2xl bg-cyan-600 px-5 text-base font-extrabold text-white shadow-lg shadow-cyan-600/20"
         >
-          지금 맞춤 강사 신청하기
+          과정과 가능한 일정 선택하기
         </Link>
       </div>
 

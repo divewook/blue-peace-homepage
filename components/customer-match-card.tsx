@@ -1,3 +1,5 @@
+import { scheduleLabel } from '../lib/booking-options';
+
 type CustomerMatch = {
   id: string;
   name: string;
@@ -8,6 +10,9 @@ type CustomerMatch = {
   preferred_days?: string[];
   preferred_schedule?: Record<string, string[]>;
   preferred_pool_options?: Record<string, { days?: string[]; times?: string[] }>;
+  schedule_mode?: 'exact' | 'flexible';
+  schedule_alternatives?: Array<{ poolId: string; dayId: string; slotId: string }>;
+  request_status?: 'matched' | 'pending_assignment';
   youth_participant_count?: number | null;
   youth_ages?: string | null;
   matched_instructor?: string;
@@ -44,14 +49,20 @@ export default function CustomerMatchCard({ customer, showAttribution = false }:
     ? customer.preferred_pool_options
     : Object.fromEntries(Object.entries(schedule).map(([poolName, times]) => [poolName, { days, times }]));
   const sourceDetail = [customer.traffic_source || '직접 방문', customer.traffic_medium].filter(Boolean).join(' · ');
+  const exactAlternatives = Array.isArray(customer.schedule_alternatives)
+    ? customer.schedule_alternatives.filter(option => option?.poolId && option?.dayId && option?.slotId)
+    : [];
+  const isPendingAssignment = customer.request_status === 'pending_assignment' || !customer.matched_instructor || customer.matched_instructor === '배정 대기';
 
   return (
-    <article className="rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5 text-sm leading-6">
+    <article className="break-keep rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 sm:p-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h4 className="font-bold text-slate-950">{customer.name} 님</h4>
-            {customer.matched_instructor && <span className="rounded-full bg-cyan-100 px-2.5 py-1 text-xs font-bold text-cyan-900">담당 {customer.matched_instructor} 강사</span>}
+            {isPendingAssignment
+              ? <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-900">강사 배정 대기</span>
+              : <span className="rounded-full bg-cyan-100 px-2.5 py-1 text-xs font-bold text-cyan-900">담당 {customer.matched_instructor} 강사</span>}
           </div>
           <a href={`tel:${customer.phone}`} className="mt-1 inline-block font-semibold text-cyan-800 hover:underline">{customer.phone}</a>
         </div>
@@ -77,16 +88,24 @@ export default function CustomerMatchCard({ customer, showAttribution = false }:
       )}
 
       <div className="mt-3 rounded-xl bg-white p-3 border border-slate-200">
-        <p className="text-xs font-bold text-slate-500">희망 풀장별 요일 · 시간대</p>
-        <div className="mt-2 space-y-2">
-          {Object.entries(poolOptions).map(([poolName, option]) => (
-            <div key={poolName} className="rounded-lg bg-slate-50 p-3">
-              <span className="font-bold text-slate-900">{poolName}</span>
-              <p className="mt-1 leading-6 text-slate-700"><span className="font-semibold">요일:</span> {option.days?.length ? option.days.join(' · ') : '정보 없음'}</p>
-              <p className="leading-6 text-slate-700"><span className="font-semibold">시간:</span> {option.times?.length ? option.times.join(' · ') : '정보 없음'}</p>
-            </div>
-          ))}
-        </div>
+        <p className="text-xs font-bold text-slate-500">희망 일정</p>
+        {customer.schedule_mode === 'flexible' ? (
+          <p className="mt-2 font-semibold text-slate-900">상담 후 일정 협의</p>
+        ) : exactAlternatives.length ? (
+          <ol className="mt-2 space-y-2">
+            {exactAlternatives.map((option, index) => <li key={`${option.poolId}-${option.dayId}-${option.slotId}-${index}`} className="rounded-lg bg-slate-50 p-3 font-semibold leading-6 text-slate-900">{index + 1}. {scheduleLabel(option)}</li>)}
+          </ol>
+        ) : (
+          <div className="mt-2 space-y-2">
+            {Object.entries(poolOptions).map(([poolName, option]) => (
+              <div key={poolName} className="rounded-lg bg-slate-50 p-3">
+                <span className="font-bold text-slate-900">{poolName}</span>
+                <p className="mt-1 leading-6 text-slate-700"><span className="font-semibold">요일:</span> {option.days?.length ? option.days.join(' · ') : '정보 없음'}</p>
+                <p className="leading-6 text-slate-700"><span className="font-semibold">시간:</span> {option.times?.length ? option.times.join(' · ') : '정보 없음'}</p>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {showAttribution && (

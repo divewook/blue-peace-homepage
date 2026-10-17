@@ -1,10 +1,9 @@
 import "./globals.css";
 import MarketingAttributionTracker from "../components/marketing-attribution";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
-  || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://www.freediving.pe.kr");
-const siteTitle = "대구·경북 최대 다이빙 전문 센터 | 블루피스 BLUE PEACE";
-const siteDescription = "대구·구미·경북 최대 다이빙 전문 센터 블루피스. 프리다이빙, 스쿠버다이빙, 유스, 머메이드, 수중안전요원 라이센스 및 무제한 트레이닝 보장.";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.bluepeace.co.kr";
+const siteTitle = "대구·경북 다이빙 교육 상담 | 블루피스 BLUE PEACE";
+const siteDescription = "칠곡과 밀양 풀장을 중심으로 프리다이빙, 스쿠버다이빙, 유스, 머메이드, 수중레저안전요원 과정을 상담하고 가능한 일정에 맞는 강사를 연결합니다.";
 
 const localBusinessData = {
   "@context": "https://schema.org",
