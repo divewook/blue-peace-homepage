@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminSupabase } from "../../../../lib/admin-supabase";
-import { bookingDays, bookingPools, validateInstructorSchedule } from "../../../../lib/booking-options";
+import { validateInstructorSchedule } from "../../../../lib/booking-options";
 import { instructorPrivateSafeFields } from "../../../../lib/instructor-fields";
 import { getInstructorSessionId } from "../../../../lib/instructor-session";
 
@@ -16,22 +16,6 @@ function cleanCourseLevels(value) {
     }
     return [course, typeof level === "string" ? level.trim().slice(0, 100) : "교육 불가"];
   }));
-}
-
-function scheduleLegacyFields(schedule) {
-  const update = {};
-  for (const poolId of ["passnine", "miryang"]) {
-    const days = schedule[poolId] || {};
-    update[`can_${poolId}`] = Object.values(days).some(slots => slots.length > 0);
-    for (const day of bookingDays) update[`${poolId}_day_${day.id}`] = Boolean(days[day.id]?.length);
-    for (const slot of bookingPools[poolId].slots) {
-      update[`${poolId}_${slot.id}`] = Object.values(days).some(slots => slots.includes(slot.id));
-    }
-  }
-  for (const day of bookingDays.filter(item => item.id !== "holiday")) {
-    update[`available_${day.id}`] = Boolean(schedule.passnine?.[day.id]?.length || schedule.miryang?.[day.id]?.length);
-  }
-  return update;
 }
 
 export async function PATCH(request) {
@@ -66,7 +50,7 @@ export async function PATCH(request) {
       if (!Number.isInteger(body.schedule_revision) || body.schedule_revision !== account.schedule_revision) {
         return NextResponse.json({ error: "다른 창에서 일정이 변경되었습니다. 새로고침 후 다시 확인해 주세요." }, { status: 409 });
       }
-      update = { schedule_by_day: checked.schedule, schedule_revision: account.schedule_revision + 1, ...scheduleLegacyFields(checked.schedule) };
+      update = { schedule_by_day: checked.schedule, schedule_revision: account.schedule_revision + 1 };
     }
     let query = supabase.from("instructors").update(update).eq("id", instructorId);
     if (body.section === "schedule") query = query.eq("schedule_revision", account.schedule_revision);

@@ -12,6 +12,7 @@ test('요일과 회차를 한 묶음으로 비교하고 일치한 대안을 돌�
   assert.deepEqual(findMatchingAlternative(newInstructor, [{ ...monday, slotId: 't2' }, saturday]), saturday);
   assert.equal(findMatchingAlternative(newInstructor, [{ ...saturday, poolId: 'miryang' }]), null);
   assert.equal(findMatchingAlternative(newInstructor, [{ ...monday, dayId: 'tue' }]), null);
+  assert.deepEqual(findMatchingAlternative({ ...newInstructor, can_passnine: false }, [monday]), monday);
 });
 
 test('구형 요일과 회차 조합은 선택한 모든 요일에 적용하던 기존 의미를 유지한다', () => {

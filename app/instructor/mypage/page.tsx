@@ -725,7 +725,7 @@ export default function InstructorPortal() {
     .filter(course => Array.isArray(course.level) ? course.level.length > 0 : course.level !== '교육 불가');
   const currentSchedule = getInstructorSchedule(currentInstructor);
   const availablePools = [bookingPools.passnine, bookingPools.miryang].filter(pool =>
-    currentInstructor?.[`can_${pool.id}`] && Object.values(currentSchedule?.[pool.id] || {}).some((slots: unknown) => Array.isArray(slots) && slots.length));
+    (currentInstructor?.schedule_by_day != null || currentInstructor?.[`can_${pool.id}`]) && Object.values(currentSchedule?.[pool.id] || {}).some((slots: unknown) => Array.isArray(slots) && slots.length));
 
   const profileComplete = hasCompleteInstructorProfile(currentInstructor);
   const approved = currentInstructor?.is_approved === true;
