@@ -20,6 +20,7 @@ const instructorPeriodOptions: Array<{ key: StatPeriod; label: string }> = [
   { key: 'all', label: '전체' }, { key: '1w', label: '1주' }, { key: '1m', label: '1개월' },
   { key: '6m', label: '6개월' }, { key: '1y', label: '1년' },
 ];
+const workDashboardLoadTime = Date.now();
 
 function koreaDateString(value = new Date()) {
   return new Intl.DateTimeFormat('en-CA', {
@@ -76,6 +77,7 @@ export default function InstructorPortal() {
   const [customers, setCustomers] = useState<any[]>([]);
   const [customersLoading, setCustomersLoading] = useState(false);
   const [customersError, setCustomersError] = useState('');
+  const [workFilter, setWorkFilter] = useState<'all'|'overdue'|'contact'|'lessons'>('all');
   const [allInstructors, setAllInstructors] = useState<any[]>([]);
   const [allCustomers, setAllCustomers] = useState<any[]>([]);
   const [deletingInstructorId, setDeletingInstructorId] = useState<string | null>(null);
@@ -692,7 +694,7 @@ export default function InstructorPortal() {
               <h3 className="text-base font-bold text-slate-900 mb-3">📋 전체 고객 매칭 세부 내역 ({filteredAllCustomers.length}건)</h3>
               <div className="space-y-3">
                 {filteredAllCustomers.map(cus => (
-                  <CustomerMatchCard key={cus.id} customer={cus} showAttribution />
+                  <CustomerMatchCard key={cus.id} customer={cus} showAttribution onWorkChanged={fetchAdminData} />
                 ))}
               </div>
             </div>
@@ -708,7 +710,24 @@ export default function InstructorPortal() {
   }
 
   // --- [뷰 5] 강사 페이지 (Instructor Dashboard) ---
-  const myFilteredCustomers = customers.filter(c => filterByPeriod(c.created_at));
+  const workPriority = (customer: { workflow?: { task_title?: string; task_completed_at?: string; task_due_at?: string; status?: string }; next_lesson?: unknown }) => {
+    if (customer.workflow?.task_title && !customer.workflow?.task_completed_at && customer.workflow.task_due_at && new Date(customer.workflow.task_due_at).getTime() < workDashboardLoadTime) return 0;
+    if (!customer.workflow?.status || customer.workflow.status === 'contact_needed') return 1;
+    if (customer.next_lesson) return 2;
+    if (customer.workflow.status === 'schedule_discussion') return 3;
+    return 4;
+  };
+  const myFilteredCustomers = customers.filter(c => filterByPeriod(c.created_at) &&
+    (workFilter === 'all' || (workFilter === 'overdue' && workPriority(c) === 0) ||
+      (workFilter === 'contact' && workPriority(c) === 1) || (workFilter === 'lessons' && !!c.next_lesson)));
+  const orderedCustomers = [...myFilteredCustomers].sort((a, b) => workPriority(a) - workPriority(b));
+  const overdueWork = customers.filter(c => workPriority(c) === 0).length;
+  const contactWork = customers.filter(c => workPriority(c) === 1).length;
+  const upcomingLessons = customers.filter(c => !!c.next_lesson).length;
+  const showWorkGroup = (group: 'overdue'|'contact'|'lessons') => {
+    setStatPeriod('all');setWorkFilter(group);
+    requestAnimationFrame(() => document.getElementById('applications-heading')?.scrollIntoView({behavior:'smooth'}));
+  };
   const savedLevels = currentInstructor?.course_levels || {};
   const availableCourses = Object.entries(courseLevelMap)
     .map(([name, levels]) => {
@@ -754,6 +773,12 @@ export default function InstructorPortal() {
 
         {dashboardNotice && <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-6 text-emerald-900">{dashboardNotice}</div>}
 
+        {!customersLoading && !customersError && customers.length > 0 && <section aria-label="처리할 일 요약" className="grid grid-cols-3 gap-2">
+          <button type="button" aria-pressed={workFilter==='overdue'} onClick={() => showWorkGroup('overdue')} className="min-h-20 rounded-xl border border-amber-200 bg-white p-2 text-center text-sm font-semibold">기한 지난 일<br/><strong className="text-xl">{overdueWork}</strong>건</button>
+          <button type="button" aria-pressed={workFilter==='contact'} onClick={() => showWorkGroup('contact')} className="min-h-20 rounded-xl border border-cyan-200 bg-white p-2 text-center text-sm font-semibold">연락·상태<br/><strong className="text-xl">{contactWork}</strong>건</button>
+          <button type="button" aria-pressed={workFilter==='lessons'} onClick={() => showWorkGroup('lessons')} className="min-h-20 rounded-xl border border-emerald-200 bg-white p-2 text-center text-sm font-semibold">예정 수업<br/><strong className="text-xl">{upcomingLessons}</strong>건</button>
+        </section>}
+
         <section aria-labelledby="applications-heading" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
           <div className="border-b border-slate-100 pb-4">
             <p className="text-sm font-bold text-cyan-700">신청 업무</p>
@@ -762,9 +787,10 @@ export default function InstructorPortal() {
               <p className="text-sm font-semibold text-slate-700">전체 {customers.length}건 · 현재 {myFilteredCustomers.length}건</p>
             </div>
             <p className="mt-2 text-sm leading-6 text-slate-600">기간은 고객의 상담 신청 접수일을 기준으로 합니다. 처음에는 오래된 미처리 신청도 빠지지 않도록 전체를 표시합니다.</p>
+            {workFilter!=='all' && <button type="button" onClick={()=>setWorkFilter('all')} className="mt-2 min-h-11 rounded-lg border border-cyan-300 px-3 text-sm font-semibold text-cyan-800">업무 분류 해제 · 전체 보기</button>}
             <div className="mt-4 grid grid-cols-3 gap-2 min-[430px]:flex min-[430px]:flex-wrap" aria-label="신청 기간 필터">
               {instructorPeriodOptions.map(option => (
-                <button key={option.key} type="button" aria-pressed={statPeriod === option.key} onClick={() => setStatPeriod(option.key)} className={`min-h-11 rounded-xl border px-3 text-sm font-bold ${statPeriod === option.key ? 'border-cyan-600 bg-cyan-50 text-cyan-900' : 'border-slate-200 bg-white text-slate-600'}`}>{statPeriod === option.key ? '✓ ' : ''}{option.label}</button>
+                <button key={option.key} type="button" aria-pressed={statPeriod === option.key} onClick={() => {setStatPeriod(option.key);setWorkFilter('all')}} className={`min-h-11 rounded-xl border px-3 text-sm font-bold ${statPeriod === option.key ? 'border-cyan-600 bg-cyan-50 text-cyan-900' : 'border-slate-200 bg-white text-slate-600'}`}>{statPeriod === option.key ? '✓ ' : ''}{option.label}</button>
               ))}
             </div>
           </div>
@@ -772,8 +798,8 @@ export default function InstructorPortal() {
             {customersLoading ? <div role="status" className="rounded-xl bg-slate-50 p-6 text-center text-sm text-slate-600">신청 내역을 불러오는 중입니다…</div>
               : customersError ? <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-5"><p className="font-bold text-red-900">신청 내역을 불러오지 못했습니다.</p><p className="mt-1 text-sm leading-6 text-red-800">{customersError}</p><button type="button" onClick={fetchMyCustomers} className="mt-3 min-h-11 rounded-xl bg-red-800 px-4 text-sm font-bold text-white">다시 불러오기</button></div>
               : customers.length === 0 ? <div className="rounded-xl bg-slate-50 p-6 text-center"><p className="font-bold">아직 배정된 상담 신청이 없습니다.</p><p className="mt-2 text-sm leading-6 text-slate-600">신청이 배정되면 이곳에서 고객 정보와 요청 조건을 확인할 수 있습니다.</p></div>
-              : myFilteredCustomers.length === 0 ? <div className="rounded-xl bg-slate-50 p-6 text-center"><p className="font-bold">선택한 기간에 접수된 신청이 없습니다.</p><button type="button" onClick={() => setStatPeriod('all')} className="mt-3 min-h-11 rounded-xl border border-slate-300 bg-white px-4 text-sm font-bold">전체 기간 보기</button></div>
-              : <div className="space-y-3">{myFilteredCustomers.map(customer => <CustomerMatchCard key={customer.id} customer={customer} />)}</div>}
+              : myFilteredCustomers.length === 0 ? <div className="rounded-xl bg-slate-50 p-6 text-center"><p className="font-bold">{workFilter==='all'?'선택한 기간에 접수된 신청이 없습니다.':'이 분류에 해당하는 업무가 없습니다.'}</p><button type="button" onClick={() => {setStatPeriod('all');setWorkFilter('all')}} className="mt-3 min-h-11 rounded-xl border border-slate-300 bg-white px-4 text-sm font-bold">전체 신청 보기</button></div>
+              : <div className="space-y-3">{orderedCustomers.map(customer => <CustomerMatchCard key={customer.id} customer={customer} onWorkChanged={fetchMyCustomers} />)}</div>}
           </div>
         </section>
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { hasAdminSession } from "../../../../lib/admin-session";
 import { createAdminSupabase } from "../../../../lib/admin-supabase";
+import { enrichCustomerWork } from "../../../../lib/customer-work-summary";
 
 export const runtime = "nodejs";
 
@@ -24,7 +25,7 @@ export async function GET() {
       return NextResponse.json({ error: customers.error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ instructors: instructors.data ?? [], customers: customers.data ?? [] });
+    return NextResponse.json({ instructors: instructors.data ?? [], customers: await enrichCustomerWork(supabase, customers.data ?? []) });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 503 });
   }

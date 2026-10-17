@@ -1,4 +1,6 @@
 import { scheduleLabel } from '../lib/booking-options';
+import CustomerWorkPanel from './customer-work-panel';
+import { consultationStatuses } from '../lib/customer-work';
 
 type CustomerMatch = {
   id: string;
@@ -26,6 +28,8 @@ type CustomerMatch = {
   landing_url?: string;
   referrer_url?: string;
   device_type?: string;
+  workflow?: { status?: string | null; task_title?: string | null; task_due_at?: string | null; task_completed_at?: string | null } | null;
+  next_lesson?: { lesson_date: string; start_time: string; status: string } | null;
 };
 
 function safeHost(url?: string) {
@@ -41,7 +45,7 @@ function safeLanding(url?: string) {
   } catch { return ''; }
 }
 
-export default function CustomerMatchCard({ customer, showAttribution = false }: { customer: CustomerMatch; showAttribution?: boolean }) {
+export default function CustomerMatchCard({ customer, showAttribution = false, onWorkChanged }: { customer: CustomerMatch; showAttribution?: boolean; onWorkChanged?: () => void }) {
   const days = customer.preferred_days?.length ? customer.preferred_days : [];
   const schedule = customer.preferred_schedule && Object.keys(customer.preferred_schedule).length
     ? customer.preferred_schedule
@@ -109,6 +113,13 @@ export default function CustomerMatchCard({ customer, showAttribution = false }:
         )}
       </div>
       {customer.matched_schedule && <p className="mt-3 rounded-xl bg-cyan-50 p-3 text-sm font-semibold leading-6 text-cyan-900">배정 시 일치한 상담 가능 일정: {scheduleLabel(customer.matched_schedule)} · 실제 수업 예약은 상담 후 확정</p>}
+
+      <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3 text-base leading-7">
+        <p className="font-bold text-slate-900">상담: {customer.workflow?.status ? consultationStatuses[customer.workflow.status as keyof typeof consultationStatuses] : '진행 상태 미기록'}</p>
+        {customer.workflow?.task_title && !customer.workflow.task_completed_at && <p>다음 할 일: {customer.workflow.task_title}{customer.workflow.task_due_at ? ` · ${new Date(customer.workflow.task_due_at).toLocaleString('ko-KR')}` : ''}</p>}
+        {customer.next_lesson && <p>가까운 확정 수업: {customer.next_lesson.lesson_date} {customer.next_lesson.start_time.slice(0, 5)}</p>}
+      </div>
+      <CustomerWorkPanel customerId={customer.id} onChanged={onWorkChanged} />
 
       {showAttribution && (
         <details className="group mt-3 rounded-xl border border-indigo-200 bg-indigo-50 p-3">

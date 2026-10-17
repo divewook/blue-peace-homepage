@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminSupabase } from "../../../../lib/admin-supabase";
 import { getInstructorSessionId } from "../../../../lib/instructor-session";
+import { enrichCustomerWork } from "../../../../lib/customer-work-summary";
 
 export const runtime = "nodejs";
 
@@ -18,7 +19,7 @@ export async function GET() {
       .eq("matched_instructor_id", instructorId)
       .order("created_at", { ascending: false });
     if (error) throw error;
-    return NextResponse.json({ customers: data ?? [] });
+    return NextResponse.json({ customers: await enrichCustomerWork(supabase, data ?? []) });
   } catch {
     return NextResponse.json({ error: "매칭 내역을 불러오지 못했습니다." }, { status: 503 });
   }

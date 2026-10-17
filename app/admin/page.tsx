@@ -259,7 +259,7 @@ export default function AdminDashboard() {
             <h3 className="text-base font-bold text-slate-900 mb-3">📋 고객 매칭 세부 신청 내역 ({filteredCustomers.length}건)</h3>
             <div className="space-y-3">
               {filteredCustomers.slice(0, visibleCustomerCount).map(cus => (
-                <CustomerMatchCard key={cus.id} customer={cus} showAttribution />
+                <CustomerMatchCard key={cus.id} customer={cus} showAttribution onWorkChanged={fetchAdminData} />
               ))}
             </div>
             {filteredCustomers.length > visibleCustomerCount && (
@@ -314,7 +314,7 @@ export default function AdminDashboard() {
               {selectedInstructorCustomers.length ? (
                 <div className="space-y-3">
                   {selectedInstructorCustomers.slice(0, modalVisibleCount).map(customer => (
-                    <CustomerMatchCard key={customer.id} customer={customer} showAttribution />
+                    <CustomerMatchCard key={customer.id} customer={customer} showAttribution onWorkChanged={fetchAdminData} />
                   ))}
                   {selectedInstructorCustomers.length > modalVisibleCount && (
                     <button
