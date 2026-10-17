@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 
 const storageKey = 'bluepeace_first_touch';
 
@@ -77,12 +78,16 @@ export function getMarketingAttribution(): MarketingAttribution {
 }
 
 export default function MarketingAttributionTracker() {
+  const pathname = usePathname();
+
   useEffect(() => {
+    if (pathname === '/TEST' || pathname.startsWith('/TEST/')) return;
+
     try {
       if (!localStorage.getItem(storageKey)) {
         localStorage.setItem(storageKey, JSON.stringify(createAttribution()));
       }
     } catch {}
-  }, []);
+  }, [pathname]);
   return null;
 }
