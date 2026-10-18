@@ -422,7 +422,7 @@ export default function HomePage() {
                     </span>
                   </div>
                   <h3 className="text-sm font-bold text-slate-900 mb-2">{rev.title}</h3>
-                  <p className="text-sm font-medium leading-6 text-slate-600">"{rev.quote}"</p>
+                  <p className="text-sm font-medium leading-6 text-slate-600">&ldquo;{rev.quote}&rdquo;</p>
                 </div>
                 <p className="text-[11px] text-slate-400 mt-4 pt-3 border-t border-slate-200 text-right">
                   작성자: {rev.author} 님

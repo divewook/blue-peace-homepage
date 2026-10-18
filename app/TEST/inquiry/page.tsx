@@ -48,34 +48,40 @@ function TestInquiryForm() {
   const [submitting, setSubmitting] = useState(false);
   const [completed, setCompleted] = useState(false);
   const [matchedInstructor, setMatchedInstructor] = useState<PublicInstructor | null>(null);
+  const [draftReady, setDraftReady] = useState(false);
 
   const selectedCourse = useMemo(() => getCourse(courseId), [courseId]);
   const selectedLevel = selectedCourse?.levels.find((level: { id: string }) => level.id === levelId) || null;
 
   useEffect(() => {
-    const queryCourse = courseParamMap[searchParams.get('course') || ''];
-    if (queryCourse) {
-      setCourseId(queryCourse);
-      setLevelId('');
-      return;
-    }
-    try {
-      const saved = JSON.parse(sessionStorage.getItem('bluepeace_test_inquiry_draft') || 'null');
-      if (!saved || typeof saved !== 'object') return;
-      if (saved.courseId === 'unsure' || getCourse(saved.courseId)) setCourseId(saved.courseId);
-      if (typeof saved.levelId === 'string') setLevelId(saved.levelId);
-      if (saved.scheduleMode === 'exact' || saved.scheduleMode === 'flexible') setScheduleMode(saved.scheduleMode);
-      if (Array.isArray(saved.alternatives) && saved.alternatives.length) {
-        setAlternatives(saved.alternatives.slice(0, 8).map((item: ScheduleAlternative, index: number) => ({
-          id: `restored-${index}`, poolId: item.poolId || '', dayId: item.dayId || '', slotId: item.slotId || '',
-        })));
+    const timer = setTimeout(() => {
+      const queryCourse = courseParamMap[searchParams.get('course') || ''];
+      if (queryCourse) {
+        setCourseId(queryCourse);
+        setLevelId('');
+        setDraftReady(true);
+        return;
       }
-    } catch {}
+      try {
+        const saved = JSON.parse(sessionStorage.getItem('bluepeace_test_inquiry_draft') || 'null');
+        if (!saved || typeof saved !== 'object') return;
+        if (saved.courseId === 'unsure' || getCourse(saved.courseId)) setCourseId(saved.courseId);
+        if (typeof saved.levelId === 'string') setLevelId(saved.levelId);
+        if (saved.scheduleMode === 'exact' || saved.scheduleMode === 'flexible') setScheduleMode(saved.scheduleMode);
+        if (Array.isArray(saved.alternatives) && saved.alternatives.length) {
+          setAlternatives(saved.alternatives.slice(0, 8).map((item: ScheduleAlternative, index: number) => ({
+            id: `restored-${index}`, poolId: item.poolId || '', dayId: item.dayId || '', slotId: item.slotId || '',
+          })));
+        }
+      } catch {} finally { setDraftReady(true); }
+    }, 0);
+    return () => clearTimeout(timer);
   }, [searchParams]);
 
   useEffect(() => {
+    if (!draftReady) return;
     try { sessionStorage.setItem('bluepeace_test_inquiry_draft', JSON.stringify({ courseId, levelId, scheduleMode, alternatives })); } catch {}
-  }, [courseId, levelId, scheduleMode, alternatives]);
+  }, [draftReady, courseId, levelId, scheduleMode, alternatives]);
 
   function chooseCourse(nextCourseId: string) {
     setCourseId(nextCourseId);

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import CustomerMatchCard from '../../components/customer-match-card';
 import MarketingSummary from '../../components/marketing-summary';
 
@@ -152,7 +153,7 @@ export default function AdminDashboard() {
               관리자 접속
             </button>
           </form>
-          <a href="/" className="text-xs text-slate-400 hover:underline inline-block">← 메인으로</a>
+          <Link href="/" className="text-xs text-slate-400 hover:underline inline-block">← 메인으로</Link>
         </div>
       </div>
     );

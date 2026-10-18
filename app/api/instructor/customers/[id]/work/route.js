@@ -31,6 +31,10 @@ function dbFailure(error) {
   if (message.includes('request_key_conflict')) return fail('요청 식별자가 다른 변경에 사용되었습니다.',409);
   if (message.includes('change_reason_required')) return fail('변경 사유를 입력해 주세요.',400);
   if (message.includes('travel_confirmation_required')) return fail('같은 날 다른 풀장 수업이 있습니다. 이동 가능 여부와 근거를 기록해 주세요.',409);
+  if (message.includes('customer_one_active_first_lesson_idx')) return fail('이 신청에 이미 제안·확정된 첫 수업이 있습니다. 기존 일정을 변경해 주세요.',409);
+  if (message.includes('future_confirmed_lesson_exists')) return fail('미래 확정 수업이 남아 있어 상담을 종료할 수 없습니다. 일정을 먼저 확인해 주세요.',409);
+  if (message.includes('consultation_closed')) return fail('종료된 상담에는 새 수업을 제안하거나 확정할 수 없습니다. 상담 상태를 먼저 정정해 주세요.',409);
+  if (message.includes('confirmed_lesson_required')) return fail('확정 수업이 없어 첫 수업 확정 상태로 변경할 수 없습니다.',409);
   return fail('저장하지 못했습니다. 입력값과 최신 신청 상태를 확인해 주세요.',500);
 }
 export async function GET(_request,{params}) {
@@ -42,7 +46,9 @@ export async function GET(_request,{params}) {
       ctx.db.from('customer_workflow_events').select('*').eq('customer_id',ctx.customer.id).order('created_at',{ascending:false}).limit(50),
     ]);
     if(workflow.error || lessons.error || events.error) throw workflow.error || lessons.error || events.error;
-    return NextResponse.json({customer:ctx.customer,workflow:workflow.data,lessons:lessons.data||[],events:events.data||[]});
+    const now=Date.now();
+    return NextResponse.json({customer:ctx.customer,workflow:workflow.data,
+      lessons:(lessons.data||[]).map(item=>({...item,is_past:item.status==='confirmed'&&new Date(item.ends_at).getTime()<now})),events:events.data||[]});
   } catch { return fail('업무 정보를 불러오지 못했습니다.',503); }
 }
 export async function PATCH(request,{params}) {
@@ -72,11 +78,14 @@ export async function POST(request,{params}) {
     ]);
     if(!instructorResult.data || instructorResult.error || confirmedResult.error) return fail('담당 강사 정보를 확인하지 못했습니다.',503);
     if(lessonId && !existingResult.data) return fail('수업을 찾을 수 없습니다.',404);
-    const validation=validateLessonInput(body.lesson,ctx.customer,instructorResult.data,existingResult.data,confirmedResult.data||[]);
+    const lessonPayload=body.lesson?.status==='cancelled'&&existingResult.data
+      ? {...existingResult.data,status:'cancelled',change_reason:body.lesson.change_reason}
+      : body.lesson;
+    const validation=validateLessonInput(lessonPayload,ctx.customer,instructorResult.data,existingResult.data,confirmedResult.data||[]);
     if(validation) return fail(validation,400);
     const {data,error}=await ctx.db.rpc('save_customer_lesson',{
       p_customer:ctx.customer.id,p_lesson:lessonId,p_actor_type:ctx.actorType,p_actor_id:ctx.actorId,
-      p_expected_revision:body.revision,p_payload:body.lesson,p_request_key:body.requestKey,
+      p_expected_revision:body.revision,p_payload:lessonPayload,p_request_key:body.requestKey,
     });
     if(error) return dbFailure(error);
     return NextResponse.json({lesson:data});

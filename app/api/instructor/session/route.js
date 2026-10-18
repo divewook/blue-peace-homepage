@@ -35,7 +35,8 @@ export async function POST(request) {
       return NextResponse.json({ error: "관리자 승인 후 로그인할 수 있습니다." }, { status: 403 });
     }
     await clearLoginFailures(loginLimit.key);
-    const { password_hash: _passwordHash, ...instructor } = data;
+    const instructor = { ...data };
+    delete instructor.password_hash;
     const response = NextResponse.json({ instructor });
     response.cookies.set(instructorCookieName, createInstructorSession(data.id), instructorCookieOptions);
     return response;

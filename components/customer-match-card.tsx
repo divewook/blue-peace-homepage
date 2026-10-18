@@ -2,8 +2,9 @@ import { scheduleLabel } from '../lib/booking-options';
 import CustomerWorkPanel from './customer-work-panel';
 import { consultationStatuses } from '../lib/customer-work';
 
-type CustomerMatch = {
+export type CustomerMatch = {
   id: string;
+  matched_instructor_id?: string | null;
   name: string;
   phone: string;
   course: string;
@@ -30,6 +31,10 @@ type CustomerMatch = {
   device_type?: string;
   workflow?: { status?: string | null; task_title?: string | null; task_due_at?: string | null; task_completed_at?: string | null } | null;
   next_lesson?: { lesson_date: string; start_time: string; status: string } | null;
+  upcoming_lesson_count?: number;
+  past_unresolved_lesson_count?: number;
+  closed_with_future_lesson?: boolean;
+  reassigned_future_lesson_count?: number;
 };
 
 function safeHost(url?: string) {
@@ -116,6 +121,9 @@ export default function CustomerMatchCard({ customer, showAttribution = false, o
 
       <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3 text-base leading-7">
         <p className="font-bold text-slate-900">상담: {customer.workflow?.status ? consultationStatuses[customer.workflow.status as keyof typeof consultationStatuses] : '진행 상태 미기록'}</p>
+        {customer.closed_with_future_lesson && <p className="font-semibold text-amber-900">종료된 상담에 미래 확정 수업이 남아 있습니다. 담당자와 일정을 확인해 주세요.</p>}
+        {!!customer.past_unresolved_lesson_count && customer.workflow?.status !== 'closed' && <p className="font-semibold text-amber-900">지난 확정 수업 {customer.past_unresolved_lesson_count}건의 진행 여부를 확인하고 상담 상태를 정리해 주세요. 자동으로 완료되지 않습니다.</p>}
+        {!!customer.reassigned_future_lesson_count && <p className="font-semibold text-amber-900">담당 변경 전 강사에게 연결된 미래 수업 {customer.reassigned_future_lesson_count}건이 남아 있습니다. 대표에게 확인해 주세요.</p>}
         {customer.workflow?.task_title && !customer.workflow.task_completed_at && <p>다음 할 일: {customer.workflow.task_title}{customer.workflow.task_due_at ? ` · ${new Date(customer.workflow.task_due_at).toLocaleString('ko-KR')}` : ''}</p>}
         {customer.next_lesson && <p>가까운 확정 수업: {customer.next_lesson.lesson_date} {customer.next_lesson.start_time.slice(0, 5)}</p>}
       </div>

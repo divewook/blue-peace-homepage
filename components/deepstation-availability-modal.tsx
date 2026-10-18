@@ -59,7 +59,7 @@ function AvailabilityBadge({ available }: { available: boolean }) {
 }
 
 export default function DeepstationAvailabilityModal({ onClose }: { onClose: () => void }) {
-  const today = useMemo(koreaToday, []);
+  const today = useMemo(() => koreaToday(), []);
   const lastDate = useMemo(() => addDays(today, 90), [today]);
   const [selectedDate, setSelectedDate] = useState(today);
   const [visibleMonth, setVisibleMonth] = useState(today.slice(0, 7));
@@ -92,8 +92,8 @@ export default function DeepstationAvailabilityModal({ onClose }: { onClose: () 
 
   useEffect(() => {
     const controller = new AbortController();
-    void loadAvailability(controller.signal);
-    return () => controller.abort();
+    const timer = setTimeout(() => void loadAvailability(controller.signal), 0);
+    return () => { clearTimeout(timer); controller.abort(); };
   }, [loadAvailability, reloadKey]);
 
   useEffect(() => {

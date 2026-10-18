@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import CustomerMatchCard from '../../../components/customer-match-card';
+import Link from 'next/link';
+import CustomerMatchCard, { type CustomerMatch } from '../../../components/customer-match-card';
 import { hasCompleteInstructorProfile } from '../../../lib/instructor-fields';
 import { bookingPools, getInstructorSchedule, validateInstructorSchedule } from '../../../lib/booking-options';
+import { customerWorkPriority, customerWorkTotals } from '../../../lib/customer-work-summary';
 import InstructorScheduleEditor from '../../../components/instructor-schedule-editor';
 import MarketingSummary from '../../../components/marketing-summary';
 import Pass9AvailabilityModal from '../../../components/pass9-availability-modal';
@@ -12,6 +14,22 @@ import ParadiveAvailabilityModal from '../../../components/paradive-availability
 import MarinaAvailabilityModal from '../../../components/marina-availability-modal';
 
 type StatPeriod = 'all' | '1d' | '1w' | '1m' | '6m' | '1y' | 'custom';
+type InstructorRecord = {
+  id: string;
+  name: string;
+  username: string;
+  is_approved: boolean;
+  schedule_revision?: number;
+  schedule_by_day?: Record<string, Record<string, string[]>> | null;
+  course_levels?: Record<string, string | string[]>;
+  max_freediving_level?: number;
+  max_mermaid_level?: number;
+  max_youth_level?: number;
+  can_safety_guard?: boolean;
+  can_scuba?: boolean;
+  can_special?: boolean;
+  [key: string]: unknown;
+};
 const statPeriodOptions: Array<{ key: Exclude<StatPeriod, 'custom'>; label: string }> = [
   { key: '1d', label: '1일(오늘)' }, { key: '1w', label: '1주일' }, { key: '1m', label: '1개월' },
   { key: '6m', label: '6개월' }, { key: '1y', label: '1년' },
@@ -73,13 +91,20 @@ export default function InstructorPortal() {
   const [signupPw, setSignupPw] = useState('');
   const [signupPhone, setSignupPhone] = useState('');
 
-  const [currentInstructor, setCurrentInstructor] = useState<any>(null);
-  const [customers, setCustomers] = useState<any[]>([]);
+  const [currentInstructor, setCurrentInstructor] = useState<InstructorRecord | null>(null);
+  const [customers, setCustomers] = useState<CustomerMatch[]>([]);
   const [customersLoading, setCustomersLoading] = useState(false);
   const [customersError, setCustomersError] = useState('');
+  const [customersRefreshError, setCustomersRefreshError] = useState('');
   const [workFilter, setWorkFilter] = useState<'all'|'overdue'|'contact'|'lessons'>('all');
-  const [allInstructors, setAllInstructors] = useState<any[]>([]);
-  const [allCustomers, setAllCustomers] = useState<any[]>([]);
+  const [workNow, setWorkNow] = useState(workDashboardLoadTime);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setWorkNow(Date.now()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const [allInstructors, setAllInstructors] = useState<InstructorRecord[]>([]);
+  const [allCustomers, setAllCustomers] = useState<CustomerMatch[]>([]);
   const [deletingInstructorId, setDeletingInstructorId] = useState<string | null>(null);
   const [statPeriod, setStatPeriod] = useState<StatPeriod>('1m');
   const [customStartDate, setCustomStartDate] = useState(() => shiftDate(koreaDateString(), { months: -1 }));
@@ -277,18 +302,23 @@ export default function InstructorPortal() {
     }
   };
 
-  const fetchMyCustomers = async () => {
-    setCustomersLoading(true);
-    setCustomersError('');
+  const fetchMyCustomers = async (showLoading = true) => {
+    if (showLoading) {
+      setCustomersLoading(true);
+      setCustomersError('');
+    }
+    setCustomersRefreshError('');
     try {
       const response = await fetch('/api/instructor/customers', { cache: 'no-store' });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || '매칭 내역을 불러오지 못했습니다.');
       setCustomers(result.customers || []);
     } catch (error) {
-      setCustomersError(error instanceof Error ? error.message : '매칭 내역을 불러오지 못했습니다.');
+      const message = error instanceof Error ? error.message : '매칭 내역을 불러오지 못했습니다.';
+      if (showLoading) setCustomersError(message);
+      else setCustomersRefreshError(message);
     } finally {
-      setCustomersLoading(false);
+      if (showLoading) setCustomersLoading(false);
     }
   };
 
@@ -429,7 +459,7 @@ export default function InstructorPortal() {
             </button>
           </form>
           <div className="flex justify-between items-center text-xs pt-2">
-            <a href="/" className="text-slate-400 hover:underline">← 메인으로</a>
+            <Link href="/" className="text-slate-400 hover:underline">← 메인으로</Link>
             <button onClick={() => setView('signup')} className="text-cyan-600 font-bold hover:underline cursor-pointer">
               소속강사 회원가입 →
             </button>
@@ -535,9 +565,14 @@ export default function InstructorPortal() {
                           key={lvl}
                           type="button"
                           aria-pressed={isSelected}
-                          onClick={() => { setProfileDirty(true); courseName === '스페셜 교육'
-                            ? setSelectedSpecialCourses(previous => previous.includes(lvl) ? previous.filter(value => value !== lvl) : [...previous, lvl])
-                            : setMaxLevels({ ...maxLevels, [courseName]: lvl }); }}
+                          onClick={() => {
+                            setProfileDirty(true);
+                            if (courseName === '스페셜 교육') {
+                              setSelectedSpecialCourses(previous => previous.includes(lvl) ? previous.filter(value => value !== lvl) : [...previous, lvl]);
+                            } else {
+                              setMaxLevels({ ...maxLevels, [courseName]: lvl });
+                            }
+                          }}
                           className={`min-h-12 py-3 px-2 rounded-xl text-xs leading-5 font-bold border transition cursor-pointer ${
                             isSelected ? 'bg-cyan-600 text-white border-cyan-500 shadow-xs' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
                           }`}
@@ -710,22 +745,12 @@ export default function InstructorPortal() {
   }
 
   // --- [뷰 5] 강사 페이지 (Instructor Dashboard) ---
-  const workPriority = (customer: { workflow?: { task_title?: string; task_completed_at?: string; task_due_at?: string; status?: string }; next_lesson?: unknown }) => {
-    if (customer.workflow?.task_title && !customer.workflow?.task_completed_at && customer.workflow.task_due_at && new Date(customer.workflow.task_due_at).getTime() < workDashboardLoadTime) return 0;
-    if (!customer.workflow?.status || customer.workflow.status === 'contact_needed') return 1;
-    if (customer.next_lesson) return 2;
-    if (customer.workflow.status === 'schedule_discussion') return 3;
-    return 4;
-  };
+  const workPriority = (customer: CustomerMatch) => customerWorkPriority(customer, workNow);
   const myFilteredCustomers = customers.filter(c => filterByPeriod(c.created_at) &&
     (workFilter === 'all' || (workFilter === 'overdue' && workPriority(c) === 0) ||
-      (workFilter === 'contact' && workPriority(c) === 1) || (workFilter === 'lessons' && !!c.next_lesson)));
+      (workFilter === 'contact' && workPriority(c) === 1) || (workFilter === 'lessons' && !!c.upcoming_lesson_count)));
   const orderedCustomers = [...myFilteredCustomers].sort((a, b) => workPriority(a) - workPriority(b));
-  const overdueWork = customers.filter(c => workPriority(c) === 0).length;
-  const contactWork = customers.filter(c => workPriority(c) === 1).length;
-  const upcomingLessons = customers.filter(c => !!c.next_lesson).length;
-  const nearestLesson = customers.filter(c => !!c.next_lesson)
-    .sort((a,b) => `${a.next_lesson.lesson_date} ${a.next_lesson.start_time}`.localeCompare(`${b.next_lesson.lesson_date} ${b.next_lesson.start_time}`))[0];
+  const {overdue:overdueWork,contact:contactWork,upcoming:upcomingLessons,nearest:nearestLesson} = customerWorkTotals(customers,workNow);
   const showWorkGroup = (group: 'overdue'|'contact'|'lessons') => {
     setStatPeriod('all');setWorkFilter(group);
     requestAnimationFrame(() => document.getElementById('applications-heading')?.scrollIntoView({behavior:'smooth'}));
@@ -746,7 +771,7 @@ export default function InstructorPortal() {
     .filter(course => Array.isArray(course.level) ? course.level.length > 0 : course.level !== '교육 불가');
   const currentSchedule = getInstructorSchedule(currentInstructor);
   const availablePools = [bookingPools.passnine, bookingPools.miryang].filter(pool =>
-    (currentInstructor?.schedule_by_day != null || currentInstructor?.[`can_${pool.id}`]) && Object.values(currentSchedule?.[pool.id] || {}).some((slots: unknown) => Array.isArray(slots) && slots.length));
+    (currentInstructor?.schedule_by_day != null || currentInstructor?.[`can_${pool.id}`] === true) && Object.values(currentSchedule?.[pool.id] || {}).some((slots: unknown) => Array.isArray(slots) && slots.length));
 
   const profileComplete = hasCompleteInstructorProfile(currentInstructor);
   const approved = currentInstructor?.is_approved === true;
@@ -786,6 +811,7 @@ export default function InstructorPortal() {
         </p>}
 
         <section aria-labelledby="applications-heading" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+          {customersRefreshError && <p role="alert" className="mb-3 rounded-xl bg-red-50 p-3 text-sm text-red-800">신청 목록 갱신에 실패했습니다. 상세 저장 결과를 확인하고 목록을 다시 불러와 주세요. {customersRefreshError}</p>}
           <div className="border-b border-slate-100 pb-4">
             <p className="text-sm font-bold text-cyan-700">신청 업무</p>
             <div className="mt-1 flex flex-wrap items-end justify-between gap-2">
@@ -802,10 +828,10 @@ export default function InstructorPortal() {
           </div>
           <div className="pt-4">
             {customersLoading ? <div role="status" className="rounded-xl bg-slate-50 p-6 text-center text-sm text-slate-600">신청 내역을 불러오는 중입니다…</div>
-              : customersError ? <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-5"><p className="font-bold text-red-900">신청 내역을 불러오지 못했습니다.</p><p className="mt-1 text-sm leading-6 text-red-800">{customersError}</p><button type="button" onClick={fetchMyCustomers} className="mt-3 min-h-11 rounded-xl bg-red-800 px-4 text-sm font-bold text-white">다시 불러오기</button></div>
+              : customersError ? <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-5"><p className="font-bold text-red-900">신청 내역을 불러오지 못했습니다.</p><p className="mt-1 text-sm leading-6 text-red-800">{customersError}</p><button type="button" onClick={() => { void fetchMyCustomers(); }} className="mt-3 min-h-11 rounded-xl bg-red-800 px-4 text-sm font-bold text-white">다시 불러오기</button></div>
               : customers.length === 0 ? <div className="rounded-xl bg-slate-50 p-6 text-center"><p className="font-bold">아직 배정된 상담 신청이 없습니다.</p><p className="mt-2 text-sm leading-6 text-slate-600">신청이 배정되면 이곳에서 고객 정보와 요청 조건을 확인할 수 있습니다.</p></div>
               : myFilteredCustomers.length === 0 ? <div className="rounded-xl bg-slate-50 p-6 text-center"><p className="font-bold">{workFilter==='all'?'선택한 기간에 접수된 신청이 없습니다.':'이 분류에 해당하는 업무가 없습니다.'}</p><button type="button" onClick={() => {setStatPeriod('all');setWorkFilter('all')}} className="mt-3 min-h-11 rounded-xl border border-slate-300 bg-white px-4 text-sm font-bold">전체 신청 보기</button></div>
-              : <div className="space-y-3">{orderedCustomers.map(customer => <CustomerMatchCard key={customer.id} customer={customer} onWorkChanged={fetchMyCustomers} />)}</div>}
+              : <div className="space-y-3">{orderedCustomers.map(customer => <CustomerMatchCard key={customer.id} customer={customer} onWorkChanged={() => { void fetchMyCustomers(false); }} />)}</div>}
           </div>
         </section>
 

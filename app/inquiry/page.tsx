@@ -57,45 +57,53 @@ function TestInquiryForm() {
   const [matchedInstructor, setMatchedInstructor] = useState<PublicInstructor | null>(null);
   const [requestStatus, setRequestStatus] = useState<'matched' | 'pending_assignment'>('pending_assignment');
   const [requestKey, setRequestKey] = useState('');
+  const [draftReady, setDraftReady] = useState(false);
 
   const selectedCourse = useMemo(() => getCourse(courseId), [courseId]);
   const selectedLevel = selectedCourse?.levels.find((level: { id: string }) => level.id === levelId) || null;
 
   useEffect(() => {
-    const queryCourse = courseParamMap[searchParams.get('course') || ''];
-    try {
-      const saved = JSON.parse(sessionStorage.getItem('bluepeace_inquiry_draft') || 'null');
-      if (!saved || typeof saved !== 'object') {
-        if (queryCourse) setCourseId(queryCourse);
-        return;
-      }
-      const savedCourseIsValid = saved.courseId === 'unsure' || Boolean(getCourse(saved.courseId));
-      const courseToRestore = queryCourse || (savedCourseIsValid ? saved.courseId : '');
-      setCourseId(courseToRestore);
-      if (queryCourse && saved.courseId !== queryCourse) return;
-      if (typeof saved.levelId === 'string') setLevelId(saved.levelId);
-      if (saved.scheduleMode === 'exact' || saved.scheduleMode === 'flexible') setScheduleMode(saved.scheduleMode);
-      if (Array.isArray(saved.alternatives) && saved.alternatives.length) {
-        setAlternatives(saved.alternatives.slice(0, 8).map((item: ScheduleAlternative, index: number) => ({
-          id: `restored-${index}`, poolId: item.poolId || '', dayId: item.dayId || '', slotId: item.slotId || '',
-        })));
-      }
-    } catch {}
+    const timer = setTimeout(() => {
+      const queryCourse = courseParamMap[searchParams.get('course') || ''];
+      try {
+        const saved = JSON.parse(sessionStorage.getItem('bluepeace_inquiry_draft') || 'null');
+        if (!saved || typeof saved !== 'object') {
+          if (queryCourse) setCourseId(queryCourse);
+          return;
+        }
+        const savedCourseIsValid = saved.courseId === 'unsure' || Boolean(getCourse(saved.courseId));
+        const courseToRestore = queryCourse || (savedCourseIsValid ? saved.courseId : '');
+        setCourseId(courseToRestore);
+        if (queryCourse && saved.courseId !== queryCourse) return;
+        if (typeof saved.levelId === 'string') setLevelId(saved.levelId);
+        if (saved.scheduleMode === 'exact' || saved.scheduleMode === 'flexible') setScheduleMode(saved.scheduleMode);
+        if (Array.isArray(saved.alternatives) && saved.alternatives.length) {
+          setAlternatives(saved.alternatives.slice(0, 8).map((item: ScheduleAlternative, index: number) => ({
+            id: `restored-${index}`, poolId: item.poolId || '', dayId: item.dayId || '', slotId: item.slotId || '',
+          })));
+        }
+      } catch {} finally { setDraftReady(true); }
+    }, 0);
+    return () => clearTimeout(timer);
   }, [searchParams]);
 
   useEffect(() => {
+    if (!draftReady) return;
     try { sessionStorage.setItem('bluepeace_inquiry_draft', JSON.stringify({ courseId, levelId, scheduleMode, alternatives })); } catch {}
-  }, [courseId, levelId, scheduleMode, alternatives]);
+  }, [draftReady, courseId, levelId, scheduleMode, alternatives]);
 
   useEffect(() => {
-    try {
-      const saved = sessionStorage.getItem('bluepeace_request_key');
-      const next = saved || crypto.randomUUID();
-      if (!saved) sessionStorage.setItem('bluepeace_request_key', next);
-      setRequestKey(next);
-    } catch {
-      setRequestKey(crypto.randomUUID());
-    }
+    const timer = setTimeout(() => {
+      try {
+        const saved = sessionStorage.getItem('bluepeace_request_key');
+        const next = saved || crypto.randomUUID();
+        if (!saved) sessionStorage.setItem('bluepeace_request_key', next);
+        setRequestKey(next);
+      } catch {
+        setRequestKey(crypto.randomUUID());
+      }
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   function chooseCourse(nextCourseId: string) {
