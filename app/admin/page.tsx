@@ -48,7 +48,7 @@ export default function AdminDashboard() {
   const [instructors, setInstructors] = useState<Instructor[]>([]);
   const [customers, setCustomers] = useState<CustomerLead[]>([]);
   const [adminDataError, setAdminDataError] = useState('');
-  const [statPeriod, setStatPeriod] = useState<'1d' | '1w' | '1m' | '6m' | '1y'>('1m');
+  const [statPeriod, setStatPeriod] = useState<'1d' | '1w' | '1m' | '6m' | '1y' | 'all'>('1m');
   const [selectedInstructorId, setSelectedInstructorId] = useState<string | null>(null);
   const [visibleCustomerCount, setVisibleCustomerCount] = useState(5);
   const [modalVisibleCount, setModalVisibleCount] = useState(10);
@@ -104,6 +104,7 @@ export default function AdminDashboard() {
 
   // 기간별 필터링 함수
   const filterByPeriod = (dateString: string) => {
+    if (statPeriod === 'all') return true;
     const date = new Date(dateString);
     const now = new Date();
     const diffTime = now.getTime() - date.getTime();
@@ -232,16 +233,18 @@ export default function AdminDashboard() {
         <div className="bg-white border border-slate-200 p-6 rounded-3xl shadow-sm space-y-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-4">
             <h2 className="text-lg font-bold text-slate-900">📊 강사별 매칭 통계</h2>
-            <div className="flex gap-1 bg-slate-100 p-1 rounded-xl text-xs font-bold">
+            <div className="flex max-w-full flex-wrap gap-1 rounded-xl bg-slate-100 p-1 text-xs font-bold">
               {[
                 { key: '1d', label: '1일' },
                 { key: '1w', label: '1주일' },
                 { key: '1m', label: '1개월' },
                 { key: '6m', label: '6개월' },
                 { key: '1y', label: '1년' },
+                { key: 'all', label: '전체' },
               ].map(p => (
                 <button
                   key={p.key}
+                  aria-pressed={statPeriod === p.key}
                   onClick={() => changePeriod(p.key as typeof statPeriod)}
                   className={`px-3 py-1.5 rounded-lg transition ${statPeriod === p.key ? 'bg-white text-cyan-700 shadow-xs' : 'text-slate-500'}`}
                 >

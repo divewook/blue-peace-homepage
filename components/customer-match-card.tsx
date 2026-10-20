@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { scheduleLabel } from '../lib/booking-options';
 import CustomerWorkPanel from './customer-work-panel';
 import AdminAssignmentDelivery from './admin-assignment-delivery';
@@ -54,6 +55,23 @@ function safeLanding(url?: string) {
 }
 
 export default function CustomerMatchCard({ customer, showAttribution = false, adminInstructor, onWorkChanged }: { customer: CustomerMatch; showAttribution?: boolean; adminInstructor?: { id: string; name: string; phone?: string | null }; onWorkChanged?: () => void }) {
+  const [deleting, setDeleting] = useState(false);
+  const [deleted, setDeleted] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+  async function deleteApplication() {
+    if (deleting || !window.confirm(`${customer.name} 님의 상담 신청을 영구 삭제할까요? 연결된 상담 상태·메모·수업 일정·전달 이력도 함께 삭제됩니다. 복구할 수 없습니다.`)) return;
+    setDeleting(true);
+    setDeleteError('');
+    try {
+      const response = await fetch(`/api/admin/customers/${encodeURIComponent(customer.id)}`, { method: 'DELETE' });
+      const result = await response.json();
+      if (!response.ok || result.deletedId !== customer.id) throw new Error(result.error || '삭제 결과를 확인하지 못했습니다.');
+      setDeleted(true);
+      onWorkChanged?.();
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : '삭제하지 못했습니다.');
+    } finally { setDeleting(false); }
+  }
   const days = customer.preferred_days?.length ? customer.preferred_days : [];
   const schedule = customer.preferred_schedule && Object.keys(customer.preferred_schedule).length
     ? customer.preferred_schedule
@@ -66,6 +84,8 @@ export default function CustomerMatchCard({ customer, showAttribution = false, a
     ? customer.schedule_alternatives.filter(option => option?.poolId && option?.dayId && option?.slotId)
     : [];
   const isPendingAssignment = customer.request_status === 'pending_assignment' || !customer.matched_instructor_id;
+
+  if (deleted) return null;
 
   return (
     <article className="break-keep rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 sm:p-5">
@@ -149,6 +169,12 @@ export default function CustomerMatchCard({ customer, showAttribution = false, a
           </div>
         </details>
       )}
+      {showAttribution && <details className="mt-3 rounded-xl border border-rose-200 bg-white p-3">
+        <summary className="min-h-11 cursor-pointer py-2 font-semibold text-rose-800">상담 이력 관리</summary>
+        <p className="mt-2 text-sm leading-6 text-slate-700">삭제하면 신청과 연결된 상담 메모·수업 일정·전달 이력도 함께 영구 삭제됩니다.</p>
+        <button type="button" disabled={deleting} onClick={() => void deleteApplication()} className="mt-3 min-h-11 rounded-xl border border-rose-700 px-4 font-bold text-rose-800 disabled:opacity-50">{deleting ? '삭제 중…' : '이 신청 영구 삭제'}</button>
+        {deleteError && <p role="alert" className="mt-2 text-sm font-semibold text-rose-800">{deleteError}</p>}
+      </details>}
     </article>
   );
 }

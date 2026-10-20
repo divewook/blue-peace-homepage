@@ -122,6 +122,9 @@ export default function ParadiveAvailabilityModal({ onClose }: { onClose: () => 
 
         <div className="mt-5 grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
           <section className="rounded-2xl border border-slate-200 bg-slate-50 p-3" aria-label="예약 날짜 선택">
+            <label className="mb-3 block text-sm font-semibold text-slate-700 md:hidden">조회 날짜
+              <input type="date" value={selectedDate} min={today} max={lastDate} onChange={event => { const date = event.target.value; if (date >= today && date <= lastDate) { setSelectedDate(date); setVisibleMonth(date.slice(0, 7)); } }} className="mt-1 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-base" />
+            </label>
             <div className="flex items-center justify-between gap-3 px-1 py-2">
               <button type="button" onClick={() => setVisibleMonth(month => shiftMonth(month, -1))} disabled={visibleMonth <= firstMonth} className="flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-lg font-bold disabled:opacity-30" aria-label="이전 달">‹</button>
               <strong className="text-base text-slate-900">{monthTitle(visibleMonth)}</strong>
@@ -133,7 +136,7 @@ export default function ParadiveAvailabilityModal({ onClose }: { onClose: () => 
                 if (!date) return <span key={`empty-${index}`} aria-hidden="true" />;
                 const disabled = date < today || date > lastDate;
                 const selected = date === selectedDate;
-                return <button key={date} type="button" disabled={disabled} aria-pressed={selected} onClick={() => setSelectedDate(date)} className={`aspect-square min-h-10 rounded-xl text-sm font-bold transition ${selected ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-slate-700 hover:bg-indigo-50'} disabled:bg-transparent disabled:text-slate-300`}>{Number(date.slice(-2))}</button>;
+                return <button key={date} type="button" disabled={disabled} aria-pressed={selected} onClick={() => setSelectedDate(date)} className={`aspect-square min-w-0 rounded-xl text-sm font-bold transition ${selected ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-slate-700 hover:bg-indigo-50'} disabled:bg-transparent disabled:text-slate-300`}>{Number(date.slice(-2))}</button>;
               })}
             </div>
           </section>

@@ -34,7 +34,7 @@ type InstructorRecord = {
 };
 const statPeriodOptions: Array<{ key: Exclude<StatPeriod, 'custom'>; label: string }> = [
   { key: '1d', label: '1일(오늘)' }, { key: '1w', label: '1주일' }, { key: '1m', label: '1개월' },
-  { key: '6m', label: '6개월' }, { key: '1y', label: '1년' },
+  { key: '6m', label: '6개월' }, { key: '1y', label: '1년' }, { key: 'all', label: '전체' },
 ];
 const instructorPeriodOptions: Array<{ key: StatPeriod; label: string }> = [
   { key: 'all', label: '전체' }, { key: '1w', label: '1주' }, { key: '1m', label: '1개월' },
@@ -109,6 +109,7 @@ export default function InstructorPortal() {
   const [allCustomers, setAllCustomers] = useState<CustomerMatch[]>([]);
   const [adminDataError, setAdminDataError] = useState('');
   const [showUndeliveredAdmin, setShowUndeliveredAdmin] = useState(false);
+  const [visibleAdminCustomerCount, setVisibleAdminCustomerCount] = useState(5);
   const [deletingInstructorId, setDeletingInstructorId] = useState<string | null>(null);
   const [statPeriod, setStatPeriod] = useState<StatPeriod>('1m');
   const [customStartDate, setCustomStartDate] = useState(() => shiftDate(koreaDateString(), { months: -1 }));
@@ -665,9 +666,9 @@ export default function InstructorPortal() {
           {adminDataError && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-900">관리자 신청 목록을 불러오지 못했습니다. 아래 내용은 마지막 정상 조회 기준이며 신규 신청 여부를 확인할 수 없습니다. {adminDataError}<button type="button" onClick={() => { void fetchAdminData(); }} className="mt-2 block min-h-11 rounded-lg border border-red-300 px-3 font-bold">다시 불러오기</button></div>}
 
           <section className="rounded-3xl border border-indigo-200 bg-gradient-to-br from-indigo-950 to-slate-900 p-5 text-white shadow-lg sm:p-6" aria-labelledby="pool-availability-tools">
-            <p className="text-xs font-bold tracking-widest text-indigo-200">POOL AVAILABILITY · ADMIN TEST</p>
-            <h2 id="pool-availability-tools" className="mt-1 text-xl font-black">풀장 예약 현황 점검</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-300">전체 풀장 연동이 완료되기 전까지 관리자 페이지에서만 조회하고 확인할 수 있습니다.</p>
+            <p className="text-xs font-bold tracking-widest text-indigo-200">POOL AVAILABILITY</p>
+            <h2 id="pool-availability-tools" className="mt-1 text-xl font-black">풀장 예약 현황</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-300">조회 시점의 현황입니다. 실제 예약 전에 풀장 예약 페이지에서 다시 확인해 주세요.</p>
             <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <button type="button" onClick={() => setShowPass9Availability(true)} className="min-h-12 rounded-2xl bg-white px-4 py-3 text-sm font-bold text-slate-950 hover:bg-cyan-50">패스나인 예약 현황 확인</button>
               <button type="button" onClick={() => setShowDeepstationAvailability(true)} className="min-h-12 rounded-2xl bg-indigo-100 px-4 py-3 text-sm font-bold text-indigo-950 hover:bg-indigo-200">딥스테이션 딥탱크 부이 예약 현황</button>
@@ -743,7 +744,7 @@ export default function InstructorPortal() {
             </div>
 
             <div className="flex flex-col gap-1 rounded-2xl bg-slate-900 px-4 py-3 text-white sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-xs font-semibold text-slate-300">조회 기간 <span className="ml-1 text-sm font-bold text-white">{rangeStart.replaceAll('-', '. ')} ~ {rangeEnd.replaceAll('-', '. ')}</span></p>
+              <p className="text-xs font-semibold text-slate-300">조회 기간 <span className="ml-1 text-sm font-bold text-white">{statPeriod === 'all' ? '전체 기간' : `${rangeStart.replaceAll('-', '. ')} ~ ${rangeEnd.replaceAll('-', '. ')}`}</span></p>
               <p className="text-sm font-bold text-cyan-300">전체 {filteredAllCustomers.length}건</p>
             </div>
 
@@ -761,19 +762,21 @@ export default function InstructorPortal() {
             <div className="pt-4 border-t border-slate-100">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <h3 className="text-base font-bold text-slate-900">📋 전체 고객 매칭 세부 내역 ({listedAdminCustomers.length}건)</h3>
-                <button type="button" aria-pressed={showUndeliveredAdmin} onClick={() => setShowUndeliveredAdmin(value => !value)}
+                <button type="button" aria-pressed={showUndeliveredAdmin} onClick={() => { setShowUndeliveredAdmin(value => !value); setVisibleAdminCustomerCount(5); }}
                   className={`min-h-11 rounded-xl border px-3 text-sm font-bold ${showUndeliveredAdmin ? 'border-amber-700 bg-amber-100 text-amber-950' : 'border-slate-300 bg-white text-slate-800'}`}>
                   {showUndeliveredAdmin ? '✓ ' : ''}미전달 전체 {undeliveredAdminCustomers.length}건
                 </button>
               </div>
               {showUndeliveredAdmin && <p className="mb-3 text-sm text-slate-600">접수 기간과 관계없이 현재 담당 강사에게 전달 완료 표시가 없는 신청입니다.</p>}
               <div className="space-y-3">
-                {listedAdminCustomers.map(cus => (
+                {listedAdminCustomers.slice(0, visibleAdminCustomerCount).map(cus => (
                   <CustomerMatchCard key={cus.id} customer={cus} showAttribution onWorkChanged={fetchAdminData}
                     adminInstructor={allInstructors.find(ins => ins.id === cus.matched_instructor_id)} />
                 ))}
                 {listedAdminCustomers.length === 0 && <p className="rounded-xl bg-slate-50 p-5 text-center text-sm text-slate-600">{showUndeliveredAdmin ? '현재 담당 강사에게 미전달로 표시된 신청이 없습니다.' : '선택한 기간의 신청이 없습니다.'}</p>}
               </div>
+              {listedAdminCustomers.length > visibleAdminCustomerCount && <button type="button" onClick={() => setVisibleAdminCustomerCount(count => count + 5)} className="mt-3 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm font-bold">신청 5건 더 보기 · {listedAdminCustomers.length - visibleAdminCustomerCount}건 남음</button>}
+              {listedAdminCustomers.length > 5 && visibleAdminCustomerCount >= listedAdminCustomers.length && <button type="button" onClick={() => setVisibleAdminCustomerCount(5)} className="mt-3 min-h-11 w-full rounded-xl text-sm font-bold text-slate-600">최근 5건만 보기</button>}
             </div>
           </div>
 
@@ -877,6 +880,18 @@ export default function InstructorPortal() {
           </div>
         </section>
 
+        <section aria-labelledby="instructor-pool-availability" className="rounded-2xl border border-indigo-200 bg-white p-4 shadow-sm sm:p-6">
+          <p className="text-sm font-bold text-indigo-700">풀장 예약 조회</p>
+          <h2 id="instructor-pool-availability" className="mt-1 text-xl font-bold break-keep">날짜별 예약 현황</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-600 break-keep">풀장을 선택하고 날짜를 누르면 예약 현황을 확인할 수 있습니다. 조회 결과는 수업·풀장 예약 확정이 아닙니다.</p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <button type="button" onClick={() => setShowPass9Availability(true)} className="flex min-h-20 w-full items-center justify-between gap-3 rounded-xl border border-cyan-200 bg-cyan-50 px-4 py-3 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-700"><span><strong className="block text-base text-slate-950">패스나인</strong><span className="mt-1 block text-sm leading-6 text-slate-700">회차별 잔여석</span></span><span aria-hidden="true" className="text-xl text-cyan-800">→</span></button>
+            <button type="button" onClick={() => setShowDeepstationAvailability(true)} className="flex min-h-20 w-full items-center justify-between gap-3 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-700"><span><strong className="block text-base text-slate-950">딥스테이션</strong><span className="mt-1 block text-sm leading-6 text-slate-700">딥탱크 부이 전반·후반</span></span><span aria-hidden="true" className="text-xl text-indigo-800">→</span></button>
+            <button type="button" onClick={() => setShowParadiveAvailability(true)} className="flex min-h-20 w-full items-center justify-between gap-3 rounded-xl border border-cyan-200 bg-cyan-50 px-4 py-3 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-700"><span><strong className="block text-base text-slate-950">파라다이브</strong><span className="mt-1 block text-sm leading-6 text-slate-700">딥탱크 부이 전반·후반</span></span><span aria-hidden="true" className="text-xl text-cyan-800">→</span></button>
+            <button type="button" onClick={() => setShowMarinaAvailability(true)} className="flex min-h-20 w-full items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"><span><strong className="block text-base text-slate-950">북항마리나</strong><span className="mt-1 block text-sm leading-6 text-slate-700">회차별 입장 가능 인원</span></span><span aria-hidden="true" className="text-xl text-emerald-800">→</span></button>
+          </div>
+        </section>
+
         <section aria-labelledby="settings-heading" className="space-y-3">
           <div>
             <p className="text-sm font-bold text-cyan-700">내 정보</p>
@@ -901,6 +916,10 @@ export default function InstructorPortal() {
             </article>
           </div>
         </section>
+        {showPass9Availability && <Pass9AvailabilityModal onClose={() => setShowPass9Availability(false)} />}
+        {showDeepstationAvailability && <DeepstationAvailabilityModal onClose={() => setShowDeepstationAvailability(false)} />}
+        {showParadiveAvailability && <ParadiveAvailabilityModal onClose={() => setShowParadiveAvailability(false)} />}
+        {showMarinaAvailability && <MarinaAvailabilityModal onClose={() => setShowMarinaAvailability(false)} />}
       </div>
     </div>
   );

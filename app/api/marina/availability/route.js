@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { hasAdminSession } from "../../../../lib/admin-session";
+import { hasPoolAvailabilityAccess } from "../../../../lib/pool-availability-access";
 
 const MARINA_BOOKING_URL = "https://marina.busanpa.com/marina/diving/agree/PG01.marina?menuCd=DOM_000000103001000000";
 
@@ -20,7 +20,7 @@ function isAllowedDate(date) {
 }
 
 export async function GET(request) {
-  if (!await hasAdminSession()) return NextResponse.json({ error: "관리자 로그인이 필요합니다." }, { status: 401 });
+  if (!await hasPoolAvailabilityAccess()) return NextResponse.json({ error: "승인된 강사 또는 관리자 로그인이 필요합니다." }, { status: 401 });
 
   const date = new URL(request.url).searchParams.get("date") || "";
   if (!isAllowedDate(date)) {
