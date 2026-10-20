@@ -1,10 +1,12 @@
 import { scheduleLabel } from '../lib/booking-options';
 import CustomerWorkPanel from './customer-work-panel';
+import AdminAssignmentDelivery from './admin-assignment-delivery';
 import { consultationStatuses } from '../lib/customer-work';
 
 export type CustomerMatch = {
   id: string;
   matched_instructor_id?: string | null;
+  assignment_generation?: number;
   name: string;
   phone: string;
   course: string;
@@ -16,6 +18,7 @@ export type CustomerMatch = {
   schedule_mode?: 'exact' | 'flexible';
   schedule_alternatives?: Array<{ poolId: string; dayId: string; slotId: string }>;
   matched_schedule?: { poolId: string; dayId: string; slotId: string } | null;
+  delivery_event?: { id: number; instructor_id: string; assignment_generation: number; action: 'marked' | 'unmarked'; created_at: string; actor_identifier: string } | null;
   request_status?: 'matched' | 'pending_assignment';
   youth_participant_count?: number | null;
   youth_ages?: string | null;
@@ -50,7 +53,7 @@ function safeLanding(url?: string) {
   } catch { return ''; }
 }
 
-export default function CustomerMatchCard({ customer, showAttribution = false, onWorkChanged }: { customer: CustomerMatch; showAttribution?: boolean; onWorkChanged?: () => void }) {
+export default function CustomerMatchCard({ customer, showAttribution = false, adminInstructor, onWorkChanged }: { customer: CustomerMatch; showAttribution?: boolean; adminInstructor?: { id: string; name: string; phone?: string | null }; onWorkChanged?: () => void }) {
   const days = customer.preferred_days?.length ? customer.preferred_days : [];
   const schedule = customer.preferred_schedule && Object.keys(customer.preferred_schedule).length
     ? customer.preferred_schedule
@@ -62,7 +65,7 @@ export default function CustomerMatchCard({ customer, showAttribution = false, o
   const exactAlternatives = Array.isArray(customer.schedule_alternatives)
     ? customer.schedule_alternatives.filter(option => option?.poolId && option?.dayId && option?.slotId)
     : [];
-  const isPendingAssignment = customer.request_status === 'pending_assignment' || !customer.matched_instructor || customer.matched_instructor === '배정 대기';
+  const isPendingAssignment = customer.request_status === 'pending_assignment' || !customer.matched_instructor_id;
 
   return (
     <article className="break-keep rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 sm:p-5">
@@ -128,6 +131,7 @@ export default function CustomerMatchCard({ customer, showAttribution = false, o
         {customer.next_lesson && <p>가까운 확정 수업: {customer.next_lesson.lesson_date} {customer.next_lesson.start_time.slice(0, 5)}</p>}
       </div>
       <CustomerWorkPanel customerId={customer.id} onChanged={onWorkChanged} />
+      {showAttribution && <AdminAssignmentDelivery customer={customer} instructor={adminInstructor} onChanged={onWorkChanged} />}
 
       {showAttribution && (
         <details className="group mt-3 rounded-xl border border-indigo-200 bg-indigo-50 p-3">

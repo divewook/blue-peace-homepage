@@ -18,6 +18,7 @@ type InstructorRecord = {
   id: string;
   name: string;
   username: string;
+  phone?: string | null;
   is_approved: boolean;
   schedule_revision?: number;
   schedule_by_day?: Record<string, Record<string, string[]>> | null;
@@ -105,6 +106,8 @@ export default function InstructorPortal() {
   }, []);
   const [allInstructors, setAllInstructors] = useState<InstructorRecord[]>([]);
   const [allCustomers, setAllCustomers] = useState<CustomerMatch[]>([]);
+  const [adminDataError, setAdminDataError] = useState('');
+  const [showUndeliveredAdmin, setShowUndeliveredAdmin] = useState(false);
   const [deletingInstructorId, setDeletingInstructorId] = useState<string | null>(null);
   const [statPeriod, setStatPeriod] = useState<StatPeriod>('1m');
   const [customStartDate, setCustomStartDate] = useState(() => shiftDate(koreaDateString(), { months: -1 }));
@@ -261,14 +264,16 @@ export default function InstructorPortal() {
   };
 
   const fetchAdminData = async () => {
-    const response = await fetch('/api/admin/data', { cache: 'no-store' });
-    const result = await response.json();
-    if (!response.ok) {
-      alert(result.error || '관리자 목록을 불러오지 못했습니다.');
-      return;
+    try {
+      const response = await fetch('/api/admin/data', { cache: 'no-store' });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || '관리자 목록을 불러오지 못했습니다.');
+      setAllInstructors(result.instructors || []);
+      setAllCustomers(result.customers || []);
+      setAdminDataError('');
+    } catch (error) {
+      setAdminDataError(error instanceof Error ? error.message : '관리자 목록을 불러오지 못했습니다.');
     }
-    setAllInstructors(result.instructors || []);
-    setAllCustomers(result.customers || []);
   };
 
   const toggleApproval = async (id: string, currentStatus: boolean) => {
@@ -612,6 +617,8 @@ export default function InstructorPortal() {
   // --- [뷰 4] 관리자 페이지 (Admin Dashboard) ---
   if (view === 'admin_dashboard') {
     const filteredAllCustomers = allCustomers.filter(c => filterByPeriod(c.created_at));
+    const undeliveredAdminCustomers = allCustomers.filter(c => c.matched_instructor_id && c.delivery_event?.action !== 'marked');
+    const listedAdminCustomers = showUndeliveredAdmin ? undeliveredAdminCustomers : filteredAllCustomers;
     const [rangeStart, rangeEnd] = statDateRange(statPeriod, customStartDate, customEndDate);
     const instructorStats = allInstructors.map(ins => {
       const count = filteredAllCustomers.filter(c => c.matched_instructor_id === ins.id || (!c.matched_instructor_id && c.matched_instructor === ins.name)).length;
@@ -630,6 +637,8 @@ export default function InstructorPortal() {
               로그아웃
             </button>
           </div>
+
+          {adminDataError && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-900">관리자 신청 목록을 불러오지 못했습니다. 아래 내용은 마지막 정상 조회 기준이며 신규 신청 여부를 확인할 수 없습니다. {adminDataError}<button type="button" onClick={() => { void fetchAdminData(); }} className="mt-2 block min-h-11 rounded-lg border border-red-300 px-3 font-bold">다시 불러오기</button></div>}
 
           <section className="rounded-3xl border border-indigo-200 bg-gradient-to-br from-indigo-950 to-slate-900 p-5 text-white shadow-lg sm:p-6" aria-labelledby="pool-availability-tools">
             <p className="text-xs font-bold tracking-widest text-indigo-200">POOL AVAILABILITY · ADMIN TEST</p>
@@ -726,11 +735,20 @@ export default function InstructorPortal() {
             <MarketingSummary customers={filteredAllCustomers} />
 
             <div className="pt-4 border-t border-slate-100">
-              <h3 className="text-base font-bold text-slate-900 mb-3">📋 전체 고객 매칭 세부 내역 ({filteredAllCustomers.length}건)</h3>
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <h3 className="text-base font-bold text-slate-900">📋 전체 고객 매칭 세부 내역 ({listedAdminCustomers.length}건)</h3>
+                <button type="button" aria-pressed={showUndeliveredAdmin} onClick={() => setShowUndeliveredAdmin(value => !value)}
+                  className={`min-h-11 rounded-xl border px-3 text-sm font-bold ${showUndeliveredAdmin ? 'border-amber-700 bg-amber-100 text-amber-950' : 'border-slate-300 bg-white text-slate-800'}`}>
+                  {showUndeliveredAdmin ? '✓ ' : ''}미전달 전체 {undeliveredAdminCustomers.length}건
+                </button>
+              </div>
+              {showUndeliveredAdmin && <p className="mb-3 text-sm text-slate-600">접수 기간과 관계없이 현재 담당 강사에게 전달 완료 표시가 없는 신청입니다.</p>}
               <div className="space-y-3">
-                {filteredAllCustomers.map(cus => (
-                  <CustomerMatchCard key={cus.id} customer={cus} showAttribution onWorkChanged={fetchAdminData} />
+                {listedAdminCustomers.map(cus => (
+                  <CustomerMatchCard key={cus.id} customer={cus} showAttribution onWorkChanged={fetchAdminData}
+                    adminInstructor={allInstructors.find(ins => ins.id === cus.matched_instructor_id)} />
                 ))}
+                {listedAdminCustomers.length === 0 && <p className="rounded-xl bg-slate-50 p-5 text-center text-sm text-slate-600">{showUndeliveredAdmin ? '현재 담당 강사에게 미전달로 표시된 신청이 없습니다.' : '선택한 기간의 신청이 없습니다.'}</p>}
               </div>
             </div>
           </div>

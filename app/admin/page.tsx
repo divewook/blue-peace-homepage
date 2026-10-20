@@ -9,6 +9,7 @@ interface Instructor {
   id: string;
   name: string;
   username: string;
+  phone?: string | null;
   is_approved: boolean;
   created_at: string;
 }
@@ -16,6 +17,7 @@ interface Instructor {
 interface CustomerLead {
   id: string;
   matched_instructor_id: string | null;
+  assignment_generation?: number;
   name: string;
   phone: string;
   course: string;
@@ -24,6 +26,10 @@ interface CustomerLead {
   preferred_days?: string[];
   preferred_schedule?: Record<string, string[]>;
   matched_instructor: string;
+  schedule_mode?: 'exact' | 'flexible';
+  schedule_alternatives?: Array<{ poolId: string; dayId: string; slotId: string }>;
+  matched_schedule?: { poolId: string; dayId: string; slotId: string } | null;
+  delivery_event?: { id: number; instructor_id: string; assignment_generation: number; action: 'marked' | 'unmarked'; created_at: string; actor_identifier: string } | null;
   created_at: string;
   traffic_source?: string;
   traffic_medium?: string;
@@ -41,10 +47,12 @@ export default function AdminDashboard() {
   
   const [instructors, setInstructors] = useState<Instructor[]>([]);
   const [customers, setCustomers] = useState<CustomerLead[]>([]);
+  const [adminDataError, setAdminDataError] = useState('');
   const [statPeriod, setStatPeriod] = useState<'1d' | '1w' | '1m' | '6m' | '1y'>('1m');
   const [selectedInstructorId, setSelectedInstructorId] = useState<string | null>(null);
   const [visibleCustomerCount, setVisibleCustomerCount] = useState(5);
   const [modalVisibleCount, setModalVisibleCount] = useState(10);
+  const [showUndelivered, setShowUndelivered] = useState(false);
 
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,14 +72,16 @@ export default function AdminDashboard() {
   };
 
   const fetchAdminData = async () => {
-    const response = await fetch('/api/admin/data', { cache: 'no-store' });
-    const result = await response.json();
-    if (!response.ok) {
-      alert(result.error || '관리자 데이터를 불러오지 못했습니다.');
-      return;
+    try {
+      const response = await fetch('/api/admin/data', { cache: 'no-store' });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || '관리자 데이터를 불러오지 못했습니다.');
+      setInstructors(result.instructors || []);
+      setCustomers(result.customers || []);
+      setAdminDataError('');
+    } catch (error) {
+      setAdminDataError(error instanceof Error ? error.message : '관리자 데이터를 불러오지 못했습니다.');
     }
-    setInstructors(result.instructors || []);
-    setCustomers(result.customers || []);
   };
 
   const toggleApproval = async (id: string, currentStatus: boolean) => {
@@ -108,6 +118,8 @@ export default function AdminDashboard() {
   };
 
   const filteredCustomers = customers.filter(c => filterByPeriod(c.created_at));
+  const undeliveredCustomers = customers.filter(c => c.matched_instructor_id && c.delivery_event?.action !== 'marked');
+  const visibleApplications = showUndelivered ? undeliveredCustomers : filteredCustomers;
 
   const matchesInstructor = (customer: CustomerLead, instructor: Instructor) =>
     customer.matched_instructor_id === instructor.id
@@ -172,6 +184,8 @@ export default function AdminDashboard() {
             로그아웃
           </button>
         </div>
+
+        {adminDataError && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-900">관리자 신청 목록을 불러오지 못했습니다. 아래 내용은 마지막 정상 조회 기준이며 신규 신청 여부를 확인할 수 없습니다. {adminDataError}<button type="button" onClick={() => { void fetchAdminData(); }} className="mt-2 block min-h-11 rounded-lg border border-red-300 px-3 font-bold">다시 불러오기</button></div>}
 
         {/* 1. 소속 강사 승인 및 관리 */}
         <div className="bg-white border border-slate-200 p-6 rounded-3xl shadow-sm space-y-4">
@@ -257,22 +271,31 @@ export default function AdminDashboard() {
 
           {/* 3. 고객 매칭 세부 내역 (과정, 레벨, 풀장, 요일/시간) */}
           <div className="pt-4 border-t border-slate-100">
-            <h3 className="text-base font-bold text-slate-900 mb-3">📋 고객 매칭 세부 신청 내역 ({filteredCustomers.length}건)</h3>
-            <div className="space-y-3">
-              {filteredCustomers.slice(0, visibleCustomerCount).map(cus => (
-                <CustomerMatchCard key={cus.id} customer={cus} showAttribution onWorkChanged={fetchAdminData} />
-              ))}
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <h3 className="text-base font-bold text-slate-900">📋 고객 매칭 세부 신청 내역 ({visibleApplications.length}건)</h3>
+              <button type="button" aria-pressed={showUndelivered} onClick={() => { setShowUndelivered(value => !value); setVisibleCustomerCount(5); }}
+                className={`min-h-11 rounded-xl border px-3 text-sm font-bold ${showUndelivered ? 'border-amber-700 bg-amber-100 text-amber-950' : 'border-slate-300 bg-white text-slate-800'}`}>
+                {showUndelivered ? '✓ ' : ''}미전달 전체 {undeliveredCustomers.length}건
+              </button>
             </div>
-            {filteredCustomers.length > visibleCustomerCount && (
+            {showUndelivered && <p className="mb-3 text-sm text-slate-600">접수 기간과 관계없이 현재 담당 강사에게 전달 완료 표시가 없는 신청입니다.</p>}
+            <div className="space-y-3">
+              {visibleApplications.slice(0, visibleCustomerCount).map(cus => (
+                <CustomerMatchCard key={cus.id} customer={cus} showAttribution
+                  adminInstructor={instructors.find(ins => ins.id === cus.matched_instructor_id)} onWorkChanged={fetchAdminData} />
+              ))}
+              {visibleApplications.length === 0 && <p className="rounded-xl bg-slate-50 p-5 text-center text-sm text-slate-600">{showUndelivered ? '현재 담당 강사에게 미전달로 표시된 신청이 없습니다.' : '선택한 기간의 신청이 없습니다.'}</p>}
+            </div>
+            {visibleApplications.length > visibleCustomerCount && (
               <button
                 type="button"
                 onClick={() => setVisibleCustomerCount(count => count + 5)}
                 className="mt-4 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm font-bold text-slate-700 hover:bg-slate-50"
               >
-                최근 고객 5건 더 보기 ({filteredCustomers.length - visibleCustomerCount}건 남음)
+                신청 5건 더 보기 ({visibleApplications.length - visibleCustomerCount}건 남음)
               </button>
             )}
-            {filteredCustomers.length > 5 && visibleCustomerCount >= filteredCustomers.length && (
+            {visibleApplications.length > 5 && visibleCustomerCount >= visibleApplications.length && (
               <button
                 type="button"
                 onClick={() => setVisibleCustomerCount(5)}
@@ -315,7 +338,8 @@ export default function AdminDashboard() {
               {selectedInstructorCustomers.length ? (
                 <div className="space-y-3">
                   {selectedInstructorCustomers.slice(0, modalVisibleCount).map(customer => (
-                    <CustomerMatchCard key={customer.id} customer={customer} showAttribution onWorkChanged={fetchAdminData} />
+                    <CustomerMatchCard key={customer.id} customer={customer} showAttribution
+                      adminInstructor={instructors.find(ins => ins.id === customer.matched_instructor_id)} onWorkChanged={fetchAdminData} />
                   ))}
                   {selectedInstructorCustomers.length > modalVisibleCount && (
                     <button
