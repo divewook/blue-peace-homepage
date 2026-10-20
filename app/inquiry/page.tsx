@@ -238,7 +238,7 @@ function TestInquiryForm() {
         <div><dt className="font-bold text-slate-500">강사 배정</dt><dd className="mt-1 text-base text-slate-900">{requestStatus === 'matched' && matchedInstructor ? `${matchedInstructor.name} 강사와 연결됐습니다.` : '운영자가 과정과 일정을 확인한 뒤 담당 강사를 안내합니다.'}</dd></div>
       </dl>
       <div className="mt-6 rounded-2xl border border-slate-200 p-4"><h2 className="font-black text-slate-950">앞으로 진행되는 순서</h2><ol className="mt-3 space-y-2 text-sm leading-6 text-slate-700"><li>1. 신청 내용과 가능한 강사를 확인합니다.</li><li>2. 연락을 통해 과정과 비용을 안내합니다.</li><li>3. 풀장 일정과 수업 시간을 조율합니다.</li><li>4. 고객 확인 후 예약을 확정합니다.</li></ol></div>
-      <div className="mt-6 grid gap-3 sm:grid-cols-2">{matchedInstructor?.phone && <a href={`tel:${matchedInstructor.phone}`} className="flex min-h-12 items-center justify-center rounded-xl border border-cyan-300 bg-cyan-50 px-4 text-base font-bold text-cyan-900">담당 강사에게 전화하기</a>}<Link href="/" className="flex min-h-12 items-center justify-center rounded-xl bg-cyan-700 px-4 text-base font-bold text-white">홈으로 돌아가기</Link></div>
+      <div className="mt-6"><Link href="/" className="flex min-h-12 items-center justify-center rounded-xl bg-cyan-700 px-4 text-base font-bold text-white">홈으로 돌아가기</Link></div>
     </section></main>;
   }
 

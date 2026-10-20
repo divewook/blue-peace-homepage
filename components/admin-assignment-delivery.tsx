@@ -32,6 +32,8 @@ export default function AdminAssignmentDelivery({ customer, instructor, onChange
   const currentEvent = fromLocal && (!fromServer || fromLocal.id > fromServer.id) ? fromLocal : fromServer;
   const delivered = assigned && currentEvent?.action === 'marked';
   const mobile = instructorMobile(instructor?.phone);
+  const missingPhone = assigned && !instructor?.phone?.trim();
+  const contactWarning = missingPhone ? '강사 연락처 등록 필요' : '강사 연락처 확인 필요';
   const message = assigned ? buildAssignmentMessage(customer, instructor) : '';
   const smsUri = assigned ? assignmentSmsUri(instructor?.phone, message) : null;
 
@@ -83,6 +85,7 @@ export default function AdminAssignmentDelivery({ customer, instructor, onChange
         {assigned ? delivered ? '전달 완료 표시' : '미전달' : '담당 강사 미배정'}
       </span>
     </div>
+    {assigned && !mobile && <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">{contactWarning} · 문자 작성 기능을 사용할 수 없습니다.</p>}
     {delivered && <p className="mt-1 text-sm text-slate-700">표시 시각: {new Date(currentEvent.created_at).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })} · 공유 관리자 계정</p>}
     <button type="button" aria-expanded={open} onClick={() => setOpen(value => !value)} className="mt-2 min-h-11 w-full rounded-lg border border-indigo-200 px-3 text-left font-semibold text-indigo-900">
       {open ? '전달 내용 접기' : '신청 정보와 전달 문구 확인'} <span aria-hidden="true">{open ? '⌃' : '⌄'}</span>
@@ -106,10 +109,10 @@ export default function AdminAssignmentDelivery({ customer, instructor, onChange
         <div className="grid gap-2 sm:grid-cols-2">
           <button type="button" onClick={() => void copyText(message, 'message')} className="min-h-12 rounded-xl bg-cyan-800 px-4 font-bold text-white">전달 내용 복사</button>
           {smsUri ? <a href={smsUri} className="flex min-h-12 items-center justify-center rounded-xl border border-cyan-700 px-4 text-center font-bold text-cyan-900">담당 강사 문자 작성</a>
-            : <button type="button" disabled className="min-h-12 rounded-xl border border-slate-300 px-4 font-bold text-slate-500">강사 연락처 확인 필요</button>}
+            : <button type="button" disabled className="min-h-12 rounded-xl border border-slate-300 px-4 font-bold text-slate-500">{contactWarning}</button>}
           {instructor.phone && <button type="button" onClick={() => void copyText(instructor.phone || '', 'number')} className="min-h-11 rounded-xl border border-slate-300 px-4 font-semibold sm:col-span-2">강사 번호 복사 · {mobile || instructor.phone}</button>}
         </div>
-        {!smsUri && <p className="text-sm font-semibold text-amber-900">강사 연락처 확인 필요 · 문자 작성 버튼을 사용할 수 없습니다. 전달 내용은 복사할 수 있습니다.</p>}
+        {!smsUri && <p className="text-sm font-semibold text-amber-900">{contactWarning} · 전달 내용은 복사할 수 있습니다.</p>}
         <p className="text-sm text-slate-700">문자 앱에서 내용을 확인한 뒤 직접 전송해 주세요. 본문이 비어 있으면 복사한 내용을 붙여넣어 주세요.</p>
         <button type="button" disabled={busy} onClick={() => void changeDelivery()} className="min-h-12 w-full rounded-xl border border-emerald-700 px-4 font-bold text-emerald-900 disabled:opacity-50">
           {busy ? '저장 중…' : delivered ? '전달 완료 표시 취소' : '실제로 안내한 뒤 전달 완료 표시'}

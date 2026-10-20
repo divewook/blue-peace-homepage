@@ -1,6 +1,6 @@
 import { after, NextResponse } from "next/server";
 import { createAdminSupabase } from "../../../lib/admin-supabase";
-import { canInstructorTeachCourse, hasCompleteInstructorProfile, instructorPublicFields } from "../../../lib/instructor-fields";
+import { canInstructorTeachCourse, hasCompleteInstructorProfile, instructorPublicFields, publicMatchedInstructor } from "../../../lib/instructor-fields";
 import { bookingPools, findMatchingAlternative, getCourse, getDay, getPool, validateScheduleAlternatives } from "../../../lib/booking-options";
 import { sendKakaoAlimtalk } from "../../../lib/kakao-alimtalk";
 
@@ -75,12 +75,7 @@ async function existingRequestResponse(supabase, requestKey) {
     .select("id,matched_instructor_id,matched_instructor,request_status")
     .eq("request_key", requestKey).maybeSingle();
   if (error || !data) return null;
-  let phone = null;
-  if (data.matched_instructor_id) {
-    const result = await supabase.from("instructors").select("phone").eq("id", data.matched_instructor_id).maybeSingle();
-    phone = result.data?.phone || null;
-  }
-  return NextResponse.json({ id: data.id, duplicate: true, status: data.request_status, instructor: data.matched_instructor_id ? { name: data.matched_instructor, phone } : null });
+  return NextResponse.json({ id: data.id, duplicate: true, status: data.request_status, instructor: data.matched_instructor_id ? publicMatchedInstructor({ name: data.matched_instructor }) : null });
 }
 
 export async function POST(request) {
@@ -185,7 +180,7 @@ export async function POST(request) {
       if (instructor?.phone) jobs.push(sendKakaoAlimtalk({ eventType: "match_requested", recipientRole: "instructor", phone: instructor.phone, variables }));
       await Promise.allSettled(jobs);
     });
-    return NextResponse.json({ id: data.id, status, instructor: instructor ? { name: instructor.name, phone: instructor.phone } : null }, { status: 201 });
+    return NextResponse.json({ id: data.id, status, instructor: publicMatchedInstructor(instructor) }, { status: 201 });
   } catch {
     return NextResponse.json({ error: "신청 내용을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요." }, { status: 503 });
   }

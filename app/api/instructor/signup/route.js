@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
 import { createAdminSupabase } from "../../../../lib/admin-supabase";
+import { instructorMobile } from "../../../../lib/assignment-delivery";
 
 export const runtime = "nodejs";
 
@@ -11,7 +12,7 @@ export async function POST(request) {
   const password = typeof body.password === "string" ? body.password : "";
   const phone = typeof body.phone === "string" ? body.phone.trim() : "";
   if (!name || name.length > 50 || !/^[A-Za-z0-9]{4,30}$/.test(username)
-    || password.length < 8 || password.length > 64 || !/^01\d-?\d{3,4}-?\d{4}$/.test(phone)) {
+    || password.length < 8 || password.length > 64 || !instructorMobile(phone)) {
     return NextResponse.json({ error: "가입 정보를 다시 확인해 주세요." }, { status: 400 });
   }
   try {

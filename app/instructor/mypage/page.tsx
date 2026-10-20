@@ -6,6 +6,7 @@ import CustomerMatchCard, { type CustomerMatch } from '../../../components/custo
 import { hasCompleteInstructorProfile } from '../../../lib/instructor-fields';
 import { bookingPools, getInstructorSchedule, validateInstructorSchedule } from '../../../lib/booking-options';
 import { customerWorkPriority, customerWorkTotals } from '../../../lib/customer-work-summary';
+import { instructorMobile } from '../../../lib/assignment-delivery';
 import InstructorScheduleEditor from '../../../components/instructor-schedule-editor';
 import MarketingSummary from '../../../components/marketing-summary';
 import Pass9AvailabilityModal from '../../../components/pass9-availability-modal';
@@ -117,6 +118,7 @@ export default function InstructorPortal() {
   const [profileImg, setProfileImg] = useState('');
   const [isProcessingImage, setIsProcessingImage] = useState(false);
   const [bio, setBio] = useState('');
+  const [profilePhone, setProfilePhone] = useState('');
   const [maxLevels, setMaxLevels] = useState<{ [key: string]: string }>({
     '프리다이빙': '교육 불가',
     '머메이드 다이빙': '교육 불가',
@@ -131,7 +133,7 @@ export default function InstructorPortal() {
   const [showDeepstationAvailability, setShowDeepstationAvailability] = useState(false);
   const [showParadiveAvailability, setShowParadiveAvailability] = useState(false);
   const [showMarinaAvailability, setShowMarinaAvailability] = useState(false);
-  const [profileSection, setProfileSection] = useState<'public' | 'courses' | 'schedule'>('public');
+  const [profileSection, setProfileSection] = useState<'public' | 'courses' | 'schedule' | 'contact'>('public');
   const [profileDirty, setProfileDirty] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSaveError, setProfileSaveError] = useState('');
@@ -193,6 +195,7 @@ export default function InstructorPortal() {
     setCurrentInstructor(data);
     setProfileImg(data.profile_image || '');
     setBio(data.bio || '');
+    setProfilePhone(data.phone || '');
     const savedSpecialCourses = data.course_levels?.['스페셜 교육'];
     setSelectedSpecialCourses(Array.isArray(savedSpecialCourses)
       ? savedSpecialCourses.filter((value: unknown) => typeof value === 'string' && value !== '교육 불가')
@@ -327,8 +330,9 @@ export default function InstructorPortal() {
     }
   };
 
-  const openProfileSection = (section: 'public' | 'courses' | 'schedule') => {
+  const openProfileSection = (section: 'public' | 'courses' | 'schedule' | 'contact') => {
     setProfileSection(section);
+    setProfilePhone(currentInstructor?.phone || '');
     setProfileDirty(false);
     setProfileSaveError('');
     setView('profile_setup');
@@ -396,6 +400,10 @@ export default function InstructorPortal() {
       const checked = validateInstructorSchedule(scheduleByDay);
       if (!checked.valid) { setProfileSaveError(checked.error || '요일별 시간표를 확인해 주세요.'); return; }
     }
+    if (profileSection === 'contact' && !instructorMobile(profilePhone)) {
+      setProfileSaveError('문자를 받을 수 있는 휴대폰 번호를 입력해 주세요.');
+      return;
+    }
     const updateData = profileSection === 'public'
       ? { section: 'public', profile_image: profileImg, bio }
       : profileSection === 'courses'
@@ -409,7 +417,9 @@ export default function InstructorPortal() {
             can_scuba: maxLevels['스쿠버다이빙'] !== '교육 불가',
             can_special: selectedSpecialCourses.length > 0,
           }
-        : { section: 'schedule', schedule_by_day: scheduleByDay, schedule_revision: currentInstructor?.schedule_revision ?? 0 };
+        : profileSection === 'contact'
+          ? { section: 'contact', phone: profilePhone, expected_phone: currentInstructor?.phone ?? null }
+          : { section: 'schedule', schedule_by_day: scheduleByDay, schedule_revision: currentInstructor?.schedule_revision ?? 0 };
 
     setProfileSaving(true);
     setProfileSaveError('');
@@ -423,6 +433,7 @@ export default function InstructorPortal() {
       setProfileSaveError(result?.error || '잠시 후 다시 시도해 주세요.');
     } else {
       setCurrentInstructor(result.instructor || { ...currentInstructor, ...updateData });
+      if (profileSection === 'contact' && result.instructor) setProfilePhone(result.instructor.phone || '');
       if (profileSection === 'schedule' && result.instructor) setScheduleByDay(getInstructorSchedule(result.instructor));
       setProfileDirty(false);
       setDashboardNotice('설정이 저장되었습니다. 기존의 다른 설정도 그대로 유지되었습니다.');
@@ -520,9 +531,16 @@ export default function InstructorPortal() {
             <p className="text-xs text-slate-500 mt-1">수업 가능한 코스와 레벨, 풀장 및 시간대를 설정해 주세요.</p>
           </div>
 
-          <div className="grid grid-cols-3 gap-2" role="tablist" aria-label="설정 영역">
-            {([['public', '공개 프로필'], ['courses', '교육 설정'], ['schedule', '일정 설정']] as const).map(([key, label]) => (
-              <button key={key} type="button" role="tab" aria-selected={profileSection === key} onClick={() => setProfileSection(key)} className={`min-h-12 rounded-xl border px-2 text-sm font-bold ${profileSection === key ? 'border-cyan-600 bg-cyan-50 text-cyan-900' : 'border-slate-200 bg-white text-slate-600'}`}>{profileSection === key ? '✓ ' : ''}{label}</button>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" role="tablist" aria-label="설정 영역">
+            {([['public', '공개 프로필'], ['courses', '교육 설정'], ['schedule', '일정 설정'], ['contact', '연락처']] as const).map(([key, label]) => (
+              <button key={key} type="button" role="tab" aria-selected={profileSection === key} onClick={() => {
+                if (profileSection !== key && profileDirty) {
+                  setProfileSaveError('먼저 현재 설정을 저장하거나 취소해 주세요.');
+                  return;
+                }
+                setProfileSection(key);
+                setProfileSaveError('');
+              }} className={`min-h-12 rounded-xl border px-2 text-sm font-bold ${profileSection === key ? 'border-cyan-600 bg-cyan-50 text-cyan-900' : 'border-slate-200 bg-white text-slate-600'}`}>{profileSection === key ? '✓ ' : ''}{label}</button>
             ))}
           </div>
 
@@ -596,6 +614,12 @@ export default function InstructorPortal() {
               onChange={next => { setScheduleByDay(next); setProfileDirty(true); setProfileSaveError(''); }}
               legacy={currentInstructor?.schedule_by_day == null}
             />}
+
+            {profileSection === 'contact' && <div>
+              <label htmlFor="profile-phone" className="block font-bold text-slate-900">내 휴대폰 번호</label>
+              <p className="mt-1 text-sm leading-6 text-slate-600">관리자가 상담 배정 내용을 전달할 때 사용하는 번호입니다. 홈페이지 공개 강사 목록에는 표시되지 않습니다.</p>
+              <input id="profile-phone" type="tel" inputMode="tel" autoComplete="tel" value={profilePhone} onChange={event => handlePhoneInput(event.target.value, setProfilePhone)} placeholder="010-0000-0000" maxLength={13} required className="mt-3 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-base text-slate-900" />
+            </div>}
 
 
             {profileSaveError && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-6 text-red-800">저장하지 못했습니다. {profileSaveError}</div>}
@@ -858,7 +882,7 @@ export default function InstructorPortal() {
             <p className="text-sm font-bold text-cyan-700">내 정보</p>
             <h2 id="settings-heading" className="mt-1 text-xl font-bold">프로필과 수업 설정</h2>
           </div>
-          <div className="grid gap-3 md:grid-cols-3">
+          <div className="grid gap-3 md:grid-cols-2">
             <article className="rounded-2xl border border-slate-200 bg-white p-4">
               <h3 className="font-bold">공개 프로필</h3><p className="mt-2 text-sm leading-6 text-slate-600">사진 {profileImg ? '등록됨' : '미등록'} · 소개글 {bio.trim() ? '등록됨' : '미등록'}</p>
               <button type="button" onClick={() => openProfileSection('public')} className="mt-4 min-h-11 w-full rounded-xl border border-slate-300 text-sm font-bold">공개 프로필 편집</button>
@@ -870,6 +894,10 @@ export default function InstructorPortal() {
             <article className="rounded-2xl border border-slate-200 bg-white p-4">
               <h3 className="font-bold">일정 설정</h3><p className="mt-2 text-sm leading-6 text-slate-600">수업 가능 풀장 {availablePools.length}곳</p><p className="mt-1 line-clamp-2 text-sm leading-6 text-slate-500">{availablePools.map(pool => pool.name).join(' · ') || '설정된 풀장 없음'}</p>
               <button type="button" onClick={() => openProfileSection('schedule')} className="mt-4 min-h-11 w-full rounded-xl border border-slate-300 text-sm font-bold">일정 설정 편집</button>
+            </article>
+            <article className="rounded-2xl border border-slate-200 bg-white p-4">
+              <h3 className="font-bold">내 연락처</h3><p className="mt-2 text-sm leading-6 text-slate-600">{currentInstructor?.phone || '휴대폰 번호 미등록'}</p>
+              <button type="button" onClick={() => openProfileSection('contact')} className="mt-4 min-h-11 w-full rounded-xl border border-slate-300 text-sm font-bold">휴대폰 번호 확인·수정</button>
             </article>
           </div>
         </section>
