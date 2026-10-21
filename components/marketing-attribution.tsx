@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { parseMarketingTouch } from '../lib/marketing-attribution';
 
@@ -37,17 +37,19 @@ export function getMarketingAttribution(): MarketingAttribution {
 
 export default function MarketingAttributionTracker() {
   const pathname = usePathname();
+  const firstPageInDocument = useRef(true);
   useEffect(() => {
     if (pathname === '/TEST' || pathname.startsWith('/TEST/')) return;
     try {
       localStorage.removeItem('bluepeace_first_touch');
       const current = currentTouch();
-      const parsed = parseMarketingTouch(current, window.location.origin);
       if (!readTouch(firstKey)) sessionStorage.setItem(firstKey, JSON.stringify(current));
-      const external = document.referrer && new URL(document.referrer).hostname !== window.location.hostname;
-      const tagged = parsed && (parsed.traffic_source || parsed.naver_keyword || parsed.naver_query);
+      const external = firstPageInDocument.current && document.referrer && new URL(document.referrer).hostname !== window.location.hostname;
+      const params = new URL(window.location.href).searchParams;
+      const tagged = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'n_keyword', 'n_query', 'n_ad_group', 'n_ad'].some(key => params.has(key));
       if (!readTouch(latestKey) || external || tagged) sessionStorage.setItem(latestKey, JSON.stringify(current));
     } catch {}
+    firstPageInDocument.current = false;
   }, [pathname]);
   return null;
 }
