@@ -13,6 +13,8 @@ type SessionAvailability = {
 type AvailabilityResponse = {
   date: string;
   ticket_type: 'weekday' | 'weekend';
+  open?: boolean;
+  reason?: string;
   sessions: SessionAvailability[];
   checked_at: string;
   source_url: string;
@@ -79,8 +81,8 @@ export default function ParadiveAvailabilityModal({ onClose }: { onClose: () => 
       const response = await fetch(`/api/paradive/availability?date=${encodeURIComponent(selectedDate)}`, {
         cache: 'no-store', signal,
       });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || '부이 현황을 불러오지 못했습니다.');
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(`${result.error || `부이 현황을 불러오지 못했습니다. (HTTP ${response.status})`}${result.code ? ` (조회 단계: ${result.code})` : ''}`);
       setAvailability(result);
     } catch (fetchError) {
       if (fetchError instanceof DOMException && fetchError.name === 'AbortError') return;
@@ -161,6 +163,11 @@ export default function ParadiveAvailabilityModal({ onClose }: { onClose: () => 
               <div className="flex min-h-80 flex-col items-center justify-center text-center">
                 <p className="text-sm font-bold leading-6 text-rose-700">{error}</p>
                 <button type="button" onClick={() => setReloadKey(key => key + 1)} className="mt-3 min-h-11 rounded-xl bg-slate-900 px-4 text-sm font-bold text-white">다시 조회</button>
+              </div>
+            ) : availability?.open === false ? (
+              <div className="flex min-h-40 flex-col items-center justify-center rounded-xl bg-white p-4 text-center">
+                <p className="text-base font-bold text-slate-800">{availability.reason || '해당 날짜에 예약 가능한 회차가 표시되지 않습니다.'}</p>
+                <p className="mt-2 text-sm leading-6 text-slate-600">예약 사이트에서 날짜를 다시 확인해 주세요.</p>
               </div>
             ) : (
               <div className="mt-4 space-y-2">

@@ -6,9 +6,9 @@ type SessionAvailability = {
   id: string;
   label: string;
   time: string;
-  status: 'available' | 'closed';
+  status: 'available' | 'closed' | 'unknown';
   remaining: number | null;
-  total: number;
+  total: number | null;
 };
 
 type AvailabilityResponse = {
@@ -77,8 +77,8 @@ export default function MarinaAvailabilityModal({ onClose }: { onClose: () => vo
       const response = await fetch(`/api/marina/availability?date=${encodeURIComponent(selectedDate)}`, {
         cache: 'no-store', signal,
       });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || '예약 현황을 불러오지 못했습니다.');
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(`${result.error || `예약 현황을 불러오지 못했습니다. (HTTP ${response.status})`}${result.code ? ` (조회 단계: ${result.code})` : ''}`);
       setAvailability(result);
     } catch (fetchError) {
       if (fetchError instanceof DOMException && fetchError.name === 'AbortError') return;
@@ -172,11 +172,12 @@ export default function MarinaAvailabilityModal({ onClose }: { onClose: () => vo
                   <div key={session.id} className="flex min-h-14 items-center justify-between gap-3 rounded-xl border border-cyan-100 bg-white px-4 py-3">
                     <div>
                       <p className="font-bold text-slate-900">{session.label}</p>
-                      <p className="text-xs text-slate-500">{session.time} · 정원 {session.total}명</p>
+                      <p className="text-xs text-slate-500">{session.time}{session.total != null ? ` · 정원 ${session.total}명` : ''}</p>
                     </div>
                     {session.status === 'available'
                       ? <strong className="text-base text-cyan-700"><span className="text-xl">{session.remaining}</span>명 예약 가능</strong>
-                      : <strong className="rounded-full bg-rose-100 px-3 py-1.5 text-sm text-rose-700">마감</strong>}
+                      : session.status === 'closed' ? <strong className="rounded-full bg-rose-100 px-3 py-1.5 text-sm text-rose-700">마감</strong>
+                        : <strong className="text-sm text-amber-800">현황 확인 필요</strong>}
                   </div>
                 ))}
                 {availability?.checked_at && <p className="pt-2 text-center text-[11px] text-slate-500">최근 조회 {new Date(availability.checked_at).toLocaleTimeString('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit' })}</p>}

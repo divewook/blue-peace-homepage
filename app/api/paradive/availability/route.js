@@ -40,6 +40,8 @@ export async function GET(request) {
     return NextResponse.json({
       date,
       ticket_type: result.ticketType,
+      open: result.open,
+      reason: result.reason,
       sessions: result.sessions,
       checked_at: new Date().toISOString(),
       source_url: PARADIVE_BOOKING_URL,
