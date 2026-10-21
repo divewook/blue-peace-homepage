@@ -3,6 +3,7 @@ import { hasAdminSession } from '../../../../../../lib/admin-session';
 import { createAdminSupabase } from '../../../../../../lib/admin-supabase';
 import { getInstructorSessionId } from '../../../../../../lib/instructor-session';
 import { validateLessonInput, validateWorkflowPatch } from '../../../../../../lib/customer-work';
+import { instructorCustomerFields } from '../../../../../../lib/customer-fields';
 
 export const runtime = 'nodejs';
 const fail = (error, status) => NextResponse.json({ error }, { status });
@@ -13,7 +14,7 @@ async function context(params) {
   const instructorId = admin ? null : await getInstructorSessionId();
   if (!admin && !instructorId) return { error: fail('로그인이 필요합니다.',401) };
   const db = createAdminSupabase();
-  const { data: customer, error } = await db.from('customers').select('*').eq('id',id).maybeSingle();
+  const { data: customer, error } = await db.from('customers').select(admin ? '*' : instructorCustomerFields).eq('id',id).maybeSingle();
   if (error) throw error;
   if (!customer) return { error: fail('신청을 찾을 수 없습니다.',404) };
   if (!admin) {

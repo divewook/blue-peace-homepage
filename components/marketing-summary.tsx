@@ -21,8 +21,8 @@ function topCounts(customers: CustomerAttribution[], key: keyof CustomerAttribut
 export default function MarketingSummary({ customers }: { customers: CustomerAttribution[] }) {
   const [expanded, setExpanded] = useState(false);
   const groups = useMemo(() => [
-    { title: '유입 경로', rows: topCounts(customers, 'traffic_source', '직접 방문') },
-    { title: '검색 키워드', rows: topCounts(customers.filter(c => c.traffic_term), 'traffic_term', '미제공') },
+    { title: '유입 경로', rows: topCounts(customers, 'traffic_source', '확인 불가') },
+    { title: 'UTM·유기 검색어', rows: topCounts(customers.filter(c => c.traffic_term), 'traffic_term', '미제공') },
     { title: '캠페인', rows: topCounts(customers.filter(c => c.traffic_campaign), 'traffic_campaign', '없음') },
     { title: '접속 기기', rows: topCounts(customers, 'device_type', '확인 불가') },
   ], [customers]);

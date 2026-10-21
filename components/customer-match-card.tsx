@@ -30,6 +30,14 @@ export type CustomerMatch = {
   traffic_campaign?: string;
   traffic_term?: string;
   traffic_content?: string;
+  naver_keyword?: string | null;
+  naver_query?: string | null;
+  naver_ad_group?: string | null;
+  naver_ad?: string | null;
+  attribution_latest?: {
+    traffic_source?: string | null; traffic_medium?: string | null; traffic_campaign?: string | null;
+    naver_keyword?: string | null; naver_query?: string | null;
+  } | null;
   landing_url?: string;
   referrer_url?: string;
   device_type?: string;
@@ -79,7 +87,7 @@ export default function CustomerMatchCard({ customer, showAttribution = false, a
   const poolOptions = customer.preferred_pool_options && Object.keys(customer.preferred_pool_options).length
     ? customer.preferred_pool_options
     : Object.fromEntries(Object.entries(schedule).map(([poolName, times]) => [poolName, { days, times }]));
-  const sourceDetail = [customer.traffic_source || '직접 방문', customer.traffic_medium].filter(Boolean).join(' · ');
+  const sourceDetail = [customer.traffic_source || '확인 불가', customer.traffic_medium].filter(Boolean).join(' · ');
   const exactAlternatives = Array.isArray(customer.schedule_alternatives)
     ? customer.schedule_alternatives.filter(option => option?.poolId && option?.dayId && option?.slotId)
     : [];
@@ -160,9 +168,12 @@ export default function CustomerMatchCard({ customer, showAttribution = false, a
             <span aria-hidden="true" className="transition group-open:rotate-180">⌄</span>
           </summary>
           <div className="mt-3 grid gap-x-5 gap-y-1 border-t border-indigo-200 pt-3 text-xs text-slate-700 sm:grid-cols-2">
-            <p><span className="font-bold">유입:</span> {sourceDetail}</p>
-            <p><span className="font-bold">검색어:</span> {customer.traffic_term || '검색어 미제공'}</p>
-            <p><span className="font-bold">캠페인:</span> {[customer.traffic_campaign, customer.traffic_content].filter(Boolean).join(' · ') || '없음'}</p>
+            <p><span className="font-bold">첫 유입:</span> {sourceDetail}</p>
+            <p><span className="font-bold">네이버 등록 키워드:</span> {customer.naver_keyword || '확인 불가'}</p>
+            <p><span className="font-bold">네이버 실제 검색어:</span> {customer.naver_query || '확인 불가'}</p>
+            <p><span className="font-bold">광고그룹·소재 ID:</span> {[customer.naver_ad_group, customer.naver_ad].filter(Boolean).join(' · ') || '확인 불가'}</p>
+            <p><span className="font-bold">UTM 캠페인·검색어:</span> {[customer.traffic_campaign, customer.traffic_term].filter(Boolean).join(' · ') || '확인 불가'}</p>
+            <p><span className="font-bold">같은 탭의 최근 유입:</span> {customer.attribution_latest?.traffic_source || '확인 불가'}{customer.attribution_latest?.traffic_medium ? ` · ${customer.attribution_latest.traffic_medium}` : ''}</p>
             <p><span className="font-bold">기기:</span> {customer.device_type || '확인 불가'}</p>
             <p><span className="font-bold">이전 사이트:</span> {safeHost(customer.referrer_url) || '직접 방문/미제공'}</p>
             <p><span className="font-bold">첫 방문 페이지:</span> {safeLanding(customer.landing_url) || '확인 불가'}</p>

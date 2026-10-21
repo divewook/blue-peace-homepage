@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminSupabase } from "../../../../lib/admin-supabase";
 import { getInstructorSessionId } from "../../../../lib/instructor-session";
 import { enrichCustomerWork } from "../../../../lib/customer-work-summary";
+import { instructorCustomerFields } from "../../../../lib/customer-fields";
 
 export const runtime = "nodejs";
 
@@ -15,7 +16,7 @@ export async function GET() {
     if (instructorError || !instructor?.is_approved) {
       return NextResponse.json({ error: "강사 계정을 확인할 수 없습니다." }, { status: 403 });
     }
-    const { data, error } = await supabase.from("customers").select("*")
+    const { data, error } = await supabase.from("customers").select(instructorCustomerFields)
       .eq("matched_instructor_id", instructorId)
       .order("created_at", { ascending: false });
     if (error) throw error;

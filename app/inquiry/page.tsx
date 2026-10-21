@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { FormEvent, Suspense, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { getMarketingAttribution } from '../../components/marketing-attribution';
+import { reportNaverLeadOnce } from '../../lib/naver-lead-conversion';
 import { canInstructorTeachCourse } from '../../lib/instructor-fields';
 import { bookingDays, bookingPools, courseCatalog, findMatchingAlternative, getAvailableSlots, getCourse, getPool, scheduleLabel, validateScheduleAlternatives } from '../../lib/booking-options';
 
@@ -211,6 +212,7 @@ function TestInquiryForm() {
         }
         throw new Error(result.error || '상담 요청을 저장하지 못했습니다.');
       }
+      if (response.status === 201) void reportNaverLeadOnce(result, marketingAccepted);
       setMatchedInstructor(result.instructor ? { ...selectedInstructor, ...result.instructor } as PublicInstructor : null);
       setRequestStatus(result.status === 'matched' ? 'matched' : 'pending_assignment');
       try {

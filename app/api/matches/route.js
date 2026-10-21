@@ -3,26 +3,13 @@ import { createAdminSupabase } from "../../../lib/admin-supabase";
 import { canInstructorTeachCourse, hasCompleteInstructorProfile, instructorPublicFields, publicMatchedInstructor } from "../../../lib/instructor-fields";
 import { bookingPools, findMatchingAlternative, getCourse, getDay, getPool, validateScheduleAlternatives } from "../../../lib/booking-options";
 import { sendKakaoAlimtalk } from "../../../lib/kakao-alimtalk";
+import { parseMarketingAttribution } from "../../../lib/marketing-attribution";
 
 export const runtime = "nodejs";
 
 const requestKeyPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 function cleanText(value, maxLength) {
   return typeof value === "string" ? value.trim().slice(0, maxLength) : "";
-}
-
-function cleanAttribution(value) {
-  const source = value && typeof value === "object" && !Array.isArray(value) ? value : {};
-  return {
-    landing_url: cleanText(source.landing_url, 500) || null,
-    referrer_url: cleanText(source.referrer_url, 500) || null,
-    traffic_source: cleanText(source.traffic_source, 100) || "직접 방문",
-    traffic_medium: cleanText(source.traffic_medium, 100) || "direct",
-    traffic_campaign: cleanText(source.traffic_campaign, 200) || null,
-    traffic_term: cleanText(source.traffic_term, 200) || null,
-    traffic_content: cleanText(source.traffic_content, 200) || null,
-    device_type: cleanText(source.device_type, 30) || null,
-  };
 }
 
 function parseRequestedCourse(body) {
@@ -140,12 +127,24 @@ export async function POST(request) {
           return `${pool?.storedName} ${day?.shortLabel} ${slot?.label} ${slot?.time}`;
         }).join(" | ");
     const status = instructor ? "matched" : "pending_assignment";
-    const attribution = body.marketing_accepted === true
-      ? cleanAttribution(body.attribution)
-      : {
-          landing_url: null, referrer_url: null, traffic_source: null, traffic_medium: null,
-          traffic_campaign: null, traffic_term: null, traffic_content: null, device_type: null,
-        };
+    const { first: firstTouch, latest: latestTouch } = body.marketing_accepted === true
+      ? parseMarketingAttribution(body.attribution, new URL(request.url).origin)
+      : { first: null, latest: null };
+    const attribution = {
+      landing_url: firstTouch?.landing_url || null,
+      referrer_url: firstTouch?.referrer_url || null,
+      traffic_source: firstTouch?.traffic_source || null,
+      traffic_medium: firstTouch?.traffic_medium || null,
+      traffic_campaign: firstTouch?.traffic_campaign || null,
+      traffic_term: firstTouch?.traffic_term || null,
+      traffic_content: firstTouch?.traffic_content || null,
+      device_type: firstTouch?.device_type || null,
+      naver_keyword: firstTouch?.naver_keyword || null,
+      naver_query: firstTouch?.naver_query || null,
+      naver_ad_group: firstTouch?.naver_ad_group || null,
+      naver_ad: firstTouch?.naver_ad || null,
+      attribution_latest: latestTouch,
+    };
     const insertPayload = {
       name, phone, course: requestedCourse.displayName, pool: poolSummary, time_slot: timeSummary,
       matched_instructor_id: instructor?.id || null,
@@ -158,7 +157,7 @@ export async function POST(request) {
       request_key: requestKey,
       request_status: status,
       matched_schedule: instructor && scheduleResult.mode === "exact" ? findMatchingAlternative(instructor, scheduleResult.alternatives) : null,
-      privacy_consent_version: "2026-10-17",
+      privacy_consent_version: "2026-10-22",
       privacy_consent_at: new Date().toISOString(),
       marketing_consent: body.marketing_accepted === true,
       youth_participant_count: isYouthCourse ? youthParticipantCount : null,
