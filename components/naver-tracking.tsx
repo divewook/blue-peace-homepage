@@ -1,25 +1,19 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 import { usePathname } from 'next/navigation';
 import { getNaverTrackingConsent, isNaverTrackingEnabled, onNaverTrackingConsentChanged, reportNaverPageView, setNaverTrackingConsent } from '../lib/naver-lead-conversion';
 
 export default function NaverTracking() {
   const pathname = usePathname();
-  const [choice, setChoice] = useState<string | null>(null);
-
-  useEffect(() => {
-    const update = () => setChoice(getNaverTrackingConsent());
-    update();
-    return onNaverTrackingConsentChanged(update);
-  }, []);
+  const choice = useSyncExternalStore(onNaverTrackingConsentChanged, getNaverTrackingConsent, () => 'hydrating');
 
   useEffect(() => {
     if (choice === 'yes') void reportNaverPageView(pathname);
   }, [pathname, choice]);
 
-  if (!isNaverTrackingEnabled() || (pathname !== '/' && pathname !== '/inquiry') || choice !== null) return null;
+  if (choice === 'hydrating' || !isNaverTrackingEnabled() || (pathname !== '/' && pathname !== '/inquiry') || choice !== null) return null;
 
   return <aside aria-label="선택 방문 분석 안내" className="border-b border-cyan-200 bg-cyan-50 px-4 py-3 text-slate-900">
     <div className="mx-auto flex max-w-5xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
