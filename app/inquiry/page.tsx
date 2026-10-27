@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { FormEvent, Suspense, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { getMarketingAttribution } from '../../components/marketing-attribution';
-import { reportNaverLeadOnce } from '../../lib/naver-lead-conversion';
+import { getNaverTrackingConsent, onNaverTrackingConsentChanged, reportNaverLeadOnce, setNaverTrackingConsent } from '../../lib/naver-lead-conversion';
 import { canInstructorTeachCourse } from '../../lib/instructor-fields';
 import { bookingDays, bookingPools, courseCatalog, findMatchingAlternative, getAvailableSlots, getCourse, getPool, scheduleLabel, validateScheduleAlternatives } from '../../lib/booking-options';
 
@@ -62,6 +62,12 @@ function TestInquiryForm() {
 
   const selectedCourse = useMemo(() => getCourse(courseId), [courseId]);
   const selectedLevel = selectedCourse?.levels.find((level: { id: string }) => level.id === levelId) || null;
+
+  useEffect(() => {
+    const update = () => setMarketingAccepted(getNaverTrackingConsent() === 'yes');
+    update();
+    return onNaverTrackingConsentChanged(update);
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -281,7 +287,7 @@ function TestInquiryForm() {
         <div className="mt-5 grid gap-3 sm:grid-cols-2"><div><label className="text-sm font-bold text-slate-700" htmlFor="field-name">성함</label><input id="field-name" autoComplete="name" value={name} onChange={event => { setName(event.target.value); setErrors(previous => ({ ...previous, name: '' })); }} aria-invalid={Boolean(errors.name)} aria-describedby={errors.name ? 'error-name' : undefined} className="mt-1 min-h-12 w-full rounded-xl border border-slate-300 px-3 text-base" />{errors.name && <p id="error-name" role="alert" className="mt-1 text-sm font-bold text-rose-700">{errors.name}</p>}</div><div><label className="text-sm font-bold text-slate-700" htmlFor="field-phone">휴대폰 번호</label><input id="field-phone" inputMode="tel" autoComplete="tel" value={phone} onChange={event => { setPhone(formatPhone(event.target.value)); setErrors(previous => ({ ...previous, phone: '' })); }} placeholder="010-0000-0000" aria-invalid={Boolean(errors.phone)} aria-describedby={errors.phone ? 'error-phone' : undefined} className="mt-1 min-h-12 w-full rounded-xl border border-slate-300 px-3 text-base" />{errors.phone && <p id="error-phone" role="alert" className="mt-1 text-sm font-bold text-rose-700">{errors.phone}</p>}</div></div>
         <div id="field-privacy" tabIndex={-1} className="mt-6 space-y-3 border-t border-slate-200 pt-6"><label className={`flex cursor-pointer items-start gap-3 rounded-2xl border p-4 ${errors.privacy ? 'border-rose-400 bg-rose-50' : 'border-slate-200 bg-slate-50'}`}><input type="checkbox" checked={privacyAccepted} onChange={event => { setPrivacyAccepted(event.target.checked); setErrors(previous => ({ ...previous, privacy: '' })); }} className="mt-1 h-5 w-5 shrink-0 accent-cyan-700" /><span className="text-sm leading-6 text-slate-700"><strong className="text-base text-slate-950">[필수] 상담 처리를 위한 개인정보 안내 확인</strong><br />운영 서비스는 성함·연락처·과정·일정 조건을 상담과 강사 배정에 사용합니다. 담당 강사 배정 후 해당 강사와 관리자가 신청 내용을 확인할 수 있습니다.</span></label>{errors.privacy && <p role="alert" className="text-sm font-bold text-rose-700">{errors.privacy}</p>}
           <details className="rounded-2xl border border-slate-200 p-4"><summary className="min-h-8 cursor-pointer text-sm font-bold text-cyan-900">개인정보 처리 상세 보기</summary><div className="mt-3 space-y-2 border-t border-slate-200 pt-3 text-sm leading-7 text-slate-700"><p><strong>수집 항목:</strong> 성함, 연락처, 과정, 희망 일정, 유스 인원·연령(해당 시)</p><p><strong>이용 목적:</strong> 상담, 강사 매칭, 일정 조율</p><p><strong>열람 범위:</strong> 관리자와 배정된 담당 강사</p><p><strong>삭제 문의:</strong> 블루피스 대표 연락처로 요청할 수 있습니다.</p><Link href="/privacy" className="inline-block font-bold text-cyan-800 underline">개인정보 처리 안내 보기</Link></div></details>
-          <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 p-4"><input type="checkbox" checked={marketingAccepted} onChange={event => setMarketingAccepted(event.target.checked)} className="mt-1 h-5 w-5 shrink-0 accent-cyan-700" /><span className="text-sm leading-6 text-slate-700"><strong className="text-base text-slate-950">[선택] 분석·마케팅 정보 활용 동의</strong><br />선택하지 않아도 상담을 신청할 수 있습니다.</span></label>
+          <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 p-4"><input type="checkbox" checked={marketingAccepted} onChange={event => { setMarketingAccepted(event.target.checked); setNaverTrackingConsent(event.target.checked); }} className="mt-1 h-5 w-5 shrink-0 accent-cyan-700" /><span className="text-sm leading-6 text-slate-700"><strong className="text-base text-slate-950">[선택] 분석·마케팅 정보 활용 동의</strong><br />동의하면 네이버 방문·신청완료 분석과 신청별 유입 출처 저장에 사용합니다. 선택하지 않아도 상담을 신청할 수 있습니다.</span></label>
         </div>{errors.submit && <p id="field-submit" tabIndex={-1} role="alert" className="mt-4 rounded-xl bg-rose-50 p-3 text-sm font-bold leading-6 text-rose-800">{errors.submit}</p>}<button type="submit" disabled={submitting || !requestKey} className="mt-6 min-h-14 w-full rounded-2xl bg-cyan-700 px-5 text-base font-black text-white shadow-lg shadow-cyan-700/20 disabled:cursor-wait disabled:opacity-60">{submitting ? '상담 요청을 안전하게 접수하고 있습니다…' : '상담 요청 보내기'}</button>
       </section>}
 

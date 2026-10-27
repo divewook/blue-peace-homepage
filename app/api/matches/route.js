@@ -157,7 +157,7 @@ export async function POST(request) {
       request_key: requestKey,
       request_status: status,
       matched_schedule: instructor && scheduleResult.mode === "exact" ? findMatchingAlternative(instructor, scheduleResult.alternatives) : null,
-      privacy_consent_version: "2026-10-22",
+      privacy_consent_version: "2026-10-27",
       privacy_consent_at: new Date().toISOString(),
       marketing_consent: body.marketing_accepted === true,
       youth_participant_count: isYouthCourse ? youthParticipantCount : null,

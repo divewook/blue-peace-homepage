@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { parseMarketingAttribution, parseMarketingTouch } from '../lib/marketing-attribution.js';
-import { isNewConsultationConversion, reportNaverLeadOnce } from '../lib/naver-lead-conversion.js';
+import { isNewConsultationConversion, reportNaverLeadOnce, reportNaverPageView } from '../lib/naver-lead-conversion.js';
 import { instructorCustomerFields } from '../lib/customer-fields.js';
 
 test('네이버 등록 키워드와 실제 검색어를 분리하고 허용한 URL 항목만 남긴다', () => {
@@ -70,11 +70,22 @@ test('격리된 가짜 네이버 스크립트에서도 신청당 한 번만 기�
     process.env.NEXT_PUBLIC_NAVER_WCS_ACCOUNT_ID = 'test-only';
     process.env.NEXT_PUBLIC_NAVER_WCS_ENABLED = 'true';
     globalThis.sessionStorage = { getItem: key => saved.get(key) || null, setItem: (key, value) => saved.set(key, value) };
-    globalThis.window = { wcs: { inflow: () => {}, trans: value => sent.push(value) }, wcs_do: () => {} };
+    saved.set('bluepeace_naver_tracking_consent', 'yes');
+    const pageViews = [];
+    globalThis.window = { location: { pathname: '/inquiry', search: '?course=freediving&n_keyword=test' }, wcs: { inflow: () => {}, trans: value => sent.push(value) }, wcs_do: () => pageViews.push('view') };
+    assert.equal(await reportNaverPageView('/TEST'), false);
+    assert.equal(await reportNaverPageView('/inquiry'), true);
+    assert.equal(await reportNaverPageView('/inquiry'), false);
     assert.equal(await reportNaverLeadOnce({ id: 'saved-one' }, true), true);
     assert.equal(await reportNaverLeadOnce({ id: 'saved-one' }, true), false);
-    assert.deepEqual(sent, [{ type: 'lead' }]);
-    globalThis.window = {};
+    assert.deepEqual(await Promise.all([reportNaverLeadOnce({ id: 'saved-concurrent' }, true), reportNaverLeadOnce({ id: 'saved-concurrent' }, true)]), [true, false]);
+    assert.equal(pageViews.length, 1);
+    assert.deepEqual(sent, [{ type: 'lead' }, { type: 'lead' }]);
+    saved.set('bluepeace_naver_tracking_consent', 'no');
+    assert.equal(await reportNaverLeadOnce({ id: 'saved-without-consent' }, true), false);
+    assert.equal(sent.length, 2);
+    saved.set('bluepeace_naver_tracking_consent', 'yes');
+    globalThis.window = { location: { pathname: '/inquiry', search: '' } };
     globalThis.document = { createElement: () => ({}), head: { appendChild: script => script.onerror() } };
     assert.equal(await reportNaverLeadOnce({ id: 'saved-two' }, true), false);
   } finally {

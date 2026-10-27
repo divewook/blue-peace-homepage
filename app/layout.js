@@ -1,5 +1,6 @@
 import "./globals.css";
 import MarketingAttributionTracker from "../components/marketing-attribution";
+import NaverTracking from "../components/naver-tracking";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.bluepeace.co.kr";
 const siteTitle = "대구·경북 다이빙 교육 상담 | 블루피스 BLUE PEACE";
@@ -56,6 +57,7 @@ export default function RootLayout({ children }) {
     <html lang="ko">
       <body>
         <MarketingAttributionTracker />
+        <NaverTracking />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessData) }} />
         {children}
       </body>

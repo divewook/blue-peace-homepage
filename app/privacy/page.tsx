@@ -14,13 +14,13 @@ export default function PrivacyPage() {
           <section><h2 className="font-black text-slate-950">수집하는 정보</h2><p className="mt-2">성함, 휴대폰 번호, 선택 과정, 희망 풀장·요일·시간을 수집합니다. 유스 과정은 수강 인원과 연령을 추가로 수집합니다.</p></section>
           <section><h2 className="font-black text-slate-950">이용 목적</h2><p className="mt-2">교육 상담, 가능한 강사 확인, 풀장 일정 조율과 예약 안내에 사용합니다.</p></section>
           <section><h2 className="font-black text-slate-950">열람 및 전달 범위</h2><p className="mt-2">관리자는 신청 내용을 확인할 수 있습니다. 강사가 배정되면 해당 담당 강사에게 상담에 필요한 신청 내용과 연락처가 전달됩니다.</p></section>
-          <section><h2 className="font-black text-slate-950">선택 분석 정보</h2><p className="mt-2">선택 동의한 경우 첫 유입과 같은 브라우저 탭의 재방문 출처, UTM 캠페인, 네이버 광고의 등록 키워드·실제 검색어·광고그룹·소재 식별값, 기기 유형을 신청 정보와 함께 저장합니다. 동의하지 않아도 상담을 신청할 수 있습니다.</p><p className="mt-2">신청 전 유입 정보는 현재 브라우저 탭의 세션 저장소에서만 유지합니다. 상담 신청의 이름·연락처·메모는 광고 전환 도구에 전달하지 않습니다. 네이버 전환 추적은 새 사이트의 식별키 발급과 설치 확인 전까지 연결되지 않습니다.</p></section>
+          <section><h2 className="font-black text-slate-950">선택 분석 정보</h2><p className="mt-2">방문 분석에 동의하면 네이버 공통 스크립트가 홈페이지와 상담 페이지의 방문을 기록합니다. 상담 신청이 새로 저장된 경우에만 신청완료 전환을 기록합니다. 네이버가 방문·전환 측정에 쿠키를 사용할 수 있습니다. 허용하지 않아도 상담을 신청할 수 있습니다.</p><p className="mt-2">선택 동의한 경우 첫 유입과 같은 브라우저 탭의 재방문 출처, UTM 캠페인, 네이버 광고의 등록 키워드·실제 검색어·광고그룹·소재 식별값, 기기 유형을 신청 정보와 함께 저장합니다. 신청 전 유입 정보와 분석 동의 선택은 현재 브라우저 탭의 세션 저장소에서 유지합니다. 상담 신청의 이름·연락처·메모는 광고 전환 도구에 전달하지 않습니다.</p></section>
           <section><h2 className="font-black text-slate-950">보관 및 삭제</h2><p className="mt-2">상담과 강사 배정에 필요한 기간 동안 보관하며, 처리 목적이 끝났거나 삭제 요청을 받으면 관계 법령상 보관 의무가 있는 경우를 제외하고 삭제합니다.</p></section>
           <section><h2 className="font-black text-slate-950">열람·정정·삭제 문의</h2><div className="mt-2 space-y-1"><p>전화: <a className="font-bold text-cyan-800 underline" href="tel:01098978990">010-9897-8990</a></p><p>이메일: <a className="font-bold text-cyan-800 underline" href="mailto:divewook@naver.com">divewook@naver.com</a></p></div></section>
           <section><h2 className="font-black text-slate-950">동의를 거부할 권리</h2><p className="mt-2">필수 정보 처리에 동의하지 않으면 홈페이지 상담 신청을 이용할 수 없습니다. 선택 분석·마케팅 동의는 거부해도 상담 신청에 제한이 없습니다.</p></section>
         </div>
 
-        <p className="mt-8 text-sm text-slate-500">시행일: 2026년 10월 22일</p>
+        <p className="mt-8 text-sm text-slate-500">시행일: 2026년 10월 27일</p>
         <Link href="/" className="mt-6 inline-flex min-h-12 items-center rounded-xl bg-cyan-700 px-5 text-base font-bold text-white">홈으로 돌아가기</Link>
       </article>
     </main>
