@@ -5,7 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 import ExpandableText from "../../components/expandable-text";
-import { courseCatalog } from "../../lib/booking-options";
+import FirstStartGuide from "../../components/first-start-guide";
+import EducationCourseGrid from "../../components/education-course-grid";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -19,7 +20,7 @@ const business = { name: "블루피스", owner: "김상욱", registration: "460-
 
 // 기본 백업용 히어로 이미지 (Admin 등록 이미지가 없을 때 동작)
 const defaultHeroImages = [
-  "/DSC02297.jpg",
+  "/bluepeace-hero-water.webp",
   "/DSC04128-Enhanced-NR.jpg",
   "/DSC05353-Enhanced-NR.jpg",
   "/DSC06986.jpg",
@@ -64,13 +65,6 @@ const placeReviews = [
   },
 ];
 
-const trustStats = [
-  { value: "6개 분야", label: "교육 과정 상담" },
-  { value: "2개 풀장", label: "현재 일정 선택 가능" },
-  { value: "일정·장소", label: "조건 확인 후 강사 연결" },
-  { value: "상담 후", label: "예약과 비용 최종 확정" },
-];
-
 const faqs = [
   { question: "수영을 못해도 가능한가요?", answer: "가능합니다. 수영 실력보다 물에 적응하는 과정부터 천천히 진행합니다." },
   { question: "물 공포가 있어도 괜찮나요?", answer: "괜찮습니다. 강사가 옆에서 단계별로 안내하며 편안하게 적응할 수 있도록 도와드립니다." },
@@ -83,8 +77,6 @@ const faqs = [
   { question: "혼자 신청해도 괜찮나요?", answer: "물론입니다. 혼자 오셔도 편하게 수업받을 수 있고, 이후 트레이닝과 커뮤니티도 함께할 수 있습니다." },
   { question: "교육 장소는 어디인가요?", answer: "이론 수업은 블루피스 센터에서, 풀장 실습은 칠곡 패스나인, 밀양 아리랑 등 일정에 맞는 풀장에서 진행됩니다." },
 ];
-
-const categories = courseCatalog;
 
 function shuffleItems(items) {
   const shuffled = [...items];
@@ -106,16 +98,7 @@ function publicInstructorPools(instructor) {
   return [instructor.can_passnine && "칠곡 패스나인", instructor.can_miryang && "밀양 아리랑"].filter(Boolean);
 }
 
-function ArrowIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-      <path d="M5 12h14M12 5l7 7-7 7" />
-    </svg>
-  );
-}
-
 export default function HomePage() {
-  const [heroIndex, setHeroIndex] = useState(0);
   const [heroImages, setHeroImages] = useState(defaultHeroImages);
   const [galleryPhotos, setGalleryPhotos] = useState([]);
   const [instructors, setInstructors] = useState([]);
@@ -138,7 +121,7 @@ export default function HomePage() {
 
       if (galleryData && galleryData.length > 0) {
         const heroList = galleryData.filter(g => g.is_hero).map(g => g.image_url);
-        if (heroList.length > 0) setHeroImages(shuffleItems(heroList));
+        if (heroList.length > 0) setHeroImages(heroList);
 
         const photoList = galleryData.map(g => ({ src: g.image_url, alt: '블루피스 수중 작품' }));
         setGalleryPhotos(shuffleItems(photoList).slice(0, 8));
@@ -150,133 +133,65 @@ export default function HomePage() {
     fetchData();
   }, []);
 
-  // Hero 이미지 자동 슬라이드 (5초 간격)
-  useEffect(() => {
-    if (heroImages.length === 0) return;
-    const timer = setInterval(() => setHeroIndex((i) => (i + 1) % heroImages.length), 5000);
-    return () => clearInterval(timer);
-  }, [heroImages]);
-
   // 노출할 강사진 목록 (기본 4명 / 버튼 클릭 시 전체)
   const visibleInstructors = showAllInstructors ? instructors : instructors.slice(0, 4);
 
   return (
-    <main className="min-h-screen bg-slate-50 pb-24 text-slate-800 font-sans md:pb-0">
+    <main className="min-h-screen break-keep bg-[#f7f8f5] pb-24 text-slate-800 font-sans md:pb-0">
 
       {/* 모바일 화면에 완벽 반응하는 고급 GNB 헤더 */}
-      <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-sm px-4 sm:px-8 py-3.5">
-        <div className="max-w-6xl mx-auto flex justify-between items-center gap-3">
-          <Link href="/TEST" className="flex items-center gap-2 shrink-0">
-            <span className="text-cyan-600 font-black text-lg sm:text-xl tracking-wider">BLUE PEACE</span>
+      <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/95 px-4 py-3 backdrop-blur-md sm:px-8">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <Link href="/TEST" className="shrink-0 text-lg font-black tracking-[0.08em] text-[#123847] sm:text-xl">
+            BLUE PEACE
           </Link>
-
-          <nav className="flex min-w-0 flex-1 items-center justify-start gap-4 sm:justify-end sm:gap-6 text-xs sm:text-sm font-semibold text-slate-600 overflow-x-auto no-scrollbar whitespace-nowrap py-2">
-            <a href="#courses" className="hover:text-cyan-600 transition shrink-0">교육과정</a>
-            <a href="#instructors" className="hover:text-cyan-600 transition shrink-0">맞춤강사진</a>
-            <a href="#faq" className="hover:text-cyan-600 transition shrink-0">FAQ</a>
-            <Link href="/instructor/mypage" className="text-cyan-600 hover:text-cyan-700 font-bold shrink-0 bg-cyan-50 px-2.5 py-1 rounded-lg border border-cyan-200">
-              강사 로그인
-            </Link>
+          <nav aria-label="주요 메뉴" className="order-3 flex w-full items-center justify-between gap-3 text-sm font-semibold text-slate-700 sm:order-none sm:w-auto sm:flex-1 sm:justify-end sm:gap-7">
+            <a href="#start" className="inline-flex min-h-11 items-center hover:text-teal-800">처음 시작하기</a>
+            <a href="#courses" className="inline-flex min-h-11 items-center hover:text-teal-800">전체 교육과정</a>
+            <a href="#instructors" className="inline-flex min-h-11 items-center hover:text-teal-800">강사진</a>
           </nav>
+          <Link href="/instructor/mypage" className="inline-flex min-h-11 shrink-0 items-center rounded-xl border border-teal-200 px-3 text-sm font-bold text-teal-900 hover:bg-teal-50">강사 로그인</Link>
         </div>
       </header>
 
       {/* Hero Section */}
-      <section className="relative py-12 sm:py-20 px-4 max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-        <div className="text-center lg:text-left">
-          <span className="text-xs font-bold px-3.5 py-1.5 bg-cyan-100 text-cyan-800 border border-cyan-200 rounded-full inline-block mb-3">
-            대구·경북 다이빙 교육 상담
-          </span>
-          <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-slate-900 leading-[1.35]">
-            가능한 일정에 맞춰<br />
-            <span className="text-cyan-600">다이빙 교육 강사</span>를 연결합니다.
-          </h1>
-          <p className="text-sm text-slate-600 mt-4 leading-7 font-medium">
-            칠곡 패스나인과 밀양 아리랑 풀장을 중심으로 프리다이빙·유스·머메이드·스쿠버 등 과정을 상담합니다.<br />
-            과정과 가능한 일정을 먼저 확인한 뒤 상담을 거쳐 예약을 확정합니다.
-          </p>
-
-          <div className="mt-8 flex justify-center lg:justify-start">
-            <Link
-              href="/TEST/inquiry"
-              className="min-h-12 px-7 py-4 bg-cyan-600 hover:bg-cyan-500 text-white font-extrabold rounded-2xl text-sm transition shadow-lg shadow-cyan-600/25 flex items-center gap-2"
-            >
-              <span>과정과 가능한 일정 선택하기</span>
-              <ArrowIcon />
-            </Link>
+      <section className="bg-[#0f3443] px-4 py-10 text-white sm:py-16 lg:py-20">
+        <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-14">
+          <div>
+            <p className="text-sm font-bold tracking-[0.18em] text-teal-200">BLUE PEACE · DIVE EDUCATION</p>
+            <h1 className="mt-5 text-[clamp(2.45rem,5vw,4.7rem)] font-black leading-[1.17] tracking-tight">물속의 첫 경험부터,<br /><span className="text-[#96e0d4]">새로운 도전까지.</span></h1>
+            <div className="mt-6 max-w-xl space-y-3 text-base leading-8 text-slate-100 sm:text-lg">
+              <p>프리다이빙부터 스쿠버다이빙, 머메이드, 전문 수중레저 교육까지. 당신에게 맞는 수중 경험을 블루피스에서 시작하세요.</p>
+              <p className="text-sm text-slate-200 sm:text-base">칠곡·밀양을 중심으로 과정과 가능한 일정을 상담하고, 조율 후 수업을 확정합니다.</p>
+            </div>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <a href="#start" className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#a9e6d9] px-6 text-base font-bold text-[#123847] hover:bg-white">처음이신가요? · 교육 안내</a>
+              <a href="#courses" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-white/50 px-6 text-base font-bold text-white hover:bg-white/10">전체 교육과정 보기</a>
+            </div>
+            <p className="mt-6 text-sm leading-6 text-slate-200">상담 신청은 예약·결제 확정이 아닙니다.</p>
+          </div>
+          <div className="grid h-72 grid-cols-[1.55fr_0.75fr] gap-2.5 sm:h-[480px] sm:gap-4" aria-label="블루피스 실제 수중 사진">
+            <div className="relative overflow-hidden rounded-[1.75rem] bg-slate-700">
+              <Image src={heroImages[0] || defaultHeroImages[0]} alt="블루피스에서 직접 촬영한 수중 활동 사진" fill sizes="(max-width: 1023px) 65vw, 38vw" priority className="object-cover" />
+              <span className="absolute bottom-3 left-3 rounded-full bg-slate-950/70 px-3 py-1 text-xs font-semibold text-white backdrop-blur-sm">블루피스 실제 수중 촬영</span>
+            </div>
+            <div className="relative overflow-hidden rounded-[1.75rem] bg-slate-700">
+              <Image src="/bluepeace-hero-scuba.webp" alt="장비를 착용하고 수중 활동 중인 다이버" fill sizes="(max-width: 1023px) 30vw, 20vw" className="object-cover" />
+            </div>
           </div>
         </div>
-
-        {/* 텍스트/숫자 없는 순수 대형 비주얼 이미지 슬라이더 */}
-        <div className="relative h-72 sm:h-96 rounded-3xl overflow-hidden border border-slate-200 shadow-xl bg-slate-100">
-          {heroImages.map((src, index) => (
-            <div
-              key={src}
-              className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
-                heroIndex === index ? "opacity-100" : "opacity-0"
-              }`}
-            >
-              <Image src={src} alt="블루피스 메인 사진" fill className="object-cover" priority={index === 0} />
-            </div>
-          ))}
-        </div>
       </section>
 
-      {/* 신뢰도 요약 통계 바 */}
-      <section className="border-y border-slate-200 bg-white py-6 shadow-sm">
-        <div className="max-w-5xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-4 text-center px-4">
-          {trustStats.map((s, idx) => (
-            <div key={idx}>
-              <p className="text-lg sm:text-2xl font-black text-cyan-600">{s.value}</p>
-              <p className="text-xs text-slate-500 font-medium mt-0.5">{s.label}</p>
-            </div>
-          ))}
-        </div>
+      <section aria-label="상담 진행 순서" className="border-b border-slate-200 bg-white px-4 py-5">
+        <ol className="mx-auto grid max-w-6xl gap-3 text-sm font-semibold leading-6 text-slate-700 sm:grid-cols-3 sm:gap-7 sm:text-base">
+          <li><span className="mr-3 font-mono text-teal-800">01</span> 관심사 또는 과정 선택</li>
+          <li><span className="mr-3 font-mono text-teal-800">02</span> 가능한 장소·일정 확인</li>
+          <li><span className="mr-3 font-mono text-teal-800">03</span> 상담 후 수업 조율</li>
+        </ol>
       </section>
 
-      {/* 교육 과정 선택 섹션 */}
-      <section id="courses" className="py-16 sm:py-24 px-4 max-w-6xl mx-auto">
-        <div className="text-center mb-12">
-          <span className="text-xs font-bold text-cyan-600 tracking-wider">BLUE PEACE COURSES</span>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">교육 과정 안내</h2>
-          <p className="mt-3 text-base leading-7 text-slate-600">대상, 교육 내용, 확인된 가격을 먼저 비교하고 상담을 시작하세요. 상담 요청은 예약이나 결제 확정이 아닙니다.</p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {categories.map((cat) => (
-            <div key={cat.id} className="bg-white border border-slate-200/90 rounded-2xl p-6 flex flex-col justify-between hover:border-cyan-400 transition-all duration-300 shadow-sm hover:shadow-md">
-              <div>
-                <span className="text-[10px] font-bold text-cyan-700 bg-cyan-50 px-2.5 py-1 rounded-md border border-cyan-200">
-                  {cat.association}
-                </span>
-                <h3 className="text-xl font-bold text-slate-900 mt-3">{cat.name}</h3>
-                <p className="mt-3 text-base leading-7 text-slate-600">{cat.summary}</p>
-                <dl className="mt-4 space-y-2 text-sm leading-6">
-                  <div><dt className="font-bold text-slate-500">추천 대상</dt><dd className="text-slate-800">{cat.audience}</dd></div>
-                  <div><dt className="font-bold text-slate-500">예상 구성</dt><dd className="text-slate-800">{cat.duration}</dd></div>
-                </dl>
-                <p className="mt-4 text-base font-black text-cyan-800">{cat.startingPrice}</p>
-                <details className="mt-4 rounded-xl border border-slate-200 p-3">
-                  <summary className="min-h-8 cursor-pointer text-sm font-bold text-slate-800">단계별 교육비·발급비 보기</summary>
-                  <ul className="mt-3 space-y-3 border-t border-slate-200 pt-3">
-                    {cat.levels.map(level => <li key={level.id} className="text-sm leading-6"><strong className="block text-slate-900">{level.name} · {level.price}</strong><span className="text-slate-600">{level.issuance}</span></li>)}
-                  </ul>
-                </details>
-              </div>
-
-              <div className="mt-6 pt-4 border-t border-slate-100">
-                <Link
-                  href={`/TEST/inquiry?course=${cat.id}`}
-                  className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-base font-bold text-white transition hover:bg-cyan-700"
-                >
-                  <span>{cat.name} 문의하기</span>
-                  <ArrowIcon />
-                </Link>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+      <FirstStartGuide basePath="/TEST" />
+      <EducationCourseGrid basePath="/TEST" />
 
       {/* 블루피스 맞춤형 강사진 섹션 (기본 4명 랜덤 / 전체보기 버튼 지원) */}
       <section id="instructors" className="py-16 sm:py-24 bg-white border-y border-slate-200 px-4">
