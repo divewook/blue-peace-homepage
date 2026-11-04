@@ -12,6 +12,9 @@ interface Instructor {
   phone?: string | null;
   is_approved: boolean;
   created_at: string;
+  course_levels?: Record<string,string|string[]>;
+  can_passnine?: boolean;
+  can_miryang?: boolean;
 }
 
 interface CustomerLead {
@@ -39,6 +42,8 @@ interface CustomerLead {
   landing_url?: string;
   referrer_url?: string;
   device_type?: string;
+  consultation_source?: string | null;
+  consultation_status?: string | null;
 }
 
 export default function AdminDashboard() {
@@ -53,6 +58,7 @@ export default function AdminDashboard() {
   const [visibleCustomerCount, setVisibleCustomerCount] = useState(5);
   const [modalVisibleCount, setModalVisibleCount] = useState(10);
   const [showUndelivered, setShowUndelivered] = useState(false);
+  const [showNewConsultations, setShowNewConsultations] = useState(false);
 
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,7 +126,8 @@ export default function AdminDashboard() {
 
   const filteredCustomers = customers.filter(c => filterByPeriod(c.created_at));
   const undeliveredCustomers = customers.filter(c => c.matched_instructor_id && c.delivery_event?.action !== 'marked');
-  const visibleApplications = showUndelivered ? undeliveredCustomers : filteredCustomers;
+  const newConsultations = customers.filter(c => c.consultation_source === 'direct' && c.consultation_status === 'new');
+  const visibleApplications = showNewConsultations ? newConsultations : showUndelivered ? undeliveredCustomers : filteredCustomers;
 
   const matchesInstructor = (customer: CustomerLead, instructor: Instructor) =>
     customer.matched_instructor_id === instructor.id
@@ -275,8 +282,9 @@ export default function AdminDashboard() {
           {/* 3. 고객 매칭 세부 내역 (과정, 레벨, 풀장, 요일/시간) */}
           <div className="pt-4 border-t border-slate-100">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <h3 className="text-base font-bold text-slate-900">📋 고객 매칭 세부 신청 내역 ({visibleApplications.length}건)</h3>
-              <button type="button" aria-pressed={showUndelivered} onClick={() => { setShowUndelivered(value => !value); setVisibleCustomerCount(5); }}
+              <h3 className="text-base font-bold text-slate-900">📋 고객 상담 신청 내역 ({visibleApplications.length}건)</h3>
+              <button type="button" aria-pressed={showNewConsultations} onClick={() => { setShowNewConsultations(value => !value); setShowUndelivered(false); setVisibleCustomerCount(5); }} className={`min-h-11 rounded-xl border px-3 text-sm font-bold ${showNewConsultations ? 'border-teal-700 bg-teal-100 text-teal-950' : 'border-slate-300 bg-white text-slate-800'}`}>{showNewConsultations ? '✓ ' : ''}신규 상담 전체 {newConsultations.length}건</button>
+              <button type="button" aria-pressed={showUndelivered} onClick={() => { setShowUndelivered(value => !value); setShowNewConsultations(false); setVisibleCustomerCount(5); }}
                 className={`min-h-11 rounded-xl border px-3 text-sm font-bold ${showUndelivered ? 'border-amber-700 bg-amber-100 text-amber-950' : 'border-slate-300 bg-white text-slate-800'}`}>
                 {showUndelivered ? '✓ ' : ''}미전달 전체 {undeliveredCustomers.length}건
               </button>
@@ -284,10 +292,10 @@ export default function AdminDashboard() {
             {showUndelivered && <p className="mb-3 text-sm text-slate-600">접수 기간과 관계없이 현재 담당 강사에게 전달 완료 표시가 없는 신청입니다.</p>}
             <div className="space-y-3">
               {visibleApplications.slice(0, visibleCustomerCount).map(cus => (
-                <CustomerMatchCard key={cus.id} customer={cus} showAttribution
+                <CustomerMatchCard key={cus.id} customer={cus} showAttribution adminInstructors={instructors}
                   adminInstructor={instructors.find(ins => ins.id === cus.matched_instructor_id)} onWorkChanged={fetchAdminData} />
               ))}
-              {visibleApplications.length === 0 && <p className="rounded-xl bg-slate-50 p-5 text-center text-sm text-slate-600">{showUndelivered ? '현재 담당 강사에게 미전달로 표시된 신청이 없습니다.' : '선택한 기간의 신청이 없습니다.'}</p>}
+              {visibleApplications.length === 0 && <p className="rounded-xl bg-slate-50 p-5 text-center text-sm text-slate-600">{showNewConsultations ? '신규 상담 신청이 없습니다.' : showUndelivered ? '현재 담당 강사에게 미전달로 표시된 신청이 없습니다.' : '선택한 기간의 신청이 없습니다.'}</p>}
             </div>
             {visibleApplications.length > visibleCustomerCount && (
               <button
@@ -341,7 +349,7 @@ export default function AdminDashboard() {
               {selectedInstructorCustomers.length ? (
                 <div className="space-y-3">
                   {selectedInstructorCustomers.slice(0, modalVisibleCount).map(customer => (
-                    <CustomerMatchCard key={customer.id} customer={customer} showAttribution
+                    <CustomerMatchCard key={customer.id} customer={customer} showAttribution adminInstructors={instructors}
                       adminInstructor={instructors.find(ins => ins.id === customer.matched_instructor_id)} onWorkChanged={fetchAdminData} />
                   ))}
                   {selectedInstructorCustomers.length > modalVisibleCount && (

@@ -19,7 +19,7 @@ export default function FirstStartGuide({ basePath = "" }) {
       </div>
 
       <div role="group" aria-label="관심 있는 수중 경험 선택" className="mt-9 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {startingGoals.map((goal, index) => <button key={goal.id} type="button" aria-pressed={selectedId === goal.id} onClick={() => setSelectedId(goal.id)} className={`flex min-h-24 items-start gap-4 rounded-2xl border p-5 text-left transition-colors focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-cyan-600 ${selectedId === goal.id ? "border-teal-700 bg-white ring-2 ring-teal-700/20" : "border-slate-200 bg-white/80 hover:border-teal-400"}`}>
+        {startingGoals.map((goal, index) => <button key={goal.id} type="button" aria-pressed={selectedId === goal.id} onClick={() => { setSelectedId(goal.id); try { sessionStorage.setItem('bluepeace_selected_goal', goal.id); } catch {} }} className={`flex min-h-24 items-start gap-4 rounded-2xl border p-5 text-left transition-colors focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-cyan-600 ${selectedId === goal.id ? "border-teal-700 bg-white ring-2 ring-teal-700/20" : "border-slate-200 bg-white/80 hover:border-teal-400"}`}>
           <span aria-hidden="true" className="font-mono text-sm font-bold text-teal-700">0{index + 1}</span>
           <span className="flex-1 text-base font-bold leading-7 text-slate-900">{goal.label}</span>
           <span aria-hidden="true" className="text-teal-700">{selectedId === goal.id ? "✓" : "↗"}</span>
@@ -38,7 +38,7 @@ export default function FirstStartGuide({ basePath = "" }) {
           </li>)}
         </ul>}
         <p className="mt-5 text-sm leading-6 text-slate-200">이 안내는 관심사별 과정 소개입니다. 참여 자격이나 적합성을 확정하는 진단은 아닙니다.</p>
-        <Link href={`${basePath}/inquiry`} className="mt-5 inline-flex min-h-12 items-center justify-center rounded-xl bg-white px-6 text-base font-bold text-[#123847]">과정을 정하지 않고 상담 시작하기</Link>
+        <Link href={`${basePath}/inquiry?goal=${selected.id}`} className="mt-5 inline-flex min-h-12 items-center justify-center rounded-xl bg-white px-6 text-base font-bold text-[#123847]">이 관심사로 상담 시작하기</Link>
       </div>}
     </div>
   </section>;

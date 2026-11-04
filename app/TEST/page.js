@@ -10,7 +10,8 @@ import EducationCourseGrid from "../../components/education-course-grid";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const publicDemo = process.env.NEXT_PUBLIC_BLUEPEACE_PUBLIC_DEMO === 'true';
+const supabase = publicDemo ? null : createClient(supabaseUrl, supabaseAnonKey);
 
 const centerAddress = "경상북도 칠곡군 북삼읍 인강1길 38-12, 1층";
 const centerMapEmbedUrl = `https://maps.google.com/maps?q=${encodeURIComponent("경상북도 칠곡군 북삼읍 인강1길 38-12")}&z=17&hl=ko&output=embed`;
@@ -98,7 +99,7 @@ function publicInstructorPools(instructor) {
   return [instructor.can_passnine && "칠곡 패스나인", instructor.can_miryang && "밀양 아리랑"].filter(Boolean);
 }
 
-export default function HomePage() {
+export default function HomePage({ basePath = "/TEST" }) {
   const [heroImages, setHeroImages] = useState(defaultHeroImages);
   const [galleryPhotos, setGalleryPhotos] = useState([]);
   const [instructors, setInstructors] = useState([]);
@@ -109,6 +110,10 @@ export default function HomePage() {
   // DB 데이터 불러오기 및 무작위 섞기
   useEffect(() => {
     const fetchData = async () => {
+      if (publicDemo) {
+        setGalleryPhotos(shuffleItems(defaultGalleryImages).slice(0, 8));
+        return;
+      }
       // 1. 강사 정보
       const instructorResponse = await fetch('/api/public/instructors', { cache: 'no-store' });
       const { instructors: insData = [] } = instructorResponse.ok ? await instructorResponse.json() : {};
@@ -142,7 +147,7 @@ export default function HomePage() {
       {/* 모바일 화면에 완벽 반응하는 고급 GNB 헤더 */}
       <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/95 px-4 py-3 backdrop-blur-md sm:px-8">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-2">
-          <Link href="/TEST" className="shrink-0 text-lg font-black tracking-[0.08em] text-[#123847] sm:text-xl">
+          <Link href={basePath || "/"} className="shrink-0 text-lg font-black tracking-[0.08em] text-[#123847] sm:text-xl">
             BLUE PEACE
           </Link>
           <nav aria-label="주요 메뉴" className="order-3 flex w-full items-center justify-between gap-3 text-sm font-semibold text-slate-700 sm:order-none sm:w-auto sm:flex-1 sm:justify-end sm:gap-7">
@@ -150,7 +155,7 @@ export default function HomePage() {
             <a href="#courses" className="inline-flex min-h-11 items-center hover:text-teal-800">전체 교육과정</a>
             <a href="#instructors" className="inline-flex min-h-11 items-center hover:text-teal-800">강사진</a>
           </nav>
-          <Link href="/instructor/mypage" className="inline-flex min-h-11 shrink-0 items-center rounded-xl border border-teal-200 px-3 text-sm font-bold text-teal-900 hover:bg-teal-50">강사 로그인</Link>
+          {!publicDemo && <Link href="/instructor/mypage" className="inline-flex min-h-11 shrink-0 items-center rounded-xl border border-teal-200 px-3 text-sm font-bold text-teal-900 hover:bg-teal-50">강사 로그인</Link>}
         </div>
       </header>
 
@@ -190,8 +195,8 @@ export default function HomePage() {
         </ol>
       </section>
 
-      <FirstStartGuide basePath="/TEST" />
-      <EducationCourseGrid basePath="/TEST" />
+      <FirstStartGuide basePath={basePath} />
+      <EducationCourseGrid basePath={basePath} />
 
       {/* 블루피스 맞춤형 강사진 섹션 (기본 4명 랜덤 / 전체보기 버튼 지원) */}
       <section id="instructors" className="py-16 sm:py-24 bg-white border-y border-slate-200 px-4">
@@ -403,13 +408,13 @@ export default function HomePage() {
       <footer className="border-t border-slate-200 bg-white py-10 px-4 text-center text-xs text-slate-500">
         <p className="font-bold text-slate-700 mb-1">{business.name} | 대표: {business.owner}</p>
         <p>사업자등록번호: {business.registration} | 주소: {centerAddress}</p>
-        <div className="mt-4 flex flex-wrap justify-center gap-4 text-sm font-bold"><Link href="/TEST/privacy" className="text-cyan-800 underline underline-offset-4">개인정보 처리 안내</Link><Link href="/TEST/terms" className="text-cyan-800 underline underline-offset-4">이용 안내</Link></div>
+        <div className="mt-4 flex flex-wrap justify-center gap-4 text-sm font-bold"><Link href={`${basePath}/privacy`} className="text-cyan-800 underline underline-offset-4">개인정보 처리 안내</Link><Link href={`${basePath}/terms`} className="text-cyan-800 underline underline-offset-4">이용 안내</Link></div>
         <p className="mt-4 text-xs text-slate-400">© BLUE PEACE. All rights reserved.</p>
       </footer>
 
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-cyan-100 bg-white/95 px-4 pt-3 shadow-[0_-8px_24px_rgba(15,23,42,0.12)] backdrop-blur md:hidden" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
         <Link
-          href="/TEST/inquiry"
+          href={`${basePath}/inquiry`}
           className="mx-auto flex min-h-12 max-w-md items-center justify-center rounded-2xl bg-cyan-600 px-5 text-base font-extrabold text-white shadow-lg shadow-cyan-600/20"
         >
           과정과 가능한 일정 선택하기

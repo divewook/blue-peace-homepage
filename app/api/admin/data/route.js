@@ -11,7 +11,7 @@ export async function GET() {
     const supabase = createAdminSupabase();
     const instructors = await supabase
       .from("instructors")
-      .select("id,name,username,phone,is_approved,created_at")
+      .select("id,name,username,phone,is_approved,created_at,course_levels,can_passnine,can_miryang")
       .order("created_at", { ascending: false });
     if (instructors.error) {
       return NextResponse.json({ error: instructors.error.message }, { status: 500 });

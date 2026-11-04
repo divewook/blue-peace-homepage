@@ -35,7 +35,7 @@ export const metadata = {
     "해루질교육", "패스나인", "블루피스", "수중촬영",
   ],
   alternates: { canonical: "/" },
-  robots: { index: true, follow: true },
+  robots: process.env.BLUEPEACE_PUBLIC_DEMO === 'true' ? { index: false, follow: false } : { index: true, follow: true },
   openGraph: {
     type: "website",
     url: siteUrl,

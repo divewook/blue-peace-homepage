@@ -51,7 +51,7 @@ export default function EducationCourseGrid({ basePath = "" }) {
               <p className="mt-2 text-sm leading-6 text-slate-600">참여 조건과 수업 횟수 등 미확정 내용은 상담에서 확인합니다.</p>
             </details>
             {course.id === "special" && <p className="mt-4 text-sm leading-6 text-slate-600">상담 화면에서 원하는 스페셜 교육을 선택해 주세요.</p>}
-            <Link href={`${basePath}/inquiry?course=${course.id}${card.id === "photo" ? "&level=photo" : ""}`} className="mt-6 flex min-h-12 items-center justify-center rounded-xl bg-[#123847] px-4 text-center text-base font-bold text-white hover:bg-teal-800">{card.title} 상담 시작하기 →</Link>
+            <Link href={`${basePath}/inquiry?course=${card.id === "photo" ? "photo&level=photo" : card.id === "cpr" ? "cpr" : course.id}`} className="mt-6 flex min-h-12 items-center justify-center rounded-xl bg-[#123847] px-4 text-center text-base font-bold text-white hover:bg-teal-800">{card.title} 상담 시작하기 →</Link>
           </div>
         </article>;
       })}
