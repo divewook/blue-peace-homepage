@@ -190,8 +190,8 @@ export default function HomePage({ basePath = "/TEST" }) {
       <section aria-label="상담 진행 순서" className="border-b border-slate-200 bg-white px-4 py-5">
         <ol className="mx-auto grid max-w-6xl gap-3 text-sm font-semibold leading-6 text-slate-700 sm:grid-cols-3 sm:gap-7 sm:text-base">
           <li><span className="mr-3 font-mono text-teal-800">01</span> 관심사 또는 과정 선택</li>
-          <li><span className="mr-3 font-mono text-teal-800">02</span> 가능한 장소·일정 확인</li>
-          <li><span className="mr-3 font-mono text-teal-800">03</span> 상담 후 수업 조율</li>
+          <li><span className="mr-3 font-mono text-teal-800">02</span> 간단한 상담 신청</li>
+          <li><span className="mr-3 font-mono text-teal-800">03</span> 대표 상담 후 일정 조율</li>
         </ol>
       </section>
 
@@ -208,11 +208,13 @@ export default function HomePage({ basePath = "/TEST" }) {
             블루피스 강사진
           </h2>
           <p className="text-xs sm:text-sm text-slate-600 mt-2 max-w-2xl mx-auto leading-relaxed font-medium">
-            현재 정책상 특정 강사를 먼저 지정하지 않고, 선택한 교육 과정·풀장·요일·시간을 교육할 수 있는 강사를 확인합니다.<br />
-            상담과 일정 조율을 마친 뒤 담당 강사와 예약이 확정됩니다.
+            대표가 먼저 교육 목적과 가능한 일정을 상담합니다.<br />
+            상담 후 필요한 경우 교육 가능 과정 등을 확인해 담당 강사를 배정합니다.
           </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5 mt-10">
+          {publicDemo && <p className="mx-auto mt-5 max-w-2xl rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950">공개 미리보기에서는 운영 강사 정보를 불러오지 않습니다. 실제 강사진은 운영 홈페이지에서 확인할 수 있습니다.</p>}
+
+          <div className={`grid grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4 ${visibleInstructors.length ? 'mt-10' : ''}`}>
             {visibleInstructors.map((ins) => (
               <div key={ins.id} className="bg-slate-50 border border-slate-200 rounded-2xl p-5 text-left sm:text-center hover:border-cyan-400 transition-all duration-300 shadow-sm group">
                 <div className="w-20 h-20 sm:mx-auto rounded-2xl bg-slate-200 overflow-hidden border border-slate-300 mb-3 flex items-center justify-center group-hover:scale-105 transition-transform shadow-inner">
