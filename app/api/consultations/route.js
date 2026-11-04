@@ -12,6 +12,10 @@ export async function POST(request) {
   const body = await request.json().catch(() => null);
   const invalid = validateDirectConsultation(body);
   if (invalid) return NextResponse.json({ error: invalid }, { status: 400, headers: noStore });
+  const consentVersion = process.env.BLUEPEACE_DIRECT_PRIVACY_VERSION;
+  if (!consentVersion || !/^\d{4}-\d{2}-\d{2}(?:-v[1-9]\d{0,2})?$/.test(consentVersion)) {
+    return NextResponse.json({ error: '상담 신청 준비 중입니다. 잠시 후 다시 이용해 주세요.' }, { status: 503, headers: noStore });
+  }
   try {
     const db = createAdminSupabase();
     const existing = await db.from('customers').select('id,request_status').eq('request_key', body.request_key).maybeSingle();
@@ -31,7 +35,7 @@ export async function POST(request) {
       interest_course_id: body.interest_id, interest_level_id: level,
       interest_goal: body.goal_id || null, contact_window: body.contact_window || null,
       inquiry_text: body.inquiry_text.trim() || null,
-      privacy_consent_version: '2026-11-04', privacy_consent_at: new Date().toISOString(),
+      privacy_consent_version: consentVersion, privacy_consent_at: new Date().toISOString(),
       marketing_consent: body.marketing_accepted === true,
       landing_url: first?.landing_url || null, referrer_url: first?.referrer_url || null,
       traffic_source: first?.traffic_source || null, traffic_medium: first?.traffic_medium || null,

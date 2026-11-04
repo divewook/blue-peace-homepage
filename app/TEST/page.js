@@ -156,6 +156,7 @@ export default function HomePage({ basePath = "/TEST" }) {
             <a href="#instructors" className="inline-flex min-h-11 items-center hover:text-teal-800">강사진</a>
           </nav>
           {!publicDemo && <Link href="/instructor/mypage" className="inline-flex min-h-11 shrink-0 items-center rounded-xl border border-teal-200 px-3 text-sm font-bold text-teal-900 hover:bg-teal-50">강사 로그인</Link>}
+          {publicDemo && <Link href="/TEST/review" className="inline-flex min-h-11 shrink-0 items-center rounded-xl border border-teal-200 px-3 text-sm font-bold text-teal-900 hover:bg-teal-50">검수 화면</Link>}
         </div>
       </header>
 
@@ -167,7 +168,7 @@ export default function HomePage({ basePath = "/TEST" }) {
             <h1 className="mt-5 text-[clamp(2.45rem,5vw,4.7rem)] font-black leading-[1.17] tracking-tight">물속의 첫 경험부터,<br /><span className="text-[#96e0d4]">새로운 도전까지.</span></h1>
             <div className="mt-6 max-w-xl space-y-3 text-base leading-8 text-slate-100 sm:text-lg">
               <p>프리다이빙부터 스쿠버다이빙, 머메이드, 전문 수중레저 교육까지. 당신에게 맞는 수중 경험을 블루피스에서 시작하세요.</p>
-              <p className="text-sm text-slate-200 sm:text-base">칠곡·밀양을 중심으로 과정과 가능한 일정을 상담하고, 조율 후 수업을 확정합니다.</p>
+              <p className="text-sm text-slate-200 sm:text-base">대구·경북권, 특히 대구·구미·칠곡·경산을 중심으로 교육합니다. 대표와 상담한 뒤 가능한 장소와 일정을 조율합니다.</p>
             </div>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <a href="#start" className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#a9e6d9] px-6 text-base font-bold text-[#123847] hover:bg-white">처음이신가요? · 교육 안내</a>
@@ -419,7 +420,7 @@ export default function HomePage({ basePath = "/TEST" }) {
           href={`${basePath}/inquiry`}
           className="mx-auto flex min-h-12 max-w-md items-center justify-center rounded-2xl bg-cyan-600 px-5 text-base font-extrabold text-white shadow-lg shadow-cyan-600/20"
         >
-          과정과 가능한 일정 선택하기
+          대표에게 교육 상담 신청하기
         </Link>
       </div>
 

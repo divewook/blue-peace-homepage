@@ -50,15 +50,16 @@ begin
     or p_expected_revision is null or p_expected_revision < 0 then
     raise exception 'invalid_consultation_request';
   end if;
+  -- Lock the application first. Concurrent retries must see the event committed
+  -- by the first request before checking the idempotency key.
+  select * into application from public.customers where id = p_customer for update;
+  if not found then raise exception 'application_not_found'; end if;
   select * into previous from public.customer_consultation_events where request_key = p_request_key;
   if found then
     if previous.customer_id is distinct from p_customer or previous.action <> p_action
       or previous.actor_session_fingerprint <> p_actor_session then raise exception 'request_key_conflict'; end if;
-    select * into application from public.customers where id = p_customer;
     return application;
   end if;
-  select * into application from public.customers where id = p_customer for update;
-  if not found then raise exception 'application_not_found'; end if;
   if application.consultation_source is distinct from 'direct' then raise exception 'not_direct_consultation'; end if;
   if application.consultation_revision <> p_expected_revision then raise exception 'stale_revision'; end if;
   before_state := jsonb_build_object('status',application.consultation_status,

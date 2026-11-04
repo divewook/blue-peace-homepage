@@ -171,7 +171,7 @@ export default function CustomerMatchCard({ customer, showAttribution = false, a
         {customer.next_lesson && <p>가까운 확정 수업: {customer.next_lesson.lesson_date} {customer.next_lesson.start_time.slice(0, 5)}</p>}
       </div>
       <CustomerWorkPanel customerId={customer.id} onChanged={onWorkChanged} />
-      {showAttribution && customer.consultation_source === 'direct' && <DirectConsultationAdmin customer={customer} instructors={adminInstructors} onChanged={onWorkChanged} />}
+      {showAttribution && customer.consultation_source === 'direct' && <DirectConsultationAdmin key={customer.consultation_revision ?? 0} customer={customer} instructors={adminInstructors} onChanged={onWorkChanged} />}
       {showAttribution && <AdminAssignmentDelivery customer={customer} instructor={adminInstructor} onChanged={onWorkChanged} />}
 
       {showAttribution && (

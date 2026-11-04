@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { courseCatalog } from "../lib/booking-options";
 import { educationCards } from "../lib/home-guide";
+import { verifiedCoursePrice } from "../lib/verified-course-prices";
 
 const freedivingPriceNames = {
   trial: "원데이 체험",
@@ -9,7 +10,7 @@ const freedivingPriceNames = {
   level2: "프리다이빙 2레벨",
   package12: "프리다이빙 1+2레벨 통합",
 };
-const won = { trial: "50,000원", level1: "150,000원", level2: "300,000원", package12: "400,000원" };
+const freedivingCertificationLevels = new Set(['level1','level2','level3','level4','package12','package34']);
 
 export default function EducationCourseGrid({ basePath = "" }) {
   return <section id="courses" aria-labelledby="courses-title" className="mx-auto max-w-6xl px-4 py-16 sm:py-24">
@@ -23,7 +24,7 @@ export default function EducationCourseGrid({ basePath = "" }) {
     </div>
 
     <div className="mt-8 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-base font-semibold leading-7 text-amber-950">
-      모든 교육과정의 풀장 입장료와 장비 렌탈료는 교육비와 별도입니다. 상담 신청만으로 예약이나 결제가 확정되지 않습니다.
+      모든 교육과정의 풀장 입장료와 장비 렌탈료는 교육비와 별도입니다. 프리다이빙 외 교육비는 현재 확인 중이며 상담에서 안내합니다. 상담 신청만으로 예약이나 결제가 확정되지 않습니다.
     </div>
 
     <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
@@ -41,13 +42,13 @@ export default function EducationCourseGrid({ basePath = "" }) {
 
             {card.id === "freediving" ? <div className="mt-5 rounded-2xl bg-[#ecf3f1] p-4">
               <p className="text-sm font-bold text-teal-900">확정 교육비</p>
-              <ul className="mt-2 space-y-2">{["trial", "level1", "level2", "package12"].map(id => <li key={id} className="flex flex-wrap items-baseline justify-between gap-x-3 text-sm leading-6"><span className="text-slate-800">{freedivingPriceNames[id]}</span><strong className="text-base text-slate-950">{won[id]}</strong></li>)}</ul>
+              <ul className="mt-2 space-y-2">{["trial", "level1", "level2", "package12"].map(id => <li key={id} className="flex flex-wrap items-baseline justify-between gap-x-3 text-sm leading-6"><span className="text-slate-800">{freedivingPriceNames[id]}</span><strong className="text-base text-slate-950">{verifiedCoursePrice('freediving', id)}</strong></li>)}</ul>
               <p className="mt-3 text-sm leading-6 text-teal-950">자격 과정 교육비에는 자격증 발급비가 포함됩니다.</p>
-            </div> : <p className="mt-5 text-lg font-black text-teal-900">{card.id === "photo" ? "수중 사진 촬영 교육 15만원" : card.id === "cpr" ? "응급처치·CPR 교육 15만원부터" : course.startingPrice}</p>}
+            </div> : <p className="mt-5 text-base font-bold text-teal-900">교육비 확인 중 · 상담 시 안내</p>}
 
             {card.id === "freediving" && <p className="mt-4 text-sm leading-6 text-slate-700">자격증 취득 전까지 횟수·기간 제한 없는 트레이닝을 지원합니다. 자격증은 평가 기준 충족 시 발급됩니다. 풀장 입장료와 장비 렌탈료는 별도입니다.</p>}
             <details className="group mt-5 border-t border-slate-200 pt-4"><summary className="flex min-h-11 cursor-pointer items-center justify-between text-sm font-bold text-slate-900">과정별 교육비와 안내 보기 <span aria-hidden="true" className="text-teal-700 group-open:rotate-180">⌄</span></summary>
-              <ul className="mt-2 divide-y divide-slate-100">{levels.map(level => <li key={level.id} className="py-3 text-sm leading-6"><div className="flex flex-wrap justify-between gap-x-2 font-bold text-slate-900"><span>{card.id === "freediving" && freedivingPriceNames[level.id] || level.name}</span><span>{card.id === "freediving" && won[level.id] || level.price}</span></div><p className="text-slate-600">{level.issuance}</p></li>)}</ul>
+              <ul className="mt-2 divide-y divide-slate-100">{levels.map(level => <li key={level.id} className="py-3 text-sm leading-6"><div className="flex flex-wrap justify-between gap-x-2 font-bold text-slate-900"><span>{card.id === "freediving" && freedivingPriceNames[level.id] || level.name}</span><span>{verifiedCoursePrice(course.id, level.id) || '가격 확인 중'}</span></div><p className="text-slate-600">{course.id === 'freediving' && freedivingCertificationLevels.has(level.id) ? '자격증 발급비 포함' : course.id === 'freediving' && level.id === 'trial' ? '자격 발급 과정 아님' : '발급비 포함 여부는 상담에서 확인'}</p></li>)}</ul>
               <p className="mt-2 text-sm leading-6 text-slate-600">참여 조건과 수업 횟수 등 미확정 내용은 상담에서 확인합니다.</p>
             </details>
             {course.id === "special" && <p className="mt-4 text-sm leading-6 text-slate-600">상담 화면에서 원하는 스페셜 교육을 선택해 주세요.</p>}
