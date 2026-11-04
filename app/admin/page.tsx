@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import CustomerMatchCard from '../../components/customer-match-card';
 import MarketingSummary from '../../components/marketing-summary';
@@ -89,6 +89,12 @@ export default function AdminDashboard() {
       setAdminDataError(error instanceof Error ? error.message : '관리자 데이터를 불러오지 못했습니다.');
     }
   };
+
+  useEffect(() => {
+    if (!isAdminLoggedIn) return;
+    const timer = window.setInterval(() => { if (document.visibilityState === 'visible') void fetchAdminData(); }, 60_000);
+    return () => window.clearInterval(timer);
+  }, [isAdminLoggedIn]);
 
   const toggleApproval = async (id: string, currentStatus: boolean) => {
     const response = await fetch(`/api/admin/instructors/${encodeURIComponent(id)}`, {
@@ -283,6 +289,7 @@ export default function AdminDashboard() {
           <div className="pt-4 border-t border-slate-100">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <h3 className="text-base font-bold text-slate-900">📋 고객 상담 신청 내역 ({visibleApplications.length}건)</h3>
+              <button type="button" onClick={() => { void fetchAdminData(); }} className="min-h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm font-bold text-slate-800">신청 새로고침</button>
               <button type="button" aria-pressed={showNewConsultations} onClick={() => { setShowNewConsultations(value => !value); setShowUndelivered(false); setVisibleCustomerCount(5); }} className={`min-h-11 rounded-xl border px-3 text-sm font-bold ${showNewConsultations ? 'border-teal-700 bg-teal-100 text-teal-950' : 'border-slate-300 bg-white text-slate-800'}`}>{showNewConsultations ? '✓ ' : ''}신규 상담 전체 {newConsultations.length}건</button>
               <button type="button" aria-pressed={showUndelivered} onClick={() => { setShowUndelivered(value => !value); setShowNewConsultations(false); setVisibleCustomerCount(5); }}
                 className={`min-h-11 rounded-xl border px-3 text-sm font-bold ${showUndelivered ? 'border-amber-700 bg-amber-100 text-amber-950' : 'border-slate-300 bg-white text-slate-800'}`}>

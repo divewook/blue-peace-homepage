@@ -3,6 +3,7 @@ import { scheduleLabel } from '../lib/booking-options';
 import CustomerWorkPanel from './customer-work-panel';
 import AdminAssignmentDelivery from './admin-assignment-delivery';
 import DirectConsultationAdmin from './direct-consultation-admin';
+import { intakeStatuses } from '../lib/direct-consultation';
 import { consultationStatuses } from '../lib/customer-work';
 
 export type CustomerMatch = {
@@ -159,7 +160,7 @@ export default function CustomerMatchCard({ customer, showAttribution = false, a
       </div>}
       {customer.matched_schedule && <p className="mt-3 rounded-xl bg-cyan-50 p-3 text-sm font-semibold leading-6 text-cyan-900">배정 시 일치한 상담 가능 일정: {scheduleLabel(customer.matched_schedule)} · 실제 수업 예약은 상담 후 확정</p>}
 
-      {customer.consultation_source === 'direct' && <div className="mt-3 rounded-xl bg-white p-3 text-sm leading-6"><p className="font-bold text-slate-900">대표 직접 상담 · {customer.consultation_status || '상태 미기록'}</p>{customer.contact_window && <p>연락 선호: {({morning:'오전',afternoon:'오후',evening:'저녁',anytime:'언제든 가능'} as Record<string,string>)[customer.contact_window] || '기록 없음'}</p>}{customer.inquiry_text && <p className="mt-2 whitespace-pre-wrap break-words">문의: {customer.inquiry_text}</p>}</div>}
+      {customer.consultation_source === 'direct' && <div className="mt-3 rounded-xl bg-white p-3 text-sm leading-6"><p className="font-bold text-slate-900">대표 직접 상담 · {intakeStatuses[customer.consultation_status as keyof typeof intakeStatuses] || '상태 미기록'}</p>{customer.contact_window && <p>연락 선호: {({morning:'오전',afternoon:'오후',evening:'저녁',anytime:'언제든 가능'} as Record<string,string>)[customer.contact_window] || '기록 없음'}</p>}{customer.inquiry_text && <p className="mt-2 whitespace-pre-wrap break-words">문의: {customer.inquiry_text}</p>}</div>}
 
       <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3 text-base leading-7">
         <p className="font-bold text-slate-900">{customer.consultation_source === 'direct' ? '배정 후 강사 업무' : '상담'}: {customer.workflow?.status ? consultationStatuses[customer.workflow.status as keyof typeof consultationStatuses] : '진행 상태 미기록'}</p>
