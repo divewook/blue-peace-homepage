@@ -58,7 +58,9 @@ function TestInquiryForm() {
       const queryCourse = courseParamMap[searchParams.get('course') || ''];
       if (queryCourse) {
         setCourseId(queryCourse);
-        setLevelId('');
+        const queryLevel = searchParams.get('level') || '';
+        const validLevel = getCourse(queryCourse)?.levels.some((level: { id: string }) => level.id === queryLevel);
+        setLevelId(validLevel ? queryLevel : '');
         setDraftReady(true);
         return;
       }
