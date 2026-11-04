@@ -2,7 +2,7 @@
 -- additive customer/workflow migrations without production data or credentials.
 create role anon;
 create role authenticated;
-create role service_role;
+create role service_role bypassrls;
 create table public.instructors (
   id uuid primary key default gen_random_uuid(),
   name text not null,

@@ -2,6 +2,7 @@
 // data before any request can reach a real API. No production credentials used.
 import { mkdir } from 'node:fs/promises';
 import { chromium } from 'playwright-core';
+import { reviewVersion } from '../lib/review-version.js';
 
 const demoBase = process.env.BLUEPEACE_CAPTURE_DEMO_URL || 'http://127.0.0.1:3190';
 const adminBase = process.env.BLUEPEACE_CAPTURE_ADMIN_URL || 'http://127.0.0.1:3191';
@@ -10,6 +11,14 @@ await mkdir(output, { recursive: true });
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium', headless: true, args: ['--no-sandbox'] });
 
 async function shot(page, name, fullPage = false) {
+  await page.evaluate(version => {
+    document.querySelector('[data-review-version]')?.remove();
+    const label = document.createElement('span');
+    label.dataset.reviewVersion = version;
+    label.textContent = `검수 ${version}`;
+    Object.assign(label.style, { position: 'fixed', bottom: '8px', right: '8px', zIndex: '10000', padding: '4px 8px', background: '#123847', color: '#fff', fontSize: '12px', borderRadius: '6px' });
+    document.body.append(label);
+  }, reviewVersion);
   await page.screenshot({ path: new URL(name, output).pathname, type: 'jpeg', quality: 78, fullPage });
 }
 async function assertNoOverflow(page, name) {
@@ -30,7 +39,19 @@ try {
 
   let consultationRequests = 0;
   mobile.on('request', request => { if (request.url().includes('/api/consultations')) consultationRequests++; });
+  await mobile.goto(`${demoBase}/TEST/inquiry`, { waitUntil: 'networkidle' });
+  if (!await mobile.getByRole('radio', { name: '아직 잘 모르겠어요' }).isChecked()) throw new Error('direct inquiry interest default changed');
+  if (await mobile.locator('#consult-level').count()) throw new Error('direct inquiry unexpectedly selected a level');
+  await assertNoOverflow(mobile, 'direct mobile inquiry');
+  await shot(mobile, 'inquiry-direct-mobile.jpg', true);
   await mobile.goto(`${demoBase}/TEST/inquiry?course=freediving&level=level1`, { waitUntil: 'networkidle' });
+  if (!await mobile.getByRole('radio', { name: '프리다이빙', exact: true }).isChecked()) throw new Error('linked inquiry interest not selected');
+  if (await mobile.locator('#consult-level').inputValue() !== 'level1') throw new Error('linked inquiry level not selected');
+  await mobile.getByRole('radio', { name: '스쿠버다이빙' }).check();
+  if (await mobile.locator('#consult-level').inputValue() !== '') throw new Error('old level retained after interest change');
+  await mobile.getByRole('radio', { name: '프리다이빙', exact: true }).check();
+  if (await mobile.locator('#consult-level').inputValue() !== '') throw new Error('old level returned after interest change');
+  await mobile.locator('#consult-level').selectOption('level1');
   await assertNoOverflow(mobile, 'mobile inquiry');
   await shot(mobile, 'inquiry-mobile.jpg', true);
   await mobile.locator('#consult-name').fill('가상 고객');

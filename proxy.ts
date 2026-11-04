@@ -17,6 +17,7 @@ export function proxy(request: NextRequest) {
   if (!publicPages.has(path) && !asset) return new NextResponse('Not found',{status:404,headers:{'X-Robots-Tag':'noindex, nofollow'}});
   const response=NextResponse.next();
   response.headers.set('X-Robots-Tag','noindex, nofollow');
+  if (publicPages.has(path) || path.startsWith('/review/')) response.headers.set('Cache-Control','no-store');
   return response;
 }
 

@@ -75,6 +75,10 @@ do $$ begin
 end $$;
 
 do $$ begin
+ if not (select relrowsecurity from pg_class where oid='public.customers'::regclass) then raise exception 'customer RLS disabled'; end if;
+ if not (select relrowsecurity from pg_class where oid='public.customer_consultation_events'::regclass) then raise exception 'consultation event RLS disabled'; end if;
+ if has_table_privilege('anon','public.customers','SELECT') then raise exception 'customers exposed to anonymous API'; end if;
+ if has_table_privilege('authenticated','public.customers','SELECT') then raise exception 'customers exposed to authenticated Data API'; end if;
  if has_table_privilege('anon','public.customer_consultation_events','SELECT') then raise exception 'consultation history exposed to anonymous API'; end if;
  if has_function_privilege('anon','public.save_customer_direct_consultation(uuid,integer,text,text,uuid,uuid,text)','EXECUTE') then raise exception 'anonymous direct RPC access'; end if;
  if not has_function_privilege('service_role','public.save_customer_direct_consultation(uuid,integer,text,text,uuid,uuid,text)','EXECUTE') then raise exception 'service role cannot save direct consultation'; end if;
