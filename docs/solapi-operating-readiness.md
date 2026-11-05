@@ -1,0 +1,40 @@
+# 신규 상담 SMS 운영 적용 준비 (운영 반영 전)
+
+## 현재 확인
+
+- 운영 `main`의 메인 화면, 코스 카탈로그와 기존 `/api/matches`는 수정하지 않았다. 새로운 상담은 `/api/consultations`에서만 강사 미배정으로 저장한다.
+- 운영 Supabase의 마지막 적용 마이그레이션은 `20261021153011_add_naver_ad_attribution`이다. `20261104040000_direct_consultations.sql`은 아직 운영 DB에 없다. 운영 DB의 `customers`, `instructors`, `customer_workflows` 및 신규 마이그레이션이 참조하는 기존 컬럼은 읽기 전용 확인에서 존재했다.
+- 운영 Vercel에는 `SOLAPI_*`, `SOLAPI_ENABLED`, `BLUEPEACE_DIRECT_PRIVACY_VERSION`이 없다. 공개 데모에는 `BLUEPEACE_PUBLIC_DEMO=true`, `NEXT_PUBLIC_NAVER_WCS_ENABLED=false`, 모의 Supabase URL/키가 설정되어 있다.
+- `customer_direct_alerts`는 새 직접 상담 삽입과 같은 DB 트랜잭션에서 1건 생성한다. `pending -> sending` 원자적 claim을 통과한 요청만 업체에 전달한다. SOLAPI가 응답에 접수 성공을 명시한 경우에만 `sent`(업체 접수)로 기록하며, 단말기 수신 성공으로 해석하지 않는다.
+- 명확한 접수 실패는 `failed`, 미설정은 `skipped`, 응답 손실이나 서버 오류 등 결과 불명은 `unknown`으로 기록한다. `unknown`과 오래된 `sending`은 자동 재발송하지 않고 SOLAPI 발송 내역에서 먼저 대조한다. 관리자 재시도는 `pending`, `skipped`, `failed`에서만 허용된다. `failed` 재시도 전에는 업체 접수 여부 확인을 요구한다.
+
+## SOLAPI 계정 준비
+
+1. 운영자가 SOLAPI에 가입하고 본인 실명 인증을 완료한다. 개인 계정으로도 문자 이용이 가능하므로 사업자 인증은 무조건 필수는 아니다. 사업자 계정과 명의/세금계산서가 필요하면 사업자 인증을 진행한다.
+2. 대표 본인 명의의 휴대전화 발신번호는 SOLAPI 콘솔에서 ARS 추가 인증 후 문자 본인인증 또는 통신서비스 이용증명원으로 등록한다. 사업자 명의 전화나 다른 사람 명의 번호는 별도 서류가 필요하다.
+3. SOLAPI 콘솔에서 API Key와 API Secret을 발급하고 문자 발송 권한을 확인한다.
+4. 최초 실명 인증 후 지급되는 300P가 남아 있다면 테스트 LMS에 사용할 수 있다. 잔액이 부족하면 충전이 필요하다. 카드 충전 공식 최소액은 1,000원이며 테스트 발송도 실제 요금 또는 포인트를 차감한다. 실제 계정의 단가와 잔액은 운영자가 콘솔에서 확인한다.
+5. 운영 Vercel 프로젝트의 **Production 전용 서버 환경변수**에 `SOLAPI_API_KEY`, `SOLAPI_API_SECRET`, `SOLAPI_SENDER_PHONE`, `SOLAPI_ADMIN_PHONE`을 민감값으로 입력한다. 번호는 발신 등록번호와 대표 수신번호를 각각 넣는다. 키·번호를 채팅이나 Git에 올리지 않는다. 모두 확인하고 실제 발송 테스트가 승인된 뒤 `SOLAPI_ENABLED=true`를 설정한다. Preview와 공개 데모에는 실제 값과 활성화 값을 넣지 않는다.
+
+## 개인정보·DB·배포 순서 (아직 실행하지 않음)
+
+1. 개인정보 처리방침에서 일반 상담의 보관·파기 기준, SOLAPI 처리 관계와 발송 내역 보관, 담당자 연락처, 시행일을 운영자가 승인한다. 승인 버전 값을 `BLUEPEACE_DIRECT_PRIVACY_VERSION=YYYY-MM-DD[-vN]`으로 Production에 등록한다. 값이 없으면 새 상담 API가 503을 반환한다.
+2. 운영 DB 변경 전 Supabase 백업 기능 또는 접근 권한이 있는 DB 백업 도구로 **스키마와 데이터 백업을 생성하고 복구 가능 여부를 확인**한다. 실제 고객 데이터의 복제본은 공개 데모나 공유 테스트 환경에 넣지 않는다.
+3. `20261104040000_direct_consultations.sql`을 운영 DB에 한 번 적용한다. 기존 행은 업데이트하지 않고 컬럼·이벤트·알림 테이블·함수·트리거를 추가한다. 적용 후 RLS·권한, 새 테이블/함수, 기존 고객·강사 행 수와 과거 매칭 조회를 확인한다. 실패하면 같은 배포를 진행하지 않고 적용 상태를 먼저 점검한다. 마이그레이션을 무작정 재실행하지 않는다.
+4. 먼저 운영 도메인에 영향을 주지 않는 미리보기에서 관리자 조회와 상담 저장 흐름을 재검증한다. 운영 배포 승인을 받은 후에만 운영 코드 전환과 Production 환경변수 활성화를 진행한다.
+5. 배포 직후 운영자의 합의된 **실제 상담 1건**으로 저장, 관리자 조회, 대표 LMS 수신, 상태 기록, 네이버 전환 1회, 수동 배정, 기존 매칭 화면을 확인한다. 테스트용 가짜 고객 신청은 운영 DB에 만들지 않는다.
+
+## 문제가 생겼을 때
+
+- SMS만 실패하면 `SOLAPI_ENABLED=false`로 신규 문자 발송을 중지한다. 상담 저장은 계속되고 관리자 화면의 알림 상태로 누락 건을 찾는다. 실패 또는 결과 불명 건을 무조건 재전송하지 않는다.
+- 상담 저장이나 관리자 기능이 실패하면 신규 상담 접수를 잠시 제한하고 운영 배포를 이전 안정 버전으로 되돌릴지 판단한다. 이전 코드가 새 직접 상담 상태를 이해하지 못하므로, 코드 롤백만으로 정상 운영 복구가 완료되지는 않는다.
+- 이미 저장된 직접 상담·알림 기록을 보존하기 위해 기본 복구에서 새 컬럼과 테이블을 삭제하지 않는다. DB 자체를 복원해야 한다면 백업 시각 이후 신청 유실 가능성을 먼저 산정하고 운영자가 결정한다.
+
+## 공식 자료
+
+- [SOLAPI API Key와 HMAC 인증](https://solapi.com/developers/api/authentication-api-key)
+- [메시지 발송 API와 접수 결과](https://solapi.com/developers/api/messages)
+- [발신번호 등록·명의 확인](https://solapi.com/guides/senderid)
+- [계정 유형](https://solapi.com/guides/account)
+- [충전·결제 최소액](https://solapi.com/guides/recharge-creditcard)
+- [충전금과 첫 인증 포인트](https://solapi.com/recharge)

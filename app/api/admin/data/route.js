@@ -42,7 +42,7 @@ export async function GET() {
     }
     const directIds = customerRows.filter(item => item.consultation_source === 'direct').map(item => item.id);
     const alertRows = directIds.length
-      ? await supabase.from('customer_direct_alerts').select('customer_id,status,attempts,updated_at').in('customer_id', directIds)
+      ? await supabase.from('customer_direct_alerts').select('customer_id,status,attempts,updated_at,provider_message_id,provider_group_id').in('customer_id', directIds)
       : { data: [], error: null };
     if (alertRows.error) return NextResponse.json({ error: '상담 알림 상태를 불러오지 못했습니다.' }, { status: 503 });
     const alertByCustomer = new Map((alertRows.data ?? []).map(item => [item.customer_id, item]));

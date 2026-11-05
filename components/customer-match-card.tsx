@@ -57,7 +57,7 @@ export type CustomerMatch = {
   interest_goal?: string | null;
   contact_window?: string | null;
   inquiry_text?: string | null;
-  direct_alert?: { status: string; attempts: number; updated_at: string } | null;
+  direct_alert?: { status: string; attempts: number; updated_at: string; provider_message_id?: string | null; provider_group_id?: string | null } | null;
   privacy_consent_version?: string | null;
   privacy_consent_at?: string | null;
   marketing_consent?: boolean;

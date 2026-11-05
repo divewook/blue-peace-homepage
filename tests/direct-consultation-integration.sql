@@ -30,6 +30,8 @@ do $$ begin
  if not public.claim_direct_consultation_alert('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa') then raise exception 'first alert claim failed'; end if;
  if public.claim_direct_consultation_alert('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa') then raise exception 'duplicate alert claim succeeded'; end if;
  if (select attempts from public.customer_direct_alerts where customer_id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')<>1 then raise exception 'duplicate alert attempt counted'; end if;
+ update public.customer_direct_alerts set status='unknown',last_error='provider_response_unknown' where customer_id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+ if public.claim_direct_consultation_alert('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa') then raise exception 'uncertain provider result retried automatically'; end if;
 end $$;
 
 -- Admin status, note, and task before an instructor is selected.

@@ -95,7 +95,10 @@ grant execute on function public.save_customer_direct_consultation(uuid,integer,
 -- Legacy matching applications do not create jobs.
 create table public.customer_direct_alerts (
   customer_id uuid primary key references public.customers(id) on delete cascade,
-  status text not null default 'pending' check (status in ('pending','sending','sent','failed','skipped')),
+  status text not null default 'pending' check (status in ('pending','sending','sent','failed','skipped','unknown')),
+  provider text,
+  provider_message_id text,
+  provider_group_id text,
   attempts integer not null default 0 check (attempts >= 0),
   last_error text,
   updated_at timestamptz not null default now()
