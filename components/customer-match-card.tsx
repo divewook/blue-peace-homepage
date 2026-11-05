@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { scheduleLabel } from '../lib/booking-options';
 import CustomerWorkPanel from './customer-work-panel';
 import AdminAssignmentDelivery from './admin-assignment-delivery';
+import DirectConsultationAdmin from './direct-consultation-admin';
+import { intakeStatuses } from '../lib/direct-consultation';
 import { consultationStatuses } from '../lib/customer-work';
 
 export type CustomerMatch = {
@@ -47,6 +49,18 @@ export type CustomerMatch = {
   past_unresolved_lesson_count?: number;
   closed_with_future_lesson?: boolean;
   reassigned_future_lesson_count?: number;
+  consultation_source?: string | null;
+  consultation_status?: string | null;
+  consultation_revision?: number;
+  interest_course_id?: string | null;
+  interest_level_id?: string | null;
+  interest_goal?: string | null;
+  contact_window?: string | null;
+  inquiry_text?: string | null;
+  direct_alert?: { status: string; attempts: number; updated_at: string } | null;
+  privacy_consent_version?: string | null;
+  privacy_consent_at?: string | null;
+  marketing_consent?: boolean;
 };
 
 function safeHost(url?: string) {
@@ -62,7 +76,7 @@ function safeLanding(url?: string) {
   } catch { return ''; }
 }
 
-export default function CustomerMatchCard({ customer, showAttribution = false, adminInstructor, onWorkChanged }: { customer: CustomerMatch; showAttribution?: boolean; adminInstructor?: { id: string; name: string; phone?: string | null }; onWorkChanged?: () => void }) {
+export default function CustomerMatchCard({ customer, showAttribution = false, adminInstructor, adminInstructors = [], onWorkChanged }: { customer: CustomerMatch; showAttribution?: boolean; adminInstructor?: { id: string; name: string; phone?: string | null }; adminInstructors?: Array<{ id:string; name:string; is_approved:boolean; course_levels?:Record<string,string|string[]>; can_passnine?:boolean; can_miryang?:boolean }>; onWorkChanged?: () => void }) {
   const [deleting, setDeleting] = useState(false);
   const [deleted, setDeleted] = useState(false);
   const [deleteError, setDeleteError] = useState('');
@@ -115,10 +129,10 @@ export default function CustomerMatchCard({ customer, showAttribution = false, a
           <dt className="text-xs font-bold text-slate-500">교육 과정</dt>
           <dd className="mt-1 font-semibold leading-6 text-slate-900">{customer.course}</dd>
         </div>
-        <div className="rounded-xl bg-white p-3 border border-slate-200">
+        {customer.consultation_source !== 'direct' && <div className="rounded-xl bg-white p-3 border border-slate-200">
           <dt className="text-xs font-bold text-slate-500">희망 요일 전체</dt>
           <dd className="mt-1 font-semibold text-slate-900">{days.length ? days.join(' · ') : '요일 정보 없음'}</dd>
-        </div>
+        </div>}
       </dl>
 
       {customer.youth_participant_count && (
@@ -128,7 +142,7 @@ export default function CustomerMatchCard({ customer, showAttribution = false, a
         </div>
       )}
 
-      <div className="mt-3 rounded-xl bg-white p-3 border border-slate-200">
+      {customer.consultation_source !== 'direct' && <div className="mt-3 rounded-xl bg-white p-3 border border-slate-200">
         <p className="text-xs font-bold text-slate-500">희망 일정</p>
         {customer.schedule_mode === 'flexible' ? (
           <p className="mt-2 font-semibold text-slate-900">상담 후 일정 협의</p>
@@ -147,11 +161,13 @@ export default function CustomerMatchCard({ customer, showAttribution = false, a
             ))}
           </div>
         )}
-      </div>
+      </div>}
       {customer.matched_schedule && <p className="mt-3 rounded-xl bg-cyan-50 p-3 text-sm font-semibold leading-6 text-cyan-900">배정 시 일치한 상담 가능 일정: {scheduleLabel(customer.matched_schedule)} · 실제 수업 예약은 상담 후 확정</p>}
 
+      {customer.consultation_source === 'direct' && <div className="mt-3 rounded-xl bg-white p-3 text-sm leading-6"><p className="font-bold text-slate-900">대표 직접 상담 · {intakeStatuses[customer.consultation_status as keyof typeof intakeStatuses] || '상태 미기록'}</p>{customer.contact_window && <p>연락 선호: {({morning:'오전',afternoon:'오후',evening:'저녁',anytime:'언제든 가능'} as Record<string,string>)[customer.contact_window] || '기록 없음'}</p>}{customer.inquiry_text && <p className="mt-2 whitespace-pre-wrap break-words">문의: {customer.inquiry_text}</p>}<p className="mt-2">필수 동의: {customer.privacy_consent_at ? `동의 · ${new Date(customer.privacy_consent_at).toLocaleString('ko-KR')} · ${customer.privacy_consent_version || '버전 미기록'}` : '기록 없음'}</p><p>광고 유입 분석 선택 동의: {customer.marketing_consent ? '동의' : '미동의'}</p></div>}
+
       <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3 text-base leading-7">
-        <p className="font-bold text-slate-900">상담: {customer.workflow?.status ? consultationStatuses[customer.workflow.status as keyof typeof consultationStatuses] : '진행 상태 미기록'}</p>
+        <p className="font-bold text-slate-900">{customer.consultation_source === 'direct' ? '배정 후 강사 업무' : '상담'}: {customer.workflow?.status ? consultationStatuses[customer.workflow.status as keyof typeof consultationStatuses] : '진행 상태 미기록'}</p>
         {customer.closed_with_future_lesson && <p className="font-semibold text-amber-900">종료된 상담에 미래 확정 수업이 남아 있습니다. 담당자와 일정을 확인해 주세요.</p>}
         {!!customer.past_unresolved_lesson_count && customer.workflow?.status !== 'closed' && <p className="font-semibold text-amber-900">지난 확정 수업 {customer.past_unresolved_lesson_count}건의 진행 여부를 확인하고 상담 상태를 정리해 주세요. 자동으로 완료되지 않습니다.</p>}
         {!!customer.reassigned_future_lesson_count && <p className="font-semibold text-amber-900">담당 변경 전 강사에게 연결된 미래 수업 {customer.reassigned_future_lesson_count}건이 남아 있습니다. 대표에게 확인해 주세요.</p>}
@@ -159,6 +175,7 @@ export default function CustomerMatchCard({ customer, showAttribution = false, a
         {customer.next_lesson && <p>가까운 확정 수업: {customer.next_lesson.lesson_date} {customer.next_lesson.start_time.slice(0, 5)}</p>}
       </div>
       <CustomerWorkPanel customerId={customer.id} onChanged={onWorkChanged} />
+      {showAttribution && customer.consultation_source === 'direct' && <DirectConsultationAdmin key={customer.consultation_revision ?? 0} customer={customer} alert={customer.direct_alert} instructors={adminInstructors} onChanged={onWorkChanged} />}
       {showAttribution && <AdminAssignmentDelivery customer={customer} instructor={adminInstructor} onChanged={onWorkChanged} />}
 
       {showAttribution && (

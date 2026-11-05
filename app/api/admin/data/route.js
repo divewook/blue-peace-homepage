@@ -11,7 +11,7 @@ export async function GET() {
     const supabase = createAdminSupabase();
     const instructors = await supabase
       .from("instructors")
-      .select("id,name,username,phone,is_approved,created_at")
+      .select("id,name,username,phone,is_approved,created_at,course_levels,can_passnine,can_miryang")
       .order("created_at", { ascending: false });
     if (instructors.error) {
       return NextResponse.json({ error: instructors.error.message }, { status: 500 });
@@ -40,9 +40,15 @@ export async function GET() {
           !deliveryByCustomer.has(event.customer_id)) deliveryByCustomer.set(event.customer_id, event);
       }
     }
+    const directIds = customerRows.filter(item => item.consultation_source === 'direct').map(item => item.id);
+    const alertRows = directIds.length
+      ? await supabase.from('customer_direct_alerts').select('customer_id,status,attempts,updated_at').in('customer_id', directIds)
+      : { data: [], error: null };
+    if (alertRows.error) return NextResponse.json({ error: '상담 알림 상태를 불러오지 못했습니다.' }, { status: 503 });
+    const alertByCustomer = new Map((alertRows.data ?? []).map(item => [item.customer_id, item]));
     const enriched = await enrichCustomerWork(supabase, customerRows);
     return NextResponse.json({ instructors: instructors.data ?? [],
-      customers: enriched.map(item => ({ ...item, delivery_event: deliveryByCustomer.get(item.id) ?? null })) },
+      customers: enriched.map(item => ({ ...item, delivery_event: deliveryByCustomer.get(item.id) ?? null, direct_alert: alertByCustomer.get(item.id) ?? null })) },
       { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 503 });

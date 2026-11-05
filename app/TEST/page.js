@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
@@ -122,10 +122,21 @@ export default function HomePage() {
   const [showAllInstructors, setShowAllInstructors] = useState(false); // 전체 강사진 보기 토글
   const [openFaq, setOpenFaq] = useState(null);
   const [selectedPhoto, setSelectedPhoto] = useState(null);
+  const lightboxCloseRef = useRef(null);
+  const lightboxTriggerRef = useRef(null);
+
+  const closeLightbox = () => {
+    setSelectedPhoto(null);
+    window.setTimeout(() => lightboxTriggerRef.current?.focus(), 0);
+  };
 
   // DB 데이터 불러오기 및 무작위 섞기
   useEffect(() => {
     const fetchData = async () => {
+      if (process.env.NEXT_PUBLIC_BLUEPEACE_PUBLIC_DEMO === 'true') {
+        setGalleryPhotos(defaultGalleryImages.slice(0, 8));
+        return;
+      }
       // 1. 강사 정보
       const instructorResponse = await fetch('/api/public/instructors', { cache: 'no-store' });
       const { instructors: insData = [] } = instructorResponse.ok ? await instructorResponse.json() : {};
@@ -152,16 +163,26 @@ export default function HomePage() {
 
   // Hero 이미지 자동 슬라이드 (5초 간격)
   useEffect(() => {
-    if (heroImages.length === 0) return;
+    if (heroImages.length === 0 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const timer = setInterval(() => setHeroIndex((i) => (i + 1) % heroImages.length), 5000);
     return () => clearInterval(timer);
   }, [heroImages]);
+
+  useEffect(() => {
+    if (!selectedPhoto) return;
+    const handleKeyDown = event => {
+      if (event.key === "Escape") closeLightbox();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    lightboxCloseRef.current?.focus();
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [selectedPhoto]);
 
   // 노출할 강사진 목록 (기본 4명 / 버튼 클릭 시 전체)
   const visibleInstructors = showAllInstructors ? instructors : instructors.slice(0, 4);
 
   return (
-    <main className="min-h-screen bg-slate-50 pb-24 text-slate-800 font-sans md:pb-0">
+    <main className="min-h-screen break-keep bg-slate-50 pb-24 text-slate-800 font-sans md:pb-0">
 
       {/* 모바일 화면에 완벽 반응하는 고급 GNB 헤더 */}
       <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-sm px-4 sm:px-8 py-3.5">
@@ -188,20 +209,20 @@ export default function HomePage() {
             대구·경북 다이빙 교육 상담
           </span>
           <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-slate-900 leading-[1.35]">
-            가능한 일정에 맞춰<br />
+            원하는 과정에 맞춰<br />
             <span className="text-cyan-600">다이빙 교육 강사</span>를 연결합니다.
           </h1>
-          <p className="text-sm text-slate-600 mt-4 leading-7 font-medium">
-            칠곡 패스나인과 밀양 아리랑 풀장을 중심으로 프리다이빙·유스·머메이드·스쿠버 등 과정을 상담합니다.<br />
-            과정과 가능한 일정을 먼저 확인한 뒤 상담을 거쳐 예약을 확정합니다.
-          </p>
+          <div className="mx-auto mt-4 max-w-xl space-y-2 text-base leading-7 text-slate-600 lg:mx-0">
+            <p>칠곡 패스나인과 밀양 아리랑 풀장을 중심으로 프리다이빙·유스·머메이드·스쿠버 과정을 상담합니다.</p>
+            <p>과정을 고른 뒤 상담을 신청하면 담당자가 연락해 일정과 장소를 조율합니다.</p>
+          </div>
 
           <div className="mt-8 flex justify-center lg:justify-start">
             <Link
               href="/TEST/inquiry"
               className="min-h-12 px-7 py-4 bg-cyan-600 hover:bg-cyan-500 text-white font-extrabold rounded-2xl text-sm transition shadow-lg shadow-cyan-600/25 flex items-center gap-2"
             >
-              <span>과정과 가능한 일정 선택하기</span>
+              <span>과정 선택 후 교육 상담 신청하기</span>
               <ArrowIcon />
             </Link>
           </div>
@@ -287,10 +308,10 @@ export default function HomePage() {
           <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-3">
             블루피스 강사진
           </h2>
-          <p className="text-xs sm:text-sm text-slate-600 mt-2 max-w-2xl mx-auto leading-relaxed font-medium">
-            현재 정책상 특정 강사를 먼저 지정하지 않고, 선택한 교육 과정·풀장·요일·시간을 교육할 수 있는 강사를 확인합니다.<br />
-            상담과 일정 조율을 마친 뒤 담당 강사와 예약이 확정됩니다.
-          </p>
+          <div className="mx-auto mt-3 max-w-2xl space-y-2 text-base leading-7 text-slate-600">
+            <p>현재는 특정 강사를 먼저 지정하지 않고, 선택한 과정과 일정 조건을 교육할 수 있는 강사를 확인합니다.</p>
+            <p>상담과 일정 조율을 마친 뒤 담당 강사와 예약이 확정됩니다.</p>
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5 mt-10">
             {visibleInstructors.map((ins) => (
@@ -345,13 +366,13 @@ export default function HomePage() {
             <div key={idx} className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
               <button
                 onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
-                className="w-full text-left flex justify-between items-center text-xs sm:text-sm font-bold text-slate-800"
+                className="flex min-h-12 w-full items-center justify-between gap-3 text-left text-base font-bold leading-6 text-slate-800"
               >
                 <span>Q. {faq.question}</span>
                 <span className="text-cyan-600 font-bold">{openFaq === idx ? '▲' : '▼'}</span>
               </button>
               {openFaq === idx && (
-                <p className="text-xs text-slate-600 mt-3 pt-3 border-t border-slate-100 leading-relaxed font-medium">
+                <p className="mt-3 border-t border-slate-100 pt-3 text-base font-medium leading-7 text-slate-600">
                   A. {faq.answer}
                 </p>
               )}
@@ -368,16 +389,18 @@ export default function HomePage() {
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
           {galleryPhotos.map((img, idx) => (
-            <div
+            <button
+              type="button"
               key={idx}
-              onClick={() => setSelectedPhoto(img.src)}
-              className="relative h-40 sm:h-52 rounded-2xl overflow-hidden border border-slate-200 cursor-pointer group shadow-sm bg-slate-100"
+              onClick={event => { lightboxTriggerRef.current = event.currentTarget; setSelectedPhoto(img.src); }}
+              className="group relative h-40 overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 sm:h-52"
+              aria-label={`${img.alt} 확대 보기`}
             >
               <Image src={img.src} alt={img.alt} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
               <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-xs text-white font-bold backdrop-blur-xs">
                 확대 보기 ↗
               </div>
-            </div>
+            </button>
           ))}
         </div>
       </section>
@@ -403,7 +426,7 @@ export default function HomePage() {
                     </span>
                   </div>
                   <h3 className="text-sm font-bold text-slate-900 mb-2">{rev.title}</h3>
-                  <p className="text-xs text-slate-600 leading-relaxed font-medium">&ldquo;{rev.quote}&rdquo;</p>
+                  <p className="text-sm font-medium leading-6 text-slate-600">&ldquo;{rev.quote}&rdquo;</p>
                 </div>
                 <p className="text-[11px] text-slate-400 mt-4 pt-3 border-t border-slate-200 text-right">
                   작성자: {rev.author} 님
@@ -434,7 +457,7 @@ export default function HomePage() {
             </span>
             <h2 className="text-2xl font-bold text-slate-900 mt-3">📍 블루피스 센터 찾아오시는 길</h2>
 
-            <div className="mt-6 space-y-4 text-xs sm:text-sm text-slate-700">
+            <div className="mt-6 space-y-4 text-sm leading-6 text-slate-700 sm:text-base sm:leading-7">
               <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-1 shadow-sm">
                 <p className="text-cyan-600 font-bold">🏠 센터 주소</p>
                 <p className="text-slate-900 font-semibold">{centerAddress}</p>
@@ -443,7 +466,7 @@ export default function HomePage() {
               <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-1 shadow-sm">
                 <p className="text-cyan-600 font-bold">🚗 주차 안내</p>
                 <p className="text-slate-600 leading-relaxed font-medium">
-                  센터 건물 전용 주차장 및 인근 골목 무료 주차가 상시 가능하므로 편하게 방문해 주시면 됩니다.
+                  주차 위치와 이용 가능 여부는 방문 시간에 따라 달라질 수 있으므로 상담 시 확인해 주세요.
                 </p>
               </div>
 
@@ -475,11 +498,15 @@ export default function HomePage() {
       {/* 수중 사진 큰 화면 모달 Lightbox */}
       {selectedPhoto && (
         <div
-          onClick={() => setSelectedPhoto(null)}
-          className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 cursor-pointer"
+          role="dialog"
+          aria-modal="true"
+          aria-label="수중 사진 확대 보기"
+          onMouseDown={event => { if (event.target === event.currentTarget) closeLightbox(); }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 p-4 backdrop-blur-sm"
         >
           <div className="relative max-w-4xl max-h-[85vh] w-full h-full">
             <Image src={selectedPhoto} alt="확대 사진" fill className="object-contain" />
+            <button ref={lightboxCloseRef} type="button" onClick={closeLightbox} className="absolute right-2 top-2 flex h-12 w-12 items-center justify-center rounded-full bg-white text-xl font-black text-slate-900 shadow-lg focus:outline-none focus:ring-2 focus:ring-cyan-400" aria-label="확대 사진 닫기">×</button>
           </div>
         </div>
       )}
@@ -488,7 +515,7 @@ export default function HomePage() {
       <footer className="border-t border-slate-200 bg-white py-10 px-4 text-center text-xs text-slate-500">
         <p className="font-bold text-slate-700 mb-1">{business.name} | 대표: {business.owner}</p>
         <p>사업자등록번호: {business.registration} | 주소: {centerAddress}</p>
-        <div className="mt-4 flex flex-wrap justify-center gap-4 text-sm font-bold"><Link href="/TEST/privacy" className="text-cyan-800 underline underline-offset-4">개인정보 처리 안내</Link><Link href="/TEST/terms" className="text-cyan-800 underline underline-offset-4">이용 안내</Link></div>
+        <div className="mt-4 flex flex-wrap justify-center gap-4 text-sm font-bold"><Link href="/privacy" className="text-cyan-800 underline underline-offset-4">개인정보 처리 안내</Link><Link href="/terms" className="text-cyan-800 underline underline-offset-4">이용 안내</Link></div>
         <p className="mt-4 text-xs text-slate-400">© BLUE PEACE. All rights reserved.</p>
       </footer>
 
@@ -497,7 +524,7 @@ export default function HomePage() {
           href="/TEST/inquiry"
           className="mx-auto flex min-h-12 max-w-md items-center justify-center rounded-2xl bg-cyan-600 px-5 text-base font-extrabold text-white shadow-lg shadow-cyan-600/20"
         >
-          과정과 가능한 일정 선택하기
+          과정 선택 후 교육 상담 신청하기
         </Link>
       </div>
 
