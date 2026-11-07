@@ -4,7 +4,8 @@
 
 - 운영 `main`의 메인 화면, 코스 카탈로그와 기존 `/api/matches`는 수정하지 않았다. 새로운 상담은 `/api/consultations`에서만 강사 미배정으로 저장한다.
 - 운영 Supabase의 마지막 적용 마이그레이션은 `20261021153011_add_naver_ad_attribution`이다. `20261104040000_direct_consultations.sql`은 아직 운영 DB에 없다. 운영 DB의 `customers`, `instructors`, `customer_workflows` 및 신규 마이그레이션이 참조하는 기존 컬럼은 읽기 전용 확인에서 존재했다.
-- 운영 Vercel에는 `SOLAPI_*`, `SOLAPI_ENABLED`, `BLUEPEACE_DIRECT_PRIVACY_VERSION`이 없다. 공개 데모에는 `BLUEPEACE_PUBLIC_DEMO=true`, `NEXT_PUBLIC_NAVER_WCS_ENABLED=false`, 모의 Supabase URL/키가 설정되어 있다.
+- 2026-11-07 확인: 운영 Vercel `blue-peace-homepage`에 `SOLAPI_API_KEY`, `SOLAPI_API_SECRET`, `SOLAPI_SENDER_PHONE`, `SOLAPI_ADMIN_PHONE`이 **Production 전용 sensitive 변수**로 등록되어 있다. 값은 열어보지 않았으므로 정확성과 실제 발송 성공은 아직 확인하지 않았다. `SOLAPI_ENABLED`, `BLUEPEACE_DIRECT_PRIVACY_VERSION`은 등록되지 않았다. 기존 운영 배포는 `main` 커밋 `8f7a6308f2bba6dd0f2fa6be699612bb24f4ee0e`이며 신규 직접 상담 기능이 적용되지 않았다.
+- 공개 데모에는 `BLUEPEACE_PUBLIC_DEMO=true`, `NEXT_PUBLIC_NAVER_WCS_ENABLED=false`, 모의 Supabase URL/키가 설정되어 있다.
 - `customer_direct_alerts`는 새 직접 상담 삽입과 같은 DB 트랜잭션에서 1건 생성한다. `pending -> sending` 원자적 claim을 통과한 요청만 업체에 전달한다. SOLAPI가 응답에 접수 성공을 명시한 경우에만 `sent`(업체 접수)로 기록하며, 단말기 수신 성공으로 해석하지 않는다.
 - 명확한 접수 실패는 `failed`, 미설정은 `skipped`, 응답 손실이나 서버 오류 등 결과 불명은 `unknown`으로 기록한다. `unknown`과 오래된 `sending`은 자동 재발송하지 않고 SOLAPI 발송 내역에서 먼저 대조한다. 관리자 재시도는 `pending`, `skipped`, `failed`에서만 허용된다. `failed` 재시도 전에는 업체 접수 여부 확인을 요구한다.
 
@@ -15,6 +16,17 @@
 3. SOLAPI 콘솔에서 API Key와 API Secret을 발급하고 문자 발송 권한을 확인한다.
 4. 최초 실명 인증 후 지급되는 300P가 남아 있다면 테스트 LMS에 사용할 수 있다. 잔액이 부족하면 충전이 필요하다. 카드 충전 공식 최소액은 1,000원이며 테스트 발송도 실제 요금 또는 포인트를 차감한다. 실제 계정의 단가와 잔액은 운영자가 콘솔에서 확인한다.
 5. 운영 Vercel 프로젝트의 **Production 전용 서버 환경변수**에 `SOLAPI_API_KEY`, `SOLAPI_API_SECRET`, `SOLAPI_SENDER_PHONE`, `SOLAPI_ADMIN_PHONE`을 민감값으로 입력한다. 번호는 발신 등록번호와 대표 수신번호를 각각 넣는다. 키·번호를 채팅이나 Git에 올리지 않는다. 모두 확인하고 실제 발송 테스트가 승인된 뒤 `SOLAPI_ENABLED=true`를 설정한다. Preview와 공개 데모에는 실제 값과 활성화 값을 넣지 않는다.
+
+현재 5번의 변수 **등록 여부만 확인**했다. 발신번호 최종 승인, API 키 만료일, 실제 계정 잔액과 값의 일치 여부는 SOLAPI 실발송 검증 전 확인해야 한다. SOLAPI에 실제 요청을 보내지 않았고 상담 신청 테스트를 운영 DB에 만들지 않았다.
+
+## 2026-11-07 배포 전 재검증
+
+- `node --test tests/*.test.mjs`: **39/39 통과**. SOLAPI 전송, 중복 방지, 고객·강사 일정과 권한 등 단위 검증 포함. 실제 SOLAPI 발송·운영 Supabase 통합 검증을 뜻하지 않는다.
+- `npm run lint`: **오류 0, 기존 이미지 태그 경고 4**.
+- `npm run build`: 작업 환경에 공개 Supabase 빌드 변수가 없어 첫 시도는 중단. 실제 DB와 연결되지 않는 빌드 전용 임시 URL·키로 재실행하여 **Next.js 빌드와 TypeScript 통과**. 운영 환경변수의 실제 유효성을 검증한 것은 아니다.
+- 운영 Supabase 마이그레이션 목록의 마지막 항목은 여전히 `20261021153011_add_naver_ad_attribution`이다. `20261104040000_direct_consultations.sql`은 **미적용**이며 운영 데이터는 변경하지 않았다.
+- 새 신청 화면은 `/privacy`로 연결되지만, 현재 문안에는 이전 풀장·요일·시간 수집 설명과 2026-10-27 시행일이 남아 있다. 직접 상담 신청의 실제 수집 항목, SOLAPI 위탁·발송 내역, 확정된 보관·파기 기간과 동의 버전에 맞춰 **운영자 승인 후 문안 갱신이 필요**하다. `docs/privacy-policy-approval-draft.md`는 검토 초안이다.
+- 운영 DB 백업 및 복구 가능성 확인, 마이그레이션 적용, 실제 문자 1건 수신 확인, 운영 배포는 아직 수행하지 않았다.
 
 ## 개인정보·DB·배포 순서 (아직 실행하지 않음)
 
