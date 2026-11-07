@@ -51,6 +51,7 @@ export type CustomerMatch = {
   reassigned_future_lesson_count?: number;
   consultation_source?: string | null;
   consultation_status?: string | null;
+  retention_review_after?: string | null;
   consultation_revision?: number;
   interest_course_id?: string | null;
   interest_level_id?: string | null;
@@ -164,7 +165,7 @@ export default function CustomerMatchCard({ customer, showAttribution = false, a
       </div>}
       {customer.matched_schedule && <p className="mt-3 rounded-xl bg-cyan-50 p-3 text-sm font-semibold leading-6 text-cyan-900">배정 시 일치한 상담 가능 일정: {scheduleLabel(customer.matched_schedule)} · 실제 수업 예약은 상담 후 확정</p>}
 
-      {customer.consultation_source === 'direct' && <div className="mt-3 rounded-xl bg-white p-3 text-sm leading-6"><p className="font-bold text-slate-900">대표 직접 상담 · {intakeStatuses[customer.consultation_status as keyof typeof intakeStatuses] || '상태 미기록'}</p>{customer.contact_window && <p>연락 선호: {({morning:'오전',afternoon:'오후',evening:'저녁',anytime:'언제든 가능'} as Record<string,string>)[customer.contact_window] || '기록 없음'}</p>}{customer.inquiry_text && <p className="mt-2 whitespace-pre-wrap break-words">문의: {customer.inquiry_text}</p>}<p className="mt-2">필수 동의: {customer.privacy_consent_at ? `동의 · ${new Date(customer.privacy_consent_at).toLocaleString('ko-KR')} · ${customer.privacy_consent_version || '버전 미기록'}` : '기록 없음'}</p><p>광고 유입 분석 선택 동의: {customer.marketing_consent ? '동의' : '미동의'}</p></div>}
+      {customer.consultation_source === 'direct' && <div className="mt-3 rounded-xl bg-white p-3 text-sm leading-6"><p className="font-bold text-slate-900">대표 직접 상담 · {intakeStatuses[customer.consultation_status as keyof typeof intakeStatuses] || '상태 미기록'}</p>{customer.contact_window && <p>연락 선호: {({morning:'오전',afternoon:'오후',evening:'저녁',anytime:'언제든 가능'} as Record<string,string>)[customer.contact_window] || '기록 없음'}</p>}{customer.inquiry_text && <p className="mt-2 whitespace-pre-wrap break-words">문의: {customer.inquiry_text}</p>}<p className="mt-2">필수 동의: {customer.privacy_consent_at ? `동의 · ${new Date(customer.privacy_consent_at).toLocaleString('ko-KR')} · ${customer.privacy_consent_version || '버전 미기록'}` : '기록 없음'}</p><p>광고 유입 분석 선택 동의: {customer.marketing_consent ? '동의' : '미동의'}</p>{customer.retention_review_after && <p className="mt-2 font-semibold text-amber-900">90일 보관 점검일: {new Date(customer.retention_review_after).toLocaleDateString('ko-KR')} · 삭제 전 교육 등록·수업·법정 보관 여부 확인</p>}</div>}
 
       <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3 text-base leading-7">
         <p className="font-bold text-slate-900">{customer.consultation_source === 'direct' ? '배정 후 강사 업무' : '상담'}: {customer.workflow?.status ? consultationStatuses[customer.workflow.status as keyof typeof consultationStatuses] : '진행 상태 미기록'}</p>

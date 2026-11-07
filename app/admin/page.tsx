@@ -44,6 +44,7 @@ interface CustomerLead {
   device_type?: string;
   consultation_source?: string | null;
   consultation_status?: string | null;
+  retention_review_after?: string | null;
 }
 
 export default function AdminDashboard() {
@@ -59,6 +60,8 @@ export default function AdminDashboard() {
   const [modalVisibleCount, setModalVisibleCount] = useState(10);
   const [showUndelivered, setShowUndelivered] = useState(false);
   const [showNewConsultations, setShowNewConsultations] = useState(false);
+  const [showRetentionReview, setShowRetentionReview] = useState(false);
+  const [reviewCutoff, setReviewCutoff] = useState(0);
 
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,6 +87,7 @@ export default function AdminDashboard() {
       if (!response.ok) throw new Error(result.error || '관리자 데이터를 불러오지 못했습니다.');
       setInstructors(result.instructors || []);
       setCustomers(result.customers || []);
+      setReviewCutoff(Date.now());
       setAdminDataError('');
     } catch (error) {
       setAdminDataError(error instanceof Error ? error.message : '관리자 데이터를 불러오지 못했습니다.');
@@ -133,7 +137,8 @@ export default function AdminDashboard() {
   const filteredCustomers = customers.filter(c => filterByPeriod(c.created_at));
   const undeliveredCustomers = customers.filter(c => c.matched_instructor_id && c.delivery_event?.action !== 'marked');
   const newConsultations = customers.filter(c => c.consultation_source === 'direct' && c.consultation_status === 'new');
-  const visibleApplications = showNewConsultations ? newConsultations : showUndelivered ? undeliveredCustomers : filteredCustomers;
+  const retentionReview = customers.filter(c => c.retention_review_after && new Date(c.retention_review_after).getTime() <= reviewCutoff);
+  const visibleApplications = showRetentionReview ? retentionReview : showNewConsultations ? newConsultations : showUndelivered ? undeliveredCustomers : filteredCustomers;
 
   const matchesInstructor = (customer: CustomerLead, instructor: Instructor) =>
     customer.matched_instructor_id === instructor.id
@@ -290,19 +295,24 @@ export default function AdminDashboard() {
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <h3 className="text-base font-bold text-slate-900">📋 고객 상담 신청 내역 ({visibleApplications.length}건)</h3>
               <button type="button" onClick={() => { void fetchAdminData(); }} className="min-h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm font-bold text-slate-800">신청 새로고침</button>
-              <button type="button" aria-pressed={showNewConsultations} onClick={() => { setShowNewConsultations(value => !value); setShowUndelivered(false); setVisibleCustomerCount(5); }} className={`min-h-11 rounded-xl border px-3 text-sm font-bold ${showNewConsultations ? 'border-teal-700 bg-teal-100 text-teal-950' : 'border-slate-300 bg-white text-slate-800'}`}>{showNewConsultations ? '✓ ' : ''}신규 상담 전체 {newConsultations.length}건</button>
-              <button type="button" aria-pressed={showUndelivered} onClick={() => { setShowUndelivered(value => !value); setShowNewConsultations(false); setVisibleCustomerCount(5); }}
+              <button type="button" aria-pressed={showNewConsultations} onClick={() => { setShowNewConsultations(value => !value); setShowUndelivered(false); setShowRetentionReview(false); setVisibleCustomerCount(5); }} className={`min-h-11 rounded-xl border px-3 text-sm font-bold ${showNewConsultations ? 'border-teal-700 bg-teal-100 text-teal-950' : 'border-slate-300 bg-white text-slate-800'}`}>{showNewConsultations ? '✓ ' : ''}신규 상담 전체 {newConsultations.length}건</button>
+              <button type="button" aria-pressed={showUndelivered} onClick={() => { setShowUndelivered(value => !value); setShowNewConsultations(false); setShowRetentionReview(false); setVisibleCustomerCount(5); }}
                 className={`min-h-11 rounded-xl border px-3 text-sm font-bold ${showUndelivered ? 'border-amber-700 bg-amber-100 text-amber-950' : 'border-slate-300 bg-white text-slate-800'}`}>
                 {showUndelivered ? '✓ ' : ''}미전달 전체 {undeliveredCustomers.length}건
               </button>
+              <button type="button" aria-pressed={showRetentionReview} onClick={() => { setShowRetentionReview(value => !value); setShowNewConsultations(false); setShowUndelivered(false); setVisibleCustomerCount(5); }}
+                className={`min-h-11 rounded-xl border px-3 text-sm font-bold ${showRetentionReview ? 'border-orange-700 bg-orange-100 text-orange-950' : 'border-slate-300 bg-white text-slate-800'}`}>
+                {showRetentionReview ? '✓ ' : ''}90일 보관 점검 전체 {retentionReview.length}건
+              </button>
             </div>
             {showUndelivered && <p className="mb-3 text-sm text-slate-600">접수 기간과 관계없이 현재 담당 강사에게 전달 완료 표시가 없는 신청입니다.</p>}
+            {showRetentionReview && <p className="mb-3 text-sm leading-6 text-slate-600">접수 기간과 관계없이 상담 종료·마지막 연락 중 늦은 날부터 90일이 지난 신청입니다. 자동 삭제되지 않습니다. 교육 등록·확정 수업·법정 보관 여부를 확인한 뒤 처리해 주세요.</p>}
             <div className="space-y-3">
               {visibleApplications.slice(0, visibleCustomerCount).map(cus => (
                 <CustomerMatchCard key={cus.id} customer={cus} showAttribution adminInstructors={instructors}
                   adminInstructor={instructors.find(ins => ins.id === cus.matched_instructor_id)} onWorkChanged={fetchAdminData} />
               ))}
-              {visibleApplications.length === 0 && <p className="rounded-xl bg-slate-50 p-5 text-center text-sm text-slate-600">{showNewConsultations ? '신규 상담 신청이 없습니다.' : showUndelivered ? '현재 담당 강사에게 미전달로 표시된 신청이 없습니다.' : '선택한 기간의 신청이 없습니다.'}</p>}
+              {visibleApplications.length === 0 && <p className="rounded-xl bg-slate-50 p-5 text-center text-sm text-slate-600">{showRetentionReview ? '현재 90일 보관 점검 대상이 없습니다.' : showNewConsultations ? '신규 상담 신청이 없습니다.' : showUndelivered ? '현재 담당 강사에게 미전달로 표시된 신청이 없습니다.' : '선택한 기간의 신청이 없습니다.'}</p>}
             </div>
             {visibleApplications.length > visibleCustomerCount && (
               <button
