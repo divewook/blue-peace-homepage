@@ -10,7 +10,7 @@ export default function PrivacyPage() {
       <article className="mx-auto max-w-3xl rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
         <p className="text-sm font-bold text-cyan-700">BLUE PEACE PRIVACY</p>
         <h1 className="mt-2 text-2xl font-black text-slate-950">개인정보 처리 안내</h1>
-        <p className="mt-3 text-base leading-7 text-slate-600">블루피스의 교육 상담 신청과 강사 배정 과정에서 처리하는 정보를 안내합니다.</p>
+        <p className="mt-3 text-base leading-7 text-slate-600">블루피스가 교육 상담을 접수하고 관리할 때 처리하는 정보를 안내합니다.</p>
 
         <div className="mt-8 space-y-8 text-base leading-7">
           <section>
@@ -21,13 +21,14 @@ export default function PrivacyPage() {
             </div>
           </section>
           <section>
-            <h2 className="font-black text-slate-950">이용 목적과 담당자 열람</h2>
-            <p className="mt-2">신청 내용은 교육 상담, 고객 연락, 과정·일정 협의와 필요한 경우 담당 강사 배정에 사용합니다. 새 교육 상담은 강사를 자동 배정하지 않으며, 대표 관리자가 확인한 뒤 필요하면 배정합니다.</p>
-            <p className="mt-2">관리자는 상담 업무에 필요한 신청 내용을 확인합니다. 강사는 로그인과 담당자 권한 확인 후 현재 자신에게 배정된 신청만 볼 수 있습니다. 담당 강사에게는 고객 성함·연락처·신청 과정·상담 대안 일정·연락 선호 시간·고객 문의사항 등 상담에 필요한 정보가 보일 수 있습니다. 광고 유입 정보와 관리자 내부 메모는 강사 조회 항목에서 제외합니다.</p>
+            <h2 className="font-black text-slate-950">상담 처리와 열람 범위</h2>
+            <p className="mt-2"><strong>새 교육 상담:</strong> 블루피스 대표가 신청을 확인하고 고객에게 직접 연락해 과정과 일정을 상담합니다. 접수와 동시에 강사를 배정하거나 강사에게 고객 정보를 보내지 않습니다. 일반 강사는 미배정 신규 상담 목록을 조회할 수 없습니다.</p>
+            <p className="mt-2">상담 후 대표가 교육 담당 강사를 직접 배정할 수 있습니다. 배정하면 해당 강사는 로그인 및 담당자 권한 확인 후 고객 성함·연락처·신청 과정·연락 선호 시간·고객 문의사항 등 교육과 상담에 필요한 신청 정보를 조회할 수 있습니다. 대표는 배정 전에 실제 제공 방식에 필요한 안내·동의 또는 처리 관계를 확인합니다. 광고 유입 정보와 관리자 내부 메모는 강사 조회 항목에서 제외합니다.</p>
+            <p className="mt-2"><strong>기존 일정 매칭 신청:</strong> 과거에 접수된 희망 일정과 강사 배정 기록은 당시의 상담 처리 내역으로 보존합니다. 새 상담 절차를 적용해 과거 신청 내용을 바꾸지 않습니다.</p>
           </section>
           <section>
             <h2 className="font-black text-slate-950">대표 문자 알림</h2>
-            <p className="mt-2">새 상담이 정상 접수되면 SOLAPI 문자 서비스를 통해 대표의 등록된 휴대전화로 접수 알림을 보낼 수 있습니다. 문자에는 고객 성함, 신청 과정, 연락 선호 시간만 포함하며 고객 휴대전화 번호와 문의사항·내부 메모는 넣지 않습니다. 문자 알림은 고객이나 강사에게 보내는 자동 안내가 아닙니다.</p>
+            <p className="mt-2">새 상담이 정상 접수되면 SOLAPI 문자 서비스를 통해 대표의 등록된 휴대전화로 접수 알림을 보냅니다. 문자에는 고객 성함, 신청 과정, 연락 선호 시간만 포함하며 고객 휴대전화 번호와 문의사항·내부 메모는 넣지 않습니다. 발송에 실패해도 상담 신청은 보존되며, 고객이나 강사에게 자동 안내 문자를 보내지 않습니다.</p>
             <p className="mt-2">블루피스의 상담 기록 보관 기간과 별개로, SOLAPI의 공식 안내에 따르면 2026년 8월 20일 이후 접수된 문자 발송 내역은 생성일부터 12개월 동안 조회할 수 있습니다. <a className="font-bold text-cyan-800 underline" href="https://solapi.com/developers/api/messages">SOLAPI 발송 내역 안내</a></p>
           </section>
           <section>
