@@ -4,6 +4,7 @@ export const metadata: Metadata = {
   title: '블루피스 테스트 페이지 | 운영 페이지 아님',
   description: '블루피스 홈페이지 개선안을 확인하는 별도 테스트 페이지입니다.',
   alternates: { canonical: '/TEST' },
+  verification: null,
   robots: {
     index: false,
     follow: false,

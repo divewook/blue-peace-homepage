@@ -5,6 +5,12 @@ import NaverTracking from "../components/naver-tracking";
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.bluepeace.co.kr";
 const siteTitle = "대구·경북 다이빙 교육 상담 | 블루피스 BLUE PEACE";
 const siteDescription = "대구·구미·칠곡·경산을 포함한 대구·경북권에서 프리다이빙, 스쿠버다이빙, 머메이드, 유스, 수중레저안전요원, 수중 사진 촬영, 응급처치·CPR 교육을 상담합니다.";
+const googleSiteVerification = process.env.GOOGLE_SITE_VERIFICATION?.trim();
+const naverSiteVerification = process.env.NAVER_SITE_VERIFICATION?.trim();
+const siteVerification = process.env.BLUEPEACE_PUBLIC_DEMO === "true" ? undefined : {
+  ...(googleSiteVerification ? { google: googleSiteVerification } : {}),
+  ...(naverSiteVerification ? { other: { "naver-site-verification": naverSiteVerification } } : {}),
+};
 
 const localBusinessData = {
   "@context": "https://schema.org",
@@ -31,6 +37,7 @@ export const metadata = {
   description: siteDescription,
   alternates: { canonical: "/" },
   robots: { index: true, follow: true },
+  verification: siteVerification,
   openGraph: {
     type: "website",
     url: siteUrl,
