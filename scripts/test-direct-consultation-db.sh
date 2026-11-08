@@ -25,7 +25,7 @@ files=(
   supabase/migrations/20261020142741_manual_assignment_delivery.sql
   supabase/migrations/20261020143820_serialize_delivery_retries.sql
   supabase/migrations/20261021153011_add_naver_ad_attribution.sql
-  supabase/migrations/20261104040000_direct_consultations.sql
+  supabase/migrations/20261108054503_direct_consultations.sql
   tests/direct-consultation-integration.sql
 )
 for sql_file in "${files[@]}"; do

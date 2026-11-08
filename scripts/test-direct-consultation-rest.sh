@@ -30,7 +30,7 @@ for sql_file in \
   supabase/migrations/20261020142741_manual_assignment_delivery.sql \
   supabase/migrations/20261020143820_serialize_delivery_retries.sql \
   supabase/migrations/20261021153011_add_naver_ad_attribution.sql \
-  supabase/migrations/20261104040000_direct_consultations.sql; do
+  supabase/migrations/20261108054503_direct_consultations.sql; do
   docker exec -i "$test_pg" psql -U postgres -d bluepeace_test -v ON_ERROR_STOP=1 >/dev/null < "$sql_file"
 done
 docker exec -i "$test_pg" psql -U postgres -d bluepeace_test -v ON_ERROR_STOP=1 >/dev/null <<'SQL'
