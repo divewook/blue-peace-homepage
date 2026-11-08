@@ -1,6 +1,10 @@
 import Link from 'next/link';
 
-export const metadata = { title: '개인정보 처리 안내 | 블루피스' };
+export const metadata = {
+  title: '개인정보 처리 안내 | 블루피스',
+  description: '블루피스 교육 상담 신청의 개인정보 수집 항목, 이용 목적, 보관 기준과 문의 방법을 안내합니다.',
+  alternates: { canonical: '/privacy' },
+};
 
 export default function PrivacyPage() {
   const directPolicyVersion = process.env.BLUEPEACE_DIRECT_PRIVACY_VERSION;

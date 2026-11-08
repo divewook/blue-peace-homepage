@@ -6,6 +6,7 @@ import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 import ExpandableText from "../components/expandable-text";
 import { courseCatalog } from "../lib/booking-options";
+import { courseDetailLinks } from "../lib/seo-courses";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -24,6 +25,12 @@ const defaultHeroImages = [
   "/DSC05353-Enhanced-NR.jpg",
   "/DSC06986.jpg",
 ];
+
+const heroAltBySrc = {
+  "/DSC04128-Enhanced-NR.jpg": "풀장에서 줄을 잡고 수중 연습하는 프리다이버",
+  "/DSC05353-Enhanced-NR.jpg": "바다에서 프리다이빙과 스쿠버다이빙을 즐기는 다이버들",
+  "/DSC06986.jpg": "수중에서 포즈를 취하는 다이버",
+};
 
 // 기본 백업용 갤러리 이미지 (Admin 등록 이미지가 없을 때 동작)
 const defaultGalleryImages = [
@@ -65,9 +72,9 @@ const placeReviews = [
 ];
 
 const trustStats = [
-  { value: "6개 분야", label: "교육 과정 상담" },
-  { value: "2개 풀장", label: "현재 일정 선택 가능" },
-  { value: "일정·장소", label: "조건 확인 후 강사 연결" },
+  { value: "7개 분야", label: "교육 과정 상담" },
+  { value: "2개 풀장", label: "이용 조건 상담" },
+  { value: "대표 상담", label: "과정·일정 직접 조율" },
   { value: "상담 후", label: "예약과 비용 최종 확정" },
 ];
 
@@ -205,12 +212,12 @@ export default function HomePage() {
             대구·경북 다이빙 교육 상담
           </span>
           <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-slate-900 leading-[1.35]">
-            가능한 일정에 맞춰<br />
-            <span className="text-cyan-600">다이빙 교육 강사</span>를 연결합니다.
+            원하는 수중 교육을 찾고<br />
+            <span className="text-cyan-600">대표와 직접 상담</span>하세요.
           </h1>
           <div className="mx-auto mt-4 max-w-xl space-y-2 text-base leading-7 text-slate-600 lg:mx-0">
-            <p>칠곡 패스나인과 밀양 아리랑 풀장을 중심으로 프리다이빙·유스·머메이드·스쿠버 과정을 상담합니다.</p>
-            <p>과정과 가능한 일정을 먼저 확인한 뒤, 상담과 일정 조율을 거쳐 예약을 확정합니다.</p>
+            <p>대구·구미·칠곡·경산을 포함한 대구·경북권에서 프리다이빙·스쿠버·머메이드 등 다양한 수중레저 교육을 상담합니다.</p>
+            <p>교육과정을 선택해 신청하면 대표가 직접 연락해 장소와 일정을 조율합니다. 상담 신청만으로 예약이 확정되지는 않습니다.</p>
           </div>
 
           <div className="mt-8 flex justify-center lg:justify-start">
@@ -218,7 +225,7 @@ export default function HomePage() {
               href="/inquiry"
               className="min-h-12 px-7 py-4 bg-cyan-600 hover:bg-cyan-500 text-white font-extrabold rounded-2xl text-sm transition shadow-lg shadow-cyan-600/25 flex items-center gap-2"
             >
-              <span>과정과 가능한 일정 선택하기</span>
+              <span>과정 선택하고 상담 신청하기</span>
               <ArrowIcon />
             </Link>
           </div>
@@ -233,7 +240,7 @@ export default function HomePage() {
                 heroIndex === index ? "opacity-100" : "opacity-0"
               }`}
             >
-              <Image src={src} alt="블루피스 메인 사진" fill className="object-cover" priority={index === 0} />
+              <Image src={src} alt={heroAltBySrc[src] || "블루피스 실제 수중 촬영 사진"} fill sizes="(min-width: 1024px) 50vw, (min-width: 640px) 80vw, 100vw" className="object-cover" priority={index === 0} />
             </div>
           ))}
         </div>
@@ -282,6 +289,13 @@ export default function HomePage() {
               </div>
 
               <div className="mt-6 pt-4 border-t border-slate-100">
+                <div className="mb-3 flex flex-wrap gap-x-4 gap-y-2">
+                  {(courseDetailLinks[cat.id] || []).map(link => (
+                    <Link key={link.slug} href={`/courses/${link.slug}`} className="inline-flex min-h-11 items-center text-sm font-bold text-cyan-800 underline underline-offset-4 hover:text-cyan-950">
+                      {link.label}
+                    </Link>
+                  ))}
+                </div>
                 <Link
                   href={`/inquiry?course=${cat.id}`}
                   className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-base font-bold text-white transition hover:bg-cyan-700"
@@ -305,8 +319,8 @@ export default function HomePage() {
             블루피스 강사진
           </h2>
           <div className="mx-auto mt-3 max-w-2xl space-y-2 text-base leading-7 text-slate-600">
-            <p>현재는 특정 강사를 먼저 지정하지 않고, 선택한 과정과 일정 조건을 교육할 수 있는 강사를 확인합니다.</p>
-            <p>상담과 일정 조율을 마친 뒤 담당 강사와 예약이 확정됩니다.</p>
+            <p>신규 상담은 대표가 직접 확인합니다. 신청과 동시에 강사가 자동 배정되지는 않습니다.</p>
+            <p>상담 후 필요한 경우 교육 분야와 일정을 고려해 담당 강사를 지정합니다.</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5 mt-10">
@@ -392,7 +406,7 @@ export default function HomePage() {
               className="group relative h-40 overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 sm:h-52"
               aria-label={`${img.alt} 확대 보기`}
             >
-              <Image src={img.src} alt={img.alt} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
+              <Image src={img.src} alt={img.alt} fill sizes="(min-width: 768px) 25vw, (min-width: 640px) 33vw, 50vw" className="object-cover group-hover:scale-105 transition-transform duration-500" />
               <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-xs text-white font-bold backdrop-blur-xs">
                 확대 보기 ↗
               </div>
@@ -501,7 +515,7 @@ export default function HomePage() {
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 p-4 backdrop-blur-sm"
         >
           <div className="relative max-w-4xl max-h-[85vh] w-full h-full">
-            <Image src={selectedPhoto} alt="확대 사진" fill className="object-contain" />
+            <Image src={selectedPhoto} alt="확대한 블루피스 수중 촬영 사진" fill sizes="100vw" className="object-contain" />
             <button ref={lightboxCloseRef} type="button" onClick={closeLightbox} className="absolute right-2 top-2 flex h-12 w-12 items-center justify-center rounded-full bg-white text-xl font-black text-slate-900 shadow-lg focus:outline-none focus:ring-2 focus:ring-cyan-400" aria-label="확대 사진 닫기">×</button>
           </div>
         </div>
@@ -520,7 +534,7 @@ export default function HomePage() {
           href="/inquiry"
           className="mx-auto flex min-h-12 max-w-md items-center justify-center rounded-2xl bg-cyan-600 px-5 text-base font-extrabold text-white shadow-lg shadow-cyan-600/20"
         >
-          과정과 가능한 일정 선택하기
+          과정 선택하고 상담 신청하기
         </Link>
       </div>
 

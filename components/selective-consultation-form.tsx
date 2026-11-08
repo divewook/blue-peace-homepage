@@ -50,10 +50,13 @@ function Form({demo}: {demo:boolean}) {
     // explicitly requested category. Never restore a stale course as a choice.
     const nextCourse = queryCourse || 'unsure';
     setCourseId(nextCourse || 'unsure');
-    if (draft?.courseId === nextCourse && (draft.levelId === 'consult' || getCourse(nextCourse)?.levels.some(level => level.id === draft?.levelId))) {
+    const queryLevel = searchParams.get('level');
+    if (queryCourse && queryLevel && getCourse(nextCourse)?.levels.some(level => level.id === queryLevel)) {
+      setLevelId(queryLevel);
+    } else if (draft?.courseId === nextCourse && (draft.levelId === 'consult' || getCourse(nextCourse)?.levels.some(level => level.id === draft?.levelId))) {
       setLevelId(draft.levelId || '');
-      if (nextCourse === 'youth') { setYouthCount(draft.youthCount || ''); setYouthAges(draft.youthAges || ''); }
     }
+    if (nextCourse === 'youth' && draft?.courseId === nextCourse) { setYouthCount(draft.youthCount || ''); setYouthAges(draft.youthAges || ''); }
     try {
       const key=sessionStorage.getItem('bluepeace_direct_request_key') || crypto.randomUUID();
       sessionStorage.setItem('bluepeace_direct_request_key',key);
