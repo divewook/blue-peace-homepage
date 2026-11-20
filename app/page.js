@@ -6,6 +6,7 @@ import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 import ExpandableText from "../components/expandable-text";
 import { courseCatalog } from "../lib/booking-options";
+import { centerPhone, centerPhoneHref } from "../lib/center-contact";
 import { courseDetailLinks } from "../lib/seo-courses";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -525,6 +526,7 @@ export default function HomePage() {
       <footer className="border-t border-slate-200 bg-white py-10 px-4 text-center text-xs text-slate-500">
         <p className="font-bold text-slate-700 mb-1">{business.name} | 대표: {business.owner}</p>
         <p>사업자등록번호: {business.registration} | 주소: {centerAddress}</p>
+        <p className="mt-3 text-sm">교육 문의 <a href={centerPhoneHref} className="inline-block py-2 font-bold text-cyan-800 underline underline-offset-4">{centerPhone}</a></p>
         <div className="mt-4 flex flex-wrap justify-center gap-4 text-sm font-bold"><Link href="/privacy" className="text-cyan-800 underline underline-offset-4">개인정보 처리 안내</Link><Link href="/terms" className="text-cyan-800 underline underline-offset-4">이용 안내</Link></div>
         <p className="mt-4 text-xs text-slate-400">© BLUE PEACE. All rights reserved.</p>
       </footer>
