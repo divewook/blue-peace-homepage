@@ -54,3 +54,26 @@ test('definite registration failures can be retried; transport and server ambigu
   assert.equal((await sendSolapiConsultationSms(lead,{env,fetchImpl:async()=>{throw Error('timeout')}})).status,'unknown');
   assert.equal((await sendSolapiConsultationSms(lead,{env,fetchImpl:async()=>jsonResponse({})})).status,'unknown');
 });
+
+test('nationwide service numbers are allowed only as SOLAPI senders', async () => {
+  let sentMessages = 0;
+  const fetchImpl = async (_url, options) => {
+    sentMessages++;
+    const { messages: [message] } = JSON.parse(options.body);
+    assert.equal(message.from, '15440000');
+    assert.equal(message.to, '01099998888');
+    return jsonResponse(fakeResult);
+  };
+
+  const nationwideSender = { ...env, SOLAPI_SENDER_PHONE: '1544-0000' };
+  assert.equal((await sendSolapiConsultationSms(lead, { env: nationwideSender, fetchImpl })).status, 'sent');
+  assert.equal((await sendSolapiConsultationSms(lead, {
+    env: { ...nationwideSender, SOLAPI_ADMIN_PHONE: '1544-0000' },
+    fetchImpl,
+  })).status, 'skipped');
+  assert.equal((await sendSolapiConsultationSms(lead, {
+    env: { ...env, SOLAPI_SENDER_PHONE: '1544-000' },
+    fetchImpl,
+  })).status, 'skipped');
+  assert.equal(sentMessages, 1);
+});
