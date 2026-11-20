@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { getMarketingAttribution } from './marketing-attribution';
 import { getNaverTrackingConsent, reportNaverLeadOnce, setNaverTrackingConsent } from '../lib/naver-lead-conversion';
 import { courseCatalog, getCourse } from '../lib/booking-options';
+import { centerPhone, centerPhoneHref } from '../lib/center-contact';
 
 type ErrorMap = Record<string, string>;
 const courseParamMap: Record<string, string> = { freediving:'freediving', youth:'youth', safety:'safety', mermaid:'mermaid', scuba:'scuba', special:'special' };
@@ -126,6 +127,7 @@ function Form({demo}: {demo:boolean}) {
   return <main className="min-h-screen break-keep bg-slate-50 px-3 pb-28 pt-5 text-slate-800 sm:px-6 sm:py-10"><div className="mx-auto max-w-3xl">
     <div className="mb-5 flex items-center justify-between gap-3"><Link href={home} className="text-sm font-bold text-cyan-800">← 블루피스 홈</Link><span className="rounded-full bg-cyan-100 px-3 py-1 text-sm font-bold text-cyan-900">교육 상담 신청 · 예약 확정 전</span></div>
     <header><p className="text-sm font-bold text-cyan-700">BLUE PEACE CONSULTATION</p><h1 className="mt-2 text-2xl font-black leading-9 text-slate-950 sm:text-3xl">과정을 고르고 상담을 신청해 주세요.</h1><p className="mt-2 text-base leading-7 text-slate-600">상담 후 풀장과 일정을 함께 정합니다. 지금 수업이 예약되거나 결제되는 것은 아닙니다.</p></header>
+    {!demo && <p className="mt-2 text-sm text-slate-600">전화 상담 <a href={centerPhoneHref} className="inline-block py-2 font-bold text-cyan-800 underline underline-offset-4">{centerPhone}</a></p>}
     <nav aria-label="상담 신청 진행 단계" className="mt-7 grid grid-cols-2 gap-2">{[['1','과정 선택'],['2','연락처·동의']].map(([id,label])=><button key={id} type="button" disabled={Number(id)>step} onClick={()=>Number(id)<step&&setStep(Number(id))} aria-current={step===Number(id)?'step':undefined} className={`min-h-14 rounded-xl border px-2 py-2 text-sm font-bold ${step===Number(id)?'border-cyan-700 bg-cyan-700 text-white':Number(id)<step?'border-cyan-200 bg-cyan-50 text-cyan-900':'border-slate-200 bg-white text-slate-500'}`}>{id}/2 · {label}</button>)}</nav>
     <form onSubmit={submit} className="mt-5 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-7">
       {step === 1 && <section aria-labelledby="step-course-title">

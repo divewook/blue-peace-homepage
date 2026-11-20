@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { centerPhone, centerPhoneHref } from '../../lib/center-contact';
 
 export const metadata = {
   title: '개인정보 처리 안내 | 블루피스',
@@ -49,7 +50,7 @@ export default function PrivacyPage() {
             <h2 className="font-black text-slate-950">열람·정정·삭제·동의 철회 요청</h2>
             <p className="mt-2">본인의 정보에 관한 요청은 아래 연락처로 접수해 주세요. 본인 여부와 법령상 보관 필요성을 확인한 뒤 처리 결과를 안내합니다.</p>
             <p className="mt-2">개인정보 문의 담당자: 대표 김상욱</p>
-            <p>전화: <a className="font-bold text-cyan-800 underline" href="tel:01098978990">010-9897-8990</a></p>
+            <p>전화: <a className="font-bold text-cyan-800 underline" href={centerPhoneHref}>{centerPhone}</a></p>
             <p>이메일: <a className="font-bold text-cyan-800 underline" href="mailto:divewook@naver.com">divewook@naver.com</a></p>
           </section>
           <section>

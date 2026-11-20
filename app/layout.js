@@ -1,6 +1,7 @@
 import "./globals.css";
 import MarketingAttributionTracker from "../components/marketing-attribution";
 import NaverTracking from "../components/naver-tracking";
+import { centerPhone } from "../lib/center-contact";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.bluepeace.co.kr";
 const siteTitle = "대구·경북 다이빙 교육 상담 | 블루피스 BLUE PEACE";
@@ -18,7 +19,7 @@ const localBusinessData = {
   name: "블루피스 BLUE PEACE",
   url: siteUrl,
   description: siteDescription,
-  telephone: "+82-10-9897-8990",
+  telephone: centerPhone,
   email: "divewook@naver.com",
   address: {
     "@type": "PostalAddress",
